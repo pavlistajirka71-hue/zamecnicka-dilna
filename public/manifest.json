@@ -1,0 +1,9 @@
+{
+  "name": "Dílna — Zakázky",
+  "short_name": "Dílna",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EDEAE2",
+  "theme_color": "#243A4E",
+  "icons": []
+}
