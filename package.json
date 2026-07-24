@@ -1,22 +1,18 @@
-{
-  "name": "zamecnictvi-app",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "drive.google.com",
+      },
+    ],
   },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.45.4",
-    "lucide-react": "^0.383.0",
-    "next": "^14.2.5",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "eslint": "^8.57.0",
-    "eslint-config-next": "^14.2.5"
-  }
-}
+};
+
+module.exports = nextConfig;
