@@ -1,5 +1,9 @@
-node_modules
-.next
-.env.local
-.vercel
-*.log
+json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
+}
