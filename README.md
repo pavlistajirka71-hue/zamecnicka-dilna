@@ -111,15 +111,21 @@ Appka teď ukládá fotky (účtenky, fotodokumentace práce, podpisy z protokol
 2. V projektu zapni **Google Drive API**: menu → APIs & Services → Library → najdi "Google Drive API" → **Enable**
 3. Založ **servisní účet** (Service Account): APIs & Services → Credentials → **Create Credentials → Service Account** → pojmenuj ho (např. "dilna-uploader") → Create and Continue → Done
 4. U vytvořeného servisního účtu: záložka **Keys → Add Key → Create new key → JSON** → stáhne se soubor s klíčem
-5. V tom JSON souboru najdeš:
-   - `client_email` → to je `GOOGLE_SERVICE_ACCOUNT_EMAIL`
-   - `private_key` → to je `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` (zkopíruj **celou hodnotu i s `\n` uvnitř**, přesně jak je v souboru)
-6. Na svém **běžném Google Drive** (ne servisní účet) založ novou složku, např. "Dílna — fotky"
-7. Tu složku **sdílej** s e-mailem servisního účtu (ten z bodu 5, končí na `...iam.gserviceaccount.com`) s právem **Editor**
-8. Otevři tu složku v prohlížeči a z URL adresy zkopíruj ID složky — je to část za posledním `/`, např. `https://drive.google.com/drive/folders/`**`1a2B3c4D5e...`** → to je `GOOGLE_DRIVE_FOLDER_ID`
-9. Všechny tři hodnoty (`GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, `GOOGLE_DRIVE_FOLDER_ID`) přidej do `.env.local` (lokálně) a do Vercel Environment Variables (nasazení)
+5. Na svém **běžném Google Drive** (ne servisní účet) založ novou složku, např. "Dílna — fotky"
+6. Tu složku **sdílej** s e-mailem servisního účtu (najdeš ho v JSON souboru jako `client_email`, končí na `...iam.gserviceaccount.com`) s právem **Editor**
+7. Otevři tu složku v prohlížeči a z URL adresy zkopíruj ID složky — je to část za posledním `/`, např. `https://drive.google.com/drive/folders/`**`1a2B3c4D5e...`** → to je `GOOGLE_DRIVE_FOLDER_ID`
 
-**Bezpečnost:** servisní účet má přístup **jen** k té jedné sdílené složce (a čemukoliv dalšímu, co mu výslovně nasdílíš) — ne k celému tvému Google Drive. Klíč (`GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`) je jen na serveru, nikdy v `NEXT_PUBLIC_*` proměnné ani v prohlížeči.
+### Přidání do appky — nejspolehlivější varianta
+
+Stažený `.json` soubor otevři v **Poznámkovém bloku** (ne ve Wordu), **označ úplně všechno** (od první `{` po poslední `}`) a zkopíruj. Tohle vlož jako hodnotu proměnné **`GOOGLE_SERVICE_ACCOUNT_JSON`** — jedna proměnná, celý soubor, nic se nemusí ručně vystřihávat z prostředka textu, což je nejčastější zdroj chyb.
+
+Do `.env.local` (lokálně) a Vercel Environment Variables (nasazení) přidej celkem dvě proměnné:
+- `GOOGLE_SERVICE_ACCOUNT_JSON` — celý obsah staženého souboru
+- `GOOGLE_DRIVE_FOLDER_ID` — ID složky z bodu 7
+
+(Appka podporuje i starší variantu se dvěma zvlášť zkopírovanými proměnnými `GOOGLE_SERVICE_ACCOUNT_EMAIL` a `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, ale je náchylnější na chybu při ručním kopírování — použij ji, jen pokud `GOOGLE_SERVICE_ACCOUNT_JSON` z nějakého důvodu nechceš.)
+
+**Bezpečnost:** servisní účet má přístup **jen** k té jedné sdílené složce (a čemukoliv dalšímu, co mu výslovně nasdílíš) — ne k celému tvému Google Drive. Tenhle klíč je jen na serveru, nikdy v `NEXT_PUBLIC_*` proměnné ani v prohlížeči.
 
 **Sdílení fotek:** appka po nahrání každou fotku nastaví na "kdokoliv s odkazem může zobrazit" (jinak by appka neuměla fotky zobrazovat bez opakovaného přihlašování každého člena týmu ke Google). Fotky nejsou nikde veřejně vypsané/indexované — najde je jen ten, kdo zná přesný odkaz z appky.
 
