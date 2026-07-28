@@ -8,6 +8,12 @@ export function useSignedUrl(bucket, path) {
   useEffect(() => {
     let active = true;
     if (!path) return;
+    // Nové fotky mají path rovnou jako plnou URL (Google Drive) — není co podepisovat.
+    // Staré fotky (nahrané před zapnutím Drive) mají jen cestu v Supabase Storage.
+    if (path.startsWith("http")) {
+      setUrl(path);
+      return;
+    }
     supabase.storage
       .from(bucket)
       .createSignedUrl(path, 3600)

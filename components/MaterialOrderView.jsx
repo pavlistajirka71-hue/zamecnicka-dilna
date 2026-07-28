@@ -1,24 +1,38 @@
 "use client";
 import { useMemo, useState } from "react";
 import { X, Printer, Copy, Check } from "lucide-react";
-import { C, FONTS, fmtDate, todayISO } from "@/lib/theme";
+import { C, FONTS, normalizovatKalkulaci, fmtDate, todayISO } from "@/lib/theme";
 import { Button } from "./ui";
 
-function groupBySupplier(materialy) {
-  const groups = new Map();
-  materialy.forEach((m) => {
-    if (!m.nazev) return;
-    const key = m.dodavatel && m.dodavatel.trim() ? m.dodavatel.trim() : "Bez uvedeného dodavatele";
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(m);
+// Sebere materiál ze všech položek kalkulace, seskupí podle dodavatele a stejné
+// materiály (stejný název + jednotka) napříč položkami sečte do jednoho řádku.
+function sestavitPoptavku(polozky) {
+  const bySupplier = new Map();
+
+  polozky.forEach((p) => {
+    (p.materialy || []).forEach((m) => {
+      if (!m.nazev) return;
+      const dodavatel = m.dodavatel && m.dodavatel.trim() ? m.dodavatel.trim() : "Bez uvedeného dodavatele";
+      const key = `${m.nazev.trim().toLowerCase()}|${m.jednotka || ""}`;
+      if (!bySupplier.has(dodavatel)) bySupplier.set(dodavatel, new Map());
+      const items = bySupplier.get(dodavatel);
+      const mnozstvi = Number(m.mnozstvi) || 0;
+      if (!items.has(key)) {
+        items.set(key, { nazev: m.nazev, jednotka: m.jednotka || "", mnozstvi: 0, zPolozek: [] });
+      }
+      const entry = items.get(key);
+      entry.mnozstvi += mnozstvi;
+      entry.zPolozek.push({ nazev: p.nazev || "Položka", mnozstvi });
+    });
   });
-  return Array.from(groups.entries());
+
+  return Array.from(bySupplier.entries()).map(([dodavatel, items]) => [dodavatel, Array.from(items.values())]);
 }
 
 export default function MaterialOrderView({ order, onClose }) {
   const [copied, setCopied] = useState(false);
-  const materialy = (order.kalkulace && order.kalkulace.materialy) || [];
-  const groups = useMemo(() => groupBySupplier(materialy), [materialy]);
+  const polozky = normalizovatKalkulaci(order.kalkulace);
+  const groups = useMemo(() => sestavitPoptavku(polozky), [polozky]);
 
   const asText = () => {
     let out = `POPTÁVKA MATERIÁLU\nReference: ${order.cislo}\nDatum: ${fmtDate(todayISO())}\n\n`;
@@ -86,17 +100,22 @@ export default function MaterialOrderView({ order, onClose }) {
                 <div
                   key={i}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
                     padding: "10px 14px",
                     borderTop: i > 0 ? `1px solid ${C.line}` : "none",
                     fontSize: 14,
                   }}
                 >
-                  <span>{m.nazev}</span>
-                  <span style={{ fontFamily: FONTS.mono, fontWeight: 600 }}>
-                    {m.mnozstvi || 0} {m.jednotka || ""}
-                  </span>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>{m.nazev}</span>
+                    <span style={{ fontFamily: FONTS.mono, fontWeight: 600 }}>
+                      {m.mnozstvi || 0} {m.jednotka || ""}
+                    </span>
+                  </div>
+                  {m.zPolozek.length > 1 && (
+                    <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 2 }}>
+                      {m.zPolozek.map((z, zi) => `${z.nazev}: ${z.mnozstvi} ${m.jednotka || ""}`).join(" · ")}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { nahratFotkuNaServeru } from "@/lib/photoUpload";
 
 function safeProtokol(protokol, signatureUrl) {
   return {
@@ -16,6 +17,15 @@ function safeProtokol(protokol, signatureUrl) {
   };
 }
 
+// Podpisy nahrané před zapnutím Google Drive mají podpisPath jako cestu v Supabase
+// Storage (bez "http"); nové mají rovnou plnou URL na Drive. Podporujeme obojí.
+async function ziskatUrlPodpisu(supabase, podpisPath) {
+  if (!podpisPath) return null;
+  if (podpisPath.startsWith("http")) return podpisPath;
+  const { data } = await supabase.storage.from("protokoly").createSignedUrl(podpisPath, 3600);
+  return data?.signedUrl || null;
+}
+
 export async function GET(request, { params }) {
   const { id } = params;
   const token = request.nextUrl.searchParams.get("token");
@@ -27,12 +37,7 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "Odkaz nenalezen nebo už neplatí." }, { status: 404 });
   }
 
-  let signatureUrl = null;
-  if (order.protokol.podpisPath) {
-    const { data } = await supabase.storage.from("protokoly").createSignedUrl(order.protokol.podpisPath, 3600);
-    signatureUrl = data?.signedUrl || null;
-  }
-
+  const signatureUrl = await ziskatUrlPodpisu(supabase, order.protokol.podpisPath);
   return NextResponse.json({ protokol: safeProtokol(order.protokol, signatureUrl) });
 }
 
@@ -54,19 +59,18 @@ export async function POST(request, { params }) {
 
   const base64 = signature.split(",")[1] || signature;
   const bytes = Buffer.from(base64, "base64");
-  const path = `${id}/podpis-${Date.now()}.png`;
 
-  const { error: uploadError } = await supabase.storage.from("protokoly").upload(path, bytes, {
-    contentType: "image/png",
-    upsert: false,
-  });
-  if (uploadError) {
+  let podpisPath;
+  try {
+    podpisPath = await nahratFotkuNaServeru(bytes, `podpis-${id}-${Date.now()}.png`, "image/png", "protokoly");
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: "Nahrání podpisu se nepovedlo." }, { status: 500 });
   }
 
   const nextProtokol = {
     ...order.protokol,
-    podpisPath: path,
+    podpisPath,
     podpisDatum: new Date().toISOString().slice(0, 10),
     stav: "podepsano",
   };
@@ -76,6 +80,5 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "Uložení podpisu se nepovedlo." }, { status: 500 });
   }
 
-  const { data: signedUrlData } = await supabase.storage.from("protokoly").createSignedUrl(path, 3600);
-  return NextResponse.json({ protokol: safeProtokol(nextProtokol, signedUrlData?.signedUrl || null) });
+  return NextResponse.json({ protokol: safeProtokol(nextProtokol, podpisPath) });
 }

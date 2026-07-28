@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { uid, todayISO, resizeImageFile } from "@/lib/theme";
-import { supabase } from "@/lib/supabaseClient";
+import { nahratFotku } from "@/lib/uploadClient";
 import { C, FONTS } from "@/lib/theme";
 import { Field, TextInput, Button } from "./ui";
 
@@ -43,12 +43,7 @@ export default function WorkPhotoFlow({ order, onSubmit, onClose }) {
     setUploading(true);
     setError("");
     try {
-      const path = `${order.id}/${uid()}.jpg`;
-      const { error: uploadError } = await supabase.storage.from("fotky").upload(path, photoBlob, {
-        contentType: "image/jpeg",
-        upsert: false,
-      });
-      if (uploadError) throw uploadError;
+      const path = await nahratFotku(photoBlob, `fotka-${order.cislo}-${typ}-${uid()}.jpg`, "fotky");
       await onSubmit(order, { id: uid(), datum: todayISO(), path, typ, popis });
     } catch (err) {
       console.error(err);

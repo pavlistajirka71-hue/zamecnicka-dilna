@@ -1,15 +1,15 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Search, ChevronRight } from "lucide-react";
-import { C, FONTS, UZAVRENE_STAVY } from "@/lib/theme";
+import { C, FONTS } from "@/lib/theme";
 import { TextInput, StampBadge } from "./ui";
 
-export default function OrderPicker({ orders, onPick, excludeUzavrene }) {
+export default function OrderPicker({ orders, onPick, excludeStavy, excludeNote }) {
   const [q, setQ] = useState("");
   const list = useMemo(() => {
     const query = q.toLowerCase();
     return orders
-      .filter((o) => !excludeUzavrene || !UZAVRENE_STAVY.includes(o.stav))
+      .filter((o) => !excludeStavy || !excludeStavy.includes(o.stav))
       .filter(
         (o) =>
           !query ||
@@ -18,14 +18,12 @@ export default function OrderPicker({ orders, onPick, excludeUzavrene }) {
           (o.popis || "").toLowerCase().includes(query)
       )
       .sort((a, b) => (a.vytvoreno < b.vytvoreno ? 1 : -1));
-  }, [orders, q, excludeUzavrene]);
+  }, [orders, q, excludeStavy]);
 
   return (
     <div>
-      {excludeUzavrene && (
-        <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 10 }}>
-          Hotové a fakturované zakázky se tu nenabízí — už se u nich nezapisuje práce ani účtenky.
-        </div>
+      {excludeStavy && excludeNote && (
+        <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 10 }}>{excludeNote}</div>
       )}
       <div style={{ position: "relative", marginBottom: 12 }}>
         <Search size={15} style={{ position: "absolute", left: 10, top: 13, color: C.inkSoft }} />

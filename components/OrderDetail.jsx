@@ -1,13 +1,16 @@
 "use client";
 import { useState } from "react";
-import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera } from "lucide-react";
-import { C, FONTS, STATUSES, computeKalkulace, fmtMoney, fmtDate, isOverdue } from "@/lib/theme";
+import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import { C, FONTS, STATUSES, computeKalkulaceCelkem, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney, fmtDate, isOverdue } from "@/lib/theme";
 import { Button, SectionLabel, StampBadge, Modal } from "./ui";
 import ReceiptThumbnail from "./ReceiptThumbnail";
 import PhotoThumbnail from "./PhotoThumbnail";
 
-export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit, onOpenKalkulace, onOpenPoptavka, onOpenProtokol, onOpenFotka, onClose }) {
+export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit, onOpenKalkulace, onOpenPoptavka, onOpenProtokol, onOpenFotka, onOpenNaklady, onGeneratePdf, generatingPdf, onClose }) {
   const [viewPhoto, setViewPhoto] = useState(null);
+  const polozkyKalkulace = normalizovatKalkulaci(order.kalkulace);
+  const nakladyVysledek = computeNakladyZakazky(order, nastaveni);
 
   return (
     <div>
@@ -44,21 +47,74 @@ export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit
         )}
       </div>
 
+      {order.stav === "fakturovano" && (
+        <div style={{ background: C.steelDark, color: "#fff", borderRadius: 8, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontFamily: FONTS.display, textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 12, color: "#C9CDD2", marginBottom: 8 }}>
+            Uzavřeno — skutečný výsledek zakázky
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 11, color: "#C9CDD2" }}>Náklady celkem</div>
+              <div style={{ fontFamily: FONTS.mono, fontSize: 15 }}>{fmtMoney(nakladyVysledek.nakladyCelkem)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: "#C9CDD2" }}>Zisk</div>
+              <div style={{ fontFamily: FONTS.mono, fontSize: 15, color: nakladyVysledek.zisk >= 0 ? "#7FBF8F" : "#E39A9A" }}>
+                {fmtMoney(nakladyVysledek.zisk)}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: "#C9CDD2" }}>Marže</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: FONTS.mono, fontSize: 15 }}>
+                {nakladyVysledek.marzePct >= nakladyVysledek.planMarzePct ? (
+                  <TrendingUp size={14} color="#7FBF8F" />
+                ) : (
+                  <TrendingDown size={14} color="#E39A9A" />
+                )}
+                {nakladyVysledek.marzePct.toFixed(1)} %
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: 11, color: "#C9CDD2", marginTop: 8 }}>
+            Plán z kalkulace: {fmtMoney(nakladyVysledek.planZisk)} zisk · {nakladyVysledek.planMarzePct.toFixed(1)} % marže
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginBottom: 14 }}>
+        <SectionLabel>Sledování nákladů</SectionLabel>
+        <div style={{ background: C.paper, borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
+            <span>Náklady celkem (vč. práce)</span>
+            <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(nakladyVysledek.nakladyCelkem)}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
+            <span>Zisk / Marže</span>
+            <span style={{ fontFamily: FONTS.mono, color: nakladyVysledek.zisk >= 0 ? C.moss : C.danger }}>
+              {fmtMoney(nakladyVysledek.zisk)} ({nakladyVysledek.marzePct.toFixed(1)} %)
+            </span>
+          </div>
+        </div>
+        <Button variant="ghost" onClick={onOpenNaklady}>
+          <Wallet size={14} /> {order.naklady && order.naklady.length > 0 ? "Upravit náklady" : "Sledovat náklady"}
+        </Button>
+      </div>
+
       <div style={{ marginBottom: 14 }}>
         <SectionLabel>Kalkulace zakázky</SectionLabel>
-        {order.kalkulace ? (
+        {polozkyKalkulace.length > 0 ? (
           (() => {
-            const v = computeKalkulace(order.kalkulace, nastaveni);
-            const materialy = order.kalkulace.materialy || [];
+            const celkem = computeKalkulaceCelkem(polozkyKalkulace, nastaveni);
             return (
               <div style={{ background: C.paper, borderRadius: 8, padding: "10px 12px", fontSize: 13 }}>
-                {materialy.length > 0 && (
-                  <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: `1px dashed ${C.line}` }}>
-                    <div style={{ fontSize: 11, color: C.inkSoft, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
-                      Materiál
+                {celkem.items.map(({ polozka, vysledek }) => (
+                  <div key={polozka.id} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: `1px dashed ${C.line}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, marginBottom: 2 }}>
+                      <span>{polozka.nazev || "Položka"}</span>
+                      <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(vysledek.finalniCena)}</span>
                     </div>
-                    {materialy.map((m, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", fontFamily: FONTS.mono, fontSize: 12, padding: "2px 0" }}>
+                    {(polozka.materialy || []).map((m, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", fontFamily: FONTS.mono, fontSize: 12, padding: "1px 0", color: C.inkSoft }}>
                         <span style={{ fontFamily: FONTS.body }}>
                           {m.nazev || "—"}
                           {m.dodavatel ? ` (${m.dodavatel})` : ""} · {m.mnozstvi || 0} {m.jednotka || ""}
@@ -67,17 +123,17 @@ export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit
                       </div>
                     ))}
                   </div>
-                )}
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
-                  <span>Cena bez DPH / s DPH</span>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontWeight: 600 }}>
+                  <span>Cena celkem bez DPH / s DPH</span>
                   <span style={{ fontFamily: FONTS.mono }}>
-                    {fmtMoney(v.cenaBezDph)} / {fmtMoney(v.cenaSDph)}
+                    {fmtMoney(celkem.cenaBezDph)} / {fmtMoney(celkem.cenaSDph)}
                   </span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
                   <span>Plánovaná marže</span>
-                  <span style={{ fontFamily: FONTS.mono, color: v.marzeKc >= 0 ? C.moss : C.danger }}>
-                    {fmtMoney(v.marzeKc)} ({v.marzePct.toFixed(1)} %)
+                  <span style={{ fontFamily: FONTS.mono, color: celkem.marzeKc >= 0 ? C.moss : C.danger }}>
+                    {fmtMoney(celkem.marzeKc)} ({celkem.marzePct.toFixed(1)} %)
                   </span>
                 </div>
               </div>
@@ -87,11 +143,11 @@ export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit
           <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 8 }}>Kalkulace zatím není vytvořená.</div>
         )}
         <Button variant="ghost" style={{ marginTop: 8 }} onClick={onOpenKalkulace}>
-          <Calculator size={14} /> {order.kalkulace ? "Upravit kalkulaci" : "Vytvořit kalkulaci"}
+          <Calculator size={14} /> {polozkyKalkulace.length > 0 ? "Upravit kalkulaci" : "Vytvořit kalkulaci"}
         </Button>
       </div>
 
-      {order.kalkulace && (order.kalkulace.materialy || []).length > 0 && (
+      {polozkyKalkulace.some((p) => (p.materialy || []).length > 0) && (
         <div style={{ marginBottom: 14 }}>
           <SectionLabel>Objednávka materiálu</SectionLabel>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -208,6 +264,45 @@ export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit
           ) : null}
         </div>
       </div>
+
+      {(order.stav === "hotovo" || order.stav === "fakturovano") && (
+        <div style={{ marginBottom: 14 }}>
+          <SectionLabel>Archiv PDF {order.archivy?.length ? `(${order.archivy.length})` : ""}</SectionLabel>
+          {order.archivy && order.archivy.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              {order.archivy.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={async () => {
+                    let href = a.url;
+                    if (!href.startsWith("http")) {
+                      const { data } = await supabase.storage.from("archivy").createSignedUrl(href, 300);
+                      href = data?.signedUrl;
+                    }
+                    if (href) window.open(href, "_blank", "noopener,noreferrer");
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: "none",
+                    border: "none",
+                    color: C.steel,
+                    cursor: "pointer",
+                    fontSize: 13,
+                    padding: "4px 0",
+                  }}
+                >
+                  <FileDown size={14} /> Archiv z {fmtDate(a.datum)}
+                </button>
+              ))}
+            </div>
+          )}
+          <Button variant="ghost" onClick={onGeneratePdf} disabled={generatingPdf}>
+            <FileDown size={14} /> {generatingPdf ? "Vytvářím PDF…" : "Vygenerovat PDF a uložit na Drive"}
+          </Button>
+        </div>
+      )}
 
       <div style={{ marginBottom: 14 }}>
         <SectionLabel>Rychlá změna stavu</SectionLabel>

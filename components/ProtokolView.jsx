@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Copy, Check, Printer, CheckCircle2 } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import { nahratFotku } from "@/lib/uploadClient";
 import { C, FONTS, novyProtokol, fmtDate } from "@/lib/theme";
 import { Field, TextInput, TextArea, Button, SectionLabel } from "./ui";
 import ProtokolContent from "./ProtokolContent";
@@ -51,9 +51,7 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
     setSaving(true);
     setError("");
     try {
-      const path = `${order.id}/podpis-${Date.now()}.png`;
-      const { error: uploadError } = await supabase.storage.from("protokoly").upload(path, signatureBlob, { contentType: "image/png" });
-      if (uploadError) throw uploadError;
+      const path = await nahratFotku(signatureBlob, `podpis-${order.cislo}-${Date.now()}.png`, "protokoly");
       const next = { ...protokol, podpisPath: path, podpisDatum: new Date().toISOString().slice(0, 10), stav: "podepsano" };
       await onSave(order, next);
       setProtokol(next);

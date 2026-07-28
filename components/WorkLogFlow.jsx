@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import { C, FONTS, uid, todayISO } from "@/lib/theme";
+import { C, FONTS, uid, todayISO, UZAVRENE_STAVY } from "@/lib/theme";
 import { Field, TextInput, TextArea, Button } from "./ui";
 import OrderPicker from "./OrderPicker";
 
@@ -16,7 +16,14 @@ export default function WorkLogFlow({ orders, onSubmit, onClose }) {
   const [error, setError] = useState("");
 
   if (!order) {
-    return <OrderPicker orders={orders} onPick={setOrder} excludeUzavrene />;
+    return (
+      <OrderPicker
+        orders={orders}
+        onPick={setOrder}
+        excludeStavy={[...UZAVRENE_STAVY, "nova"]}
+        excludeNote="Nabídnuté, hotové a fakturované zakázky se tu nenabízí — práce se zapisuje jen u přijatých zakázek."
+      />
+    );
   }
 
   return (

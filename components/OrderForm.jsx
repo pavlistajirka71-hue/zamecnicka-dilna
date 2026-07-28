@@ -71,28 +71,24 @@ export default function OrderForm({ initial, orders, onSave, onClose }) {
         <TextInput value={f.reseni} onChange={(e) => set("reseni", e.target.value)} placeholder="Jméno pracovníka" />
       </Field>
 
-      <SectionLabel>Fond pracovní (povinné)</SectionLabel>
+      <SectionLabel>Fond pracovní (nepovinné — doplní se automaticky z kalkulace)</SectionLabel>
       <div className="field-row">
-        <Field label="Plánovaný čas – dílna (h) *">
+        <Field label="Plánovaný čas – dílna (h)">
           <TextInput
             type="number"
             step="0.5"
-            required
             value={f.planCasDilna}
             onChange={(e) => set("planCasDilna", e.target.value)}
-            placeholder="např. 8"
-            style={f.planCasDilna === "" ? { borderColor: C.rust } : {}}
+            placeholder="doplní se z kalkulace, nebo zadej odhad"
           />
         </Field>
-        <Field label="Plánovaný čas – montáž (h) *">
+        <Field label="Plánovaný čas – montáž (h)">
           <TextInput
             type="number"
             step="0.5"
-            required
             value={f.planCasMontaz}
             onChange={(e) => set("planCasMontaz", e.target.value)}
-            placeholder="např. 4"
-            style={f.planCasMontaz === "" ? { borderColor: C.rust } : {}}
+            placeholder="doplní se z kalkulace, nebo zadej odhad"
           />
         </Field>
       </div>
@@ -107,10 +103,8 @@ export default function OrderForm({ initial, orders, onSave, onClose }) {
         </Field>
       )}
 
-      {(!f.zakaznik || f.planCasDilna === "" || f.planCasMontaz === "") && (
-        <div style={{ fontSize: 12, color: C.rust, marginTop: 4, textAlign: "right" }}>
-          Vyplň zákazníka a plánovaný čas (dílna i montáž), ať jde zakázku uložit.
-        </div>
+      {!f.zakaznik && (
+        <div style={{ fontSize: 12, color: C.rust, marginTop: 4, textAlign: "right" }}>Vyplň zákazníka, ať jde zakázku uložit.</div>
       )}
       {error && <div style={{ fontSize: 13, color: C.rust, marginTop: 4, textAlign: "right" }}>{error}</div>}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
@@ -122,7 +116,7 @@ export default function OrderForm({ initial, orders, onSave, onClose }) {
           type="button"
           disabled={saving}
           onClick={async () => {
-            if (!f.zakaznik || f.planCasDilna === "" || f.planCasMontaz === "") return;
+            if (!f.zakaznik) return;
             setSaving(true);
             setError("");
             try {

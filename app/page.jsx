@@ -27,7 +27,8 @@ import {
   UZAVRENE_STAVY,
   DEFAULT_NASTAVENI,
   DPH_SAZBA,
-  computeKalkulace,
+  computeKalkulaceCelkem,
+  normalizovatKalkulaci,
   upsertMaterialHistory,
   planHodin,
   sumHodin,
@@ -53,6 +54,7 @@ import ProtokolView from "@/components/ProtokolView";
 import ProtokolPrintView from "@/components/ProtokolPrintView";
 import ZalohaPanel from "@/components/ZalohaPanel";
 import WorkPhotoFlow from "@/components/WorkPhotoFlow";
+import NakladyForm from "@/components/NakladyForm";
 import Nastenka from "@/components/Nastenka";
 
 export default function HomePage() {
@@ -83,6 +85,8 @@ export default function HomePage() {
   const [protokolPrint, setProtokolPrint] = useState(null);
   const [showZaloha, setShowZaloha] = useState(false);
   const [fotkaOrder, setFotkaOrder] = useState(null);
+  const [nakladyOrder, setNakladyOrder] = useState(null);
+  const [generatingPdfId, setGeneratingPdfId] = useState(null);
   const [kalkulaceOrder, setKalkulaceOrder] = useState(null);
   const [quoteData, setQuoteData] = useState(null);
   const [globalError, setGlobalError] = useState("");
@@ -203,6 +207,7 @@ export default function HomePage() {
         setDetailOrder((cur) => (cur && payload.new && cur.id === payload.new.id ? payload.new : cur));
         setKalkulaceOrder((cur) => (cur && payload.new && cur.id === payload.new.id ? payload.new : cur));
         setProtokolOrder((cur) => (cur && payload.new && cur.id === payload.new.id ? payload.new : cur));
+        setNakladyOrder((cur) => (cur && payload.new && cur.id === payload.new.id ? payload.new : cur));
       })
       .subscribe();
     return () => {
@@ -281,6 +286,39 @@ export default function HomePage() {
     setFotkaOrder(null);
   };
 
+  const saveNaklady = async (radky) => {
+    const { data, error } = await supabase.from("orders").update({ naklady: radky }).eq("id", nakladyOrder.id).select().single();
+    if (error) {
+      console.error(error);
+      setGlobalError("Náklady se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
+      throw error;
+    }
+    setOrders((prev) => prev.map((o) => (o.id === data.id ? data : o)));
+    if (detailOrder && detailOrder.id === data.id) setDetailOrder(data);
+    setNakladyOrder(null);
+  };
+
+  const generatePdf = async (order) => {
+    setGeneratingPdfId(order.id);
+    setGlobalError("");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch(`/api/export-pdf/${order.id}`, {
+        method: "POST",
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Vygenerování PDF se nepovedlo.");
+      setOrders((prev) => prev.map((o) => (o.id === data.order.id ? data.order : o)));
+      if (detailOrder && detailOrder.id === data.order.id) setDetailOrder(data.order);
+    } catch (err) {
+      console.error(err);
+      setGlobalError("Vygenerování PDF se nepovedlo. Zkontroluj připojení a zkus to znovu.");
+    }
+    setGeneratingPdfId(null);
+  };
+
   const saveNastaveni = async (n) => {
     const { data, error } = await supabase.from("nastaveni").upsert({ id: 1, ...n }).select().single();
     if (error) {
@@ -305,10 +343,12 @@ export default function HomePage() {
     return data;
   };
 
-  const saveKalkulace = async (order, kalk, vysledek) => {
+  const saveKalkulace = async (order, polozky, celkem) => {
+    const planCasDilna = polozky.reduce((s, p) => s + (Number(p.praceDilnaHodiny) || 0), 0);
+    const planCasMontaz = polozky.reduce((s, p) => s + (Number(p.praceMontazHodiny) || 0), 0);
     const { data, error } = await supabase
       .from("orders")
-      .update({ kalkulace: kalk, cena: vysledek.finalniCena })
+      .update({ kalkulace: polozky, cena: celkem.finalniCena, planCasDilna, planCasMontaz })
       .eq("id", order.id)
       .select()
       .single();
@@ -318,7 +358,8 @@ export default function HomePage() {
       return;
     }
     setOrders((prev) => prev.map((o) => (o.id === data.id ? data : o)));
-    const nextHistory = upsertMaterialHistory(materialHistory, kalk.materialy);
+    const vsechnyMaterialy = polozky.flatMap((p) => p.materialy || []);
+    const nextHistory = upsertMaterialHistory(materialHistory, vsechnyMaterialy);
     setMaterialHistory(nextHistory);
     await supabase.from("material_history").upsert(nextHistory);
     setKalkulaceOrder(null);
@@ -329,8 +370,8 @@ export default function HomePage() {
     const relevant = orders.filter((o) => o.stav === "fakturovano");
     const header = ["Cislo", "Datum", "Zakaznik", "Popis", "CenaBezDPH", "DPH", "CenaSDPH", "CisloFaktury"];
     const rows = relevant.map((o) => {
-      const kalk = o.kalkulace;
-      const cenaBezDph = kalk ? computeKalkulace(kalk, nastaveni).cenaBezDph : Number(o.cena) || 0;
+      const polozky = normalizovatKalkulaci(o.kalkulace);
+      const cenaBezDph = polozky.length ? computeKalkulaceCelkem(polozky, nastaveni).cenaBezDph : Number(o.cena) || 0;
       const dph = cenaBezDph * DPH_SAZBA;
       return [o.cislo, o.vytvoreno, o.zakaznik, (o.popis || "").replace(/[\n\r;]+/g, " "), cenaBezDph.toFixed(2), dph.toFixed(2), (cenaBezDph + dph).toFixed(2), o.cisloFaktury || ""];
     });
@@ -351,7 +392,7 @@ export default function HomePage() {
 
   const pracovniFronta = useMemo(() => {
     return orders
-      .filter((o) => !UZAVRENE_STAVY.includes(o.stav))
+      .filter((o) => !UZAVRENE_STAVY.includes(o.stav) && o.stav !== "nova")
       .sort((a, b) => {
         if (!a.termin && !b.termin) return 0;
         if (!a.termin) return 1;
@@ -789,14 +830,14 @@ export default function HomePage() {
             order={kalkulaceOrder}
             nastaveni={nastaveni}
             materialHistory={materialHistory}
-            onSave={(k, v) => saveKalkulace(kalkulaceOrder, k, v)}
+            onSave={(polozky, celkem) => saveKalkulace(kalkulaceOrder, polozky, celkem)}
             onClose={() => setKalkulaceOrder(null)}
-            onPrint={(k, v) => setQuoteData({ order: kalkulaceOrder, kalk: k, vysledek: v })}
+            onPrint={(polozky, celkem) => setQuoteData({ order: kalkulaceOrder, polozky, celkem })}
           />
         </Modal>
       )}
 
-      {quoteData && <QuoteView order={quoteData.order} kalk={quoteData.kalk} vysledek={quoteData.vysledek} onClose={() => setQuoteData(null)} />}
+      {quoteData && <QuoteView order={quoteData.order} polozky={quoteData.polozky} celkem={quoteData.celkem} onClose={() => setQuoteData(null)} />}
 
       {poptavkaOrder && <MaterialOrderView order={poptavkaOrder} onClose={() => setPoptavkaOrder(null)} />}
 
@@ -822,6 +863,12 @@ export default function HomePage() {
         </Modal>
       )}
 
+      {nakladyOrder && (
+        <Modal title={`Sledování nákladů — ${nakladyOrder.cislo}`} onClose={() => setNakladyOrder(null)} width={600} zIndex={60}>
+          <NakladyForm order={nakladyOrder} nastaveni={nastaveni} onSave={saveNaklady} onClose={() => setNakladyOrder(null)} />
+        </Modal>
+      )}
+
       {detailOrder && (
         <Modal title={`Zakázka ${detailOrder.cislo}`} onClose={() => setDetailOrder(null)} width={600}>
           <OrderDetail
@@ -838,6 +885,9 @@ export default function HomePage() {
             onOpenPoptavka={() => setPoptavkaOrder(detailOrder)}
             onOpenProtokol={() => setProtokolOrder(detailOrder)}
             onOpenFotka={() => setFotkaOrder(detailOrder)}
+            onOpenNaklady={() => setNakladyOrder(detailOrder)}
+            onGeneratePdf={() => generatePdf(detailOrder)}
+            generatingPdf={generatingPdfId === detailOrder?.id}
             onClose={() => setDetailOrder(null)}
           />
         </Modal>

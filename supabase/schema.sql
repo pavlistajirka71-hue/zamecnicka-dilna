@@ -23,6 +23,8 @@ create table if not exists orders (
   "zakaznikIdentifikace" text,
   protokol jsonb,
   fotky jsonb not null default '[]'::jsonb,
+  naklady jsonb not null default '[]'::jsonb,
+  archivy jsonb not null default '[]'::jsonb,
   created_at timestamptz default now()
 );
 -- Pokud tabulka orders už existuje ze starší verze appky bez těchto sloupců:
@@ -31,6 +33,8 @@ alter table orders add column if not exists "materialObjednanoDatum" date;
 alter table orders add column if not exists "zakaznikIdentifikace" text;
 alter table orders add column if not exists protokol jsonb;
 alter table orders add column if not exists fotky jsonb not null default '[]'::jsonb;
+alter table orders add column if not exists naklady jsonb not null default '[]'::jsonb;
+alter table orders add column if not exists archivy jsonb not null default '[]'::jsonb;
 
 -- 2) Nastavení appky (jeden řádek, id vždy 1)
 create table if not exists nastaveni (
@@ -144,3 +148,20 @@ create policy "authenticated upload fotky" on storage.objects
 drop policy if exists "authenticated delete fotky" on storage.objects;
 create policy "authenticated delete fotky" on storage.objects
   for delete using (bucket_id = 'fotky' and auth.role() = 'authenticated');
+
+-- ---- Úložiště na PDF archivy zakázek (jen záložní řešení, pokud není nastavený Google Drive) ----
+insert into storage.buckets (id, name, public)
+values ('archivy', 'archivy', false)
+on conflict (id) do nothing;
+
+drop policy if exists "authenticated read archivy" on storage.objects;
+create policy "authenticated read archivy" on storage.objects
+  for select using (bucket_id = 'archivy' and auth.role() = 'authenticated');
+
+drop policy if exists "authenticated upload archivy" on storage.objects;
+create policy "authenticated upload archivy" on storage.objects
+  for insert with check (bucket_id = 'archivy' and auth.role() = 'authenticated');
+
+drop policy if exists "authenticated delete archivy" on storage.objects;
+create policy "authenticated delete archivy" on storage.objects
+  for delete using (bucket_id = 'archivy' and auth.role() = 'authenticated');
