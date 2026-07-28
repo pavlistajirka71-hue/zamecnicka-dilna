@@ -1,70 +1,33 @@
-"use client";
-import { useMemo, useState } from "react";
-import { Search, ChevronRight } from "lucide-react";
-import { C, FONTS } from "@/lib/theme";
-import { TextInput, StampBadge } from "./ui";
+import { NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { nahratFotkuNaServeru } from "@/lib/photoUpload";
 
-export default function OrderPicker({ orders, onPick, excludeStavy, excludeNote }) {
-  const [q, setQ] = useState("");
-  const list = useMemo(() => {
-    const query = q.toLowerCase();
-    return orders
-      .filter((o) => !excludeStavy || !excludeStavy.includes(o.stav))
-      .filter(
-        (o) =>
-          !query ||
-          o.zakaznik.toLowerCase().includes(query) ||
-          o.cislo.toLowerCase().includes(query) ||
-          (o.popis || "").toLowerCase().includes(query)
-      )
-      .sort((a, b) => (a.vytvoreno < b.vytvoreno ? 1 : -1));
-  }, [orders, q, excludeStavy]);
+export async function POST(request) {
+  const authHeader = request.headers.get("authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  if (!token) return NextResponse.json({ error: "Chybí přihlášení." }, { status: 401 });
 
-  return (
-    <div>
-      {excludeStavy && excludeNote && (
-        <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 10 }}>{excludeNote}</div>
-      )}
-      <div style={{ position: "relative", marginBottom: 12 }}>
-        <Search size={15} style={{ position: "absolute", left: 10, top: 13, color: C.inkSoft }} />
-        <TextInput autoFocus placeholder="Hledat zakázku…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 32 }} />
-      </div>
-      {list.length === 0 ? (
-        <div style={{ color: C.inkSoft, textAlign: "center", padding: 20 }}>Žádná zakázka nenalezena.</div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "55vh", overflowY: "auto" }}>
-          {list.map((o) => (
-            <button
-              key={o.id}
-              onClick={() => onPick(o)}
-              style={{
-                textAlign: "left",
-                background: C.paper,
-                border: `1px solid ${C.line}`,
-                borderRadius: 8,
-                padding: "12px 14px",
-                cursor: "pointer",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 2 }}>
-                  <span style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft }}>{o.cislo}</span>
-                  <StampBadge status={o.stav} small />
-                </div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{o.zakaznik}</div>
-                <div style={{ fontSize: 12, color: C.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {o.popis}
-                </div>
-              </div>
-              <ChevronRight size={16} color={C.inkSoft} style={{ flexShrink: 0 }} />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+  if (userError || !userData?.user) {
+    return NextResponse.json({ error: "Neplatné přihlášení." }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const { image, filename, kind, slozkaZakazky } = body;
+  if (!image || !filename) return NextResponse.json({ error: "Chybí fotka nebo název souboru." }, { status: 400 });
+
+  const match = /^data:(image\/\w+);base64,(.+)$/.exec(image);
+  if (!match) return NextResponse.json({ error: "Neplatný formát fotky." }, { status: 400 });
+  const [, mediaType, base64Data] = match;
+
+  try {
+    const bytes = Buffer.from(base64Data, "base64");
+    const bucket = kind === "protokoly" ? "protokoly" : kind === "fotky" ? "fotky" : "uctenky";
+    const path = await nahratFotkuNaServeru(bytes, filename, mediaType, bucket, slozkaZakazky);
+    return NextResponse.json({ url: path });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "Nahrání fotky se nepovedlo." }, { status: 500 });
+  }
 }

@@ -1,93 +1,182 @@
 "use client";
-import { X, Printer } from "lucide-react";
-import { C, FONTS, DPH_SAZBA, fmtMoney, fmtDate, todayISO } from "@/lib/theme";
-import { Button } from "./ui";
+import { useRef } from "react";
+import { X } from "lucide-react";
+import { C, FONTS, statusInfo } from "@/lib/theme";
 
-function polozkaLines(vysledek) {
-  // Scale raw cost lines proportionally so they sum exactly to the položka's price,
-  // without exposing the markup as a separate line.
-  const scale = vysledek.naklady > 0 ? vysledek.cenaBezDph / vysledek.naklady : 1;
-  const lines = [];
-  if (vysledek.materialSum > 0) lines.push({ label: "Materiál", cena: vysledek.materialSum * scale });
-  if (vysledek.praceDilnaSum > 0) lines.push({ label: "Práce — dílna", cena: vysledek.praceDilnaSum * scale });
-  if (vysledek.praceMontazSum > 0) lines.push({ label: "Práce — montáž", cena: vysledek.praceMontazSum * scale });
-  if (vysledek.zinkovaniSum > 0) lines.push({ label: "Zinkování", cena: vysledek.zinkovaniSum * scale });
-  if (vysledek.lakovaniSum > 0) lines.push({ label: "Lakování", cena: vysledek.lakovaniSum * scale });
-  return lines;
+export const inputStyle = {
+  width: "100%",
+  boxSizing: "border-box",
+  border: `1px solid ${C.line}`,
+  borderRadius: 6,
+  padding: "10px 10px",
+  fontFamily: FONTS.body,
+  fontSize: 16, // 16px avoids iOS Safari auto-zoom on focus
+  background: C.surface,
+  color: C.ink,
+  outline: "none",
+};
+
+export const iconBtnStyle = {
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+  padding: 10,
+  margin: -10,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  WebkitTapHighlightColor: "transparent",
+};
+
+export function StampBadge({ status, small }) {
+  const s = statusInfo(status);
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        fontFamily: FONTS.display,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        fontSize: small ? 10 : 12,
+        color: s.color,
+        border: `2px solid ${s.color}`,
+        borderRadius: 3,
+        padding: small ? "1px 6px" : "2px 9px",
+        transform: "rotate(-2deg)",
+        background: "rgba(255,255,255,0.6)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {s.label}
+    </span>
+  );
 }
 
-// celkem = computeKalkulaceCelkem(...) výstup, obsahuje celkem.items = [{ polozka, vysledek }, ...]
-export default function QuoteView({ order, polozky, celkem, onClose }) {
-  const items = celkem.items || [];
-  const vicePolozek = items.length > 1;
-
+export function SectionLabel({ children }) {
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#fff", zIndex: 100, overflowY: "auto" }}>
-      <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: 16, borderBottom: `1px solid ${C.line}` }}>
-        <Button variant="ghost" onClick={onClose}>
-          <X size={14} /> Zavřít
-        </Button>
-        <Button variant="primary" onClick={() => window.print()}>
-          <Printer size={14} /> Tisk
-        </Button>
-      </div>
-      <div style={{ maxWidth: 640, margin: "0 auto", padding: "30px 24px", color: C.ink, fontFamily: FONTS.body }}>
-        <div style={{ fontFamily: FONTS.display, fontSize: 26, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 4 }}>
-          Cenová nabídka
-        </div>
-        <div style={{ color: C.inkSoft, marginBottom: 24, fontFamily: FONTS.mono, fontSize: 13 }}>
-          {order.cislo} · {fmtDate(todayISO())}
-        </div>
+    <div
+      style={{
+        fontFamily: FONTS.display,
+        letterSpacing: "0.12em",
+        textTransform: "uppercase",
+        fontSize: 12,
+        color: C.inkSoft,
+        marginBottom: 8,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 12, color: C.inkSoft, textTransform: "uppercase", letterSpacing: "0.06em" }}>Zákazník</div>
-          <div style={{ fontSize: 18, fontWeight: 600 }}>{order.zakaznik}</div>
-          <div style={{ color: C.inkSoft }}>{order.popis}</div>
-        </div>
+export function Field({ label, children }) {
+  return (
+    <label style={{ display: "block", marginBottom: 12 }}>
+      <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 4, fontFamily: FONTS.body }}>{label}</div>
+      {children}
+    </label>
+  );
+}
 
-        {items.map(({ polozka, vysledek }, pi) => {
-          const lines = polozkaLines(vysledek);
-          return (
-            <div key={polozka.id || pi} style={{ marginBottom: 18 }}>
-              {vicePolozek && (
-                <div style={{ fontFamily: FONTS.display, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 15, marginBottom: 6 }}>
-                  {polozka.nazev || `Položka ${pi + 1}`}
-                </div>
-              )}
-              <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, overflow: "hidden" }}>
-                {lines.map((l, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", borderBottom: `1px solid ${C.line}`, fontSize: 14 }}>
-                    <span>{l.label}</span>
-                    <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(l.cena)}</span>
-                  </div>
-                ))}
-                {vicePolozek && (
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", fontSize: 14, background: C.paper, fontWeight: 600 }}>
-                    <span>Mezisoučet bez DPH</span>
-                    <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(vysledek.cenaBezDph)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+export function TextInput(props) {
+  return <input {...props} style={{ ...inputStyle, ...(props.style || {}) }} />;
+}
+export function TextArea(props) {
+  return <textarea {...props} style={{ ...inputStyle, minHeight: 70, resize: "vertical", ...(props.style || {}) }} />;
+}
+export function Select(props) {
+  return <select {...props} style={{ ...inputStyle, ...(props.style || {}) }} />;
+}
 
-        <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, overflow: "hidden" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", fontSize: 14, background: C.paper }}>
-            <span>Cena celkem bez DPH</span>
-            <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(celkem.cenaBezDph)}</span>
+export function Button({ variant = "primary", children, style, ...rest }) {
+  const base = {
+    fontFamily: FONTS.display,
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
+    fontSize: 13,
+    borderRadius: 6,
+    padding: "9px 16px",
+    border: "none",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    transition: "opacity 0.15s ease",
+  };
+  const variants = {
+    primary: { background: C.steel, color: "#fff" },
+    rust: { background: C.rust, color: "#fff" },
+    moss: { background: C.moss, color: "#fff" },
+    ghost: { background: "transparent", color: C.steel, border: `1px solid ${C.line}` },
+    danger: { background: "transparent", color: C.danger, border: `1px solid ${C.danger}` },
+  };
+  return (
+    <button
+      {...rest}
+      style={{ ...base, ...variants[variant], ...style }}
+      onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+      onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function Modal({ title, onClose, children, width = 560, zIndex = 50 }) {
+  const mouseDownOnBackdrop = useRef(false);
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(33,35,31,0.45)",
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        padding: "5vh 16px",
+        zIndex,
+        overflowY: "auto",
+      }}
+      onMouseDown={(e) => {
+        mouseDownOnBackdrop.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        // Only close if BOTH the press and the release happened directly on the backdrop.
+        // Without this check, selecting text (or dragging a bit) inside the modal and
+        // releasing the mouse/finger just outside the content box would also fire a
+        // "click" on the backdrop and close the modal — which is what was happening.
+        if (mouseDownOnBackdrop.current && e.target === e.currentTarget) onClose();
+        mouseDownOnBackdrop.current = false;
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: C.surface,
+          borderRadius: 10,
+          width: "100%",
+          maxWidth: width,
+          boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
+          border: `1px solid ${C.line}`,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "16px 20px",
+            borderBottom: `2px dashed ${C.line}`,
+          }}
+        >
+          <div style={{ fontFamily: FONTS.display, fontSize: 18, textTransform: "uppercase", letterSpacing: "0.05em", color: C.ink }}>
+            {title}
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", fontSize: 14, background: C.paper }}>
-            <span>DPH 21 %</span>
-            <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(celkem.cenaBezDph * DPH_SAZBA)}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "14px", fontSize: 18, fontWeight: 700, background: C.steelDark, color: "#fff" }}>
-            <span>Cena celkem s DPH</span>
-            <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(celkem.cenaSDph)}</span>
-          </div>
+          <button onClick={onClose} style={{ ...iconBtnStyle, color: C.inkSoft }}>
+            <X size={22} />
+          </button>
         </div>
-
-        <div style={{ marginTop: 24, fontSize: 12, color: C.inkSoft }}>Nabídka je informativní a platí 30 dní od vystavení.</div>
+        <div style={{ padding: 20 }}>{children}</div>
       </div>
     </div>
   );

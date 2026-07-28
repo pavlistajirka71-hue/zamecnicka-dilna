@@ -1,108 +1,111 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { Eraser } from "lucide-react";
-import { C, FONTS } from "@/lib/theme";
-import { Button } from "./ui";
+import { useMemo, useState } from "react";
+import { Trash2 } from "lucide-react";
+import { C, FONTS, MATERIAL_UNITS, fmtMoney } from "@/lib/theme";
+import { TextInput, Select, iconBtnStyle } from "./ui";
 
-export default function SignaturePad({ onChange }) {
-  const canvasRef = useRef(null);
-  const drawing = useRef(false);
-  const empty = useRef(true);
-  const [isEmpty, setIsEmpty] = useState(true);
+export default function MaterialRow({ item, history, onChange, onRemove }) {
+  const [showSuggest, setShowSuggest] = useState(false);
+  const suggestions = useMemo(() => {
+    const q = (item.nazev || "").trim().toLowerCase();
+    if (!q) return [];
+    return history.filter((h) => h.nazev.toLowerCase().includes(q)).slice(0, 6);
+  }, [item.nazev, history]);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    // Crisp lines on high-DPI phone screens
-    const ratio = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * ratio;
-    canvas.height = rect.height * ratio;
-    ctx.scale(ratio, ratio);
-    ctx.lineWidth = 2.2;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = C.ink;
-  }, []);
-
-  const pos = (e) => {
-    const rect = canvasRef.current.getBoundingClientRect();
-    const point = e.touches ? e.touches[0] : e;
-    return { x: point.clientX - rect.left, y: point.clientY - rect.top };
+  const pick = (h) => {
+    onChange({ ...item, nazev: h.nazev, dodavatel: h.dodavatel || "", cena: h.cena, jednotka: h.jednotka || "kg", vaha: h.vaha, plocha: h.plocha });
+    setShowSuggest(false);
   };
 
-  const start = (e) => {
-    e.preventDefault();
-    drawing.current = true;
-    const ctx = canvasRef.current.getContext("2d");
-    const { x, y } = pos(e);
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-  };
-
-  const move = (e) => {
-    if (!drawing.current) return;
-    e.preventDefault();
-    const ctx = canvasRef.current.getContext("2d");
-    const { x, y } = pos(e);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    if (empty.current) {
-      empty.current = false;
-      setIsEmpty(false);
-    }
-  };
-
-  const end = () => {
-    if (!drawing.current) return;
-    drawing.current = false;
-    canvasRef.current.toBlob((blob) => onChange(blob), "image/png");
-  };
-
-  const clear = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    empty.current = true;
-    setIsEmpty(true);
-    onChange(null);
-  };
+  const mnozstvi = Number(item.mnozstvi) || 0;
+  const celkemCena = (Number(item.cena) || 0) * mnozstvi;
+  const celkemVaha = (Number(item.vaha) || 0) * mnozstvi;
+  const celkemPlocha = (Number(item.plocha) || 0) * mnozstvi;
 
   return (
-    <div>
-      <div style={{ position: "relative", border: `1.5px dashed ${C.line}`, borderRadius: 8, background: "#fff" }}>
-        <canvas
-          ref={canvasRef}
-          style={{ width: "100%", height: 160, display: "block", touchAction: "none", cursor: "crosshair" }}
-          onMouseDown={start}
-          onMouseMove={move}
-          onMouseUp={end}
-          onMouseLeave={end}
-          onTouchStart={start}
-          onTouchMove={move}
-          onTouchEnd={end}
+    <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: 10, marginBottom: 8, background: C.paper }}>
+      <div style={{ position: "relative", marginBottom: 8 }}>
+        <TextInput
+          placeholder="Název materiálu…"
+          value={item.nazev}
+          onChange={(e) => {
+            onChange({ ...item, nazev: e.target.value });
+            setShowSuggest(true);
+          }}
+          onFocus={() => setShowSuggest(true)}
+          onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
         />
-        {isEmpty && (
+        {showSuggest && suggestions.length > 0 && (
           <div
             style={{
               position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: C.inkSoft,
-              fontFamily: FONTS.body,
-              fontSize: 13,
-              pointerEvents: "none",
+              top: "100%",
+              left: 0,
+              right: 0,
+              background: C.surface,
+              border: `1px solid ${C.line}`,
+              borderRadius: 6,
+              marginTop: 2,
+              zIndex: 10,
+              boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
+              maxHeight: 180,
+              overflowY: "auto",
             }}
           >
-            Podepište prstem nebo myší sem
+            {suggestions.map((h, i) => (
+              <button
+                key={i}
+                type="button"
+                onMouseDown={() => pick(h)}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "8px 10px",
+                  background: "none",
+                  border: "none",
+                  borderBottom: i < suggestions.length - 1 ? `1px solid ${C.line}` : "none",
+                  cursor: "pointer",
+                  fontSize: 13,
+                }}
+              >
+                <div style={{ fontWeight: 600 }}>{h.nazev}</div>
+                <div style={{ fontSize: 11, color: C.inkSoft, fontFamily: FONTS.mono }}>
+                  {h.dodavatel ? `${h.dodavatel} · ` : ""}
+                  {fmtMoney(h.cena)}/{h.jednotka || "kg"} · {h.vaha || 0} kg/j · {h.plocha || 0} m²/j
+                </div>
+              </button>
+            ))}
           </div>
         )}
       </div>
-      <Button variant="ghost" type="button" onClick={clear} style={{ marginTop: 8 }}>
-        <Eraser size={14} /> Vymazat podpis
-      </Button>
+      <TextInput
+        placeholder="Dodavatel (nepovinné)"
+        value={item.dodavatel || ""}
+        onChange={(e) => onChange({ ...item, dodavatel: e.target.value })}
+        style={{ marginBottom: 6 }}
+      />
+      <div className="material-grid-3">
+        <TextInput type="number" placeholder="Cena/jednotka" value={item.cena} onChange={(e) => onChange({ ...item, cena: e.target.value })} />
+        <Select value={item.jednotka || "kg"} onChange={(e) => onChange({ ...item, jednotka: e.target.value })}>
+          {MATERIAL_UNITS.map((u) => (
+            <option key={u} value={u}>
+              {u}
+            </option>
+          ))}
+        </Select>
+        <TextInput type="number" placeholder="Množství" value={item.mnozstvi} onChange={(e) => onChange({ ...item, mnozstvi: e.target.value })} />
+      </div>
+      <div className="material-grid-3b">
+        <TextInput type="number" placeholder="Váha kg / jednotka" value={item.vaha} onChange={(e) => onChange({ ...item, vaha: e.target.value })} />
+        <TextInput type="number" placeholder="Plocha m² / jednotka" value={item.plocha} onChange={(e) => onChange({ ...item, plocha: e.target.value })} />
+        <button onClick={onRemove} type="button" style={{ ...iconBtnStyle, color: C.danger }}>
+          <Trash2 size={16} />
+        </button>
+      </div>
+      <div style={{ textAlign: "right", fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft, marginTop: 6 }}>
+        Celkem: {fmtMoney(celkemCena)} · {celkemVaha} kg · {celkemPlocha} m²
+      </div>
     </div>
   );
 }

@@ -1,134 +1,69 @@
 "use client";
-import { useRef, useState } from "react";
-import { Camera } from "lucide-react";
-import { uid, todayISO, resizeImageFile } from "@/lib/theme";
-import { nahratFotku } from "@/lib/uploadClient";
+import { useMemo, useState } from "react";
+import { Search, ChevronRight } from "lucide-react";
 import { C, FONTS } from "@/lib/theme";
-import { Field, TextInput, Button } from "./ui";
+import { TextInput, StampBadge } from "./ui";
 
-const TYPY = [
-  { key: "pred", label: "Před" },
-  { key: "po", label: "Po" },
-  { key: "ostatni", label: "Ostatní" },
-];
-
-export default function WorkPhotoFlow({ order, onSubmit, onClose }) {
-  const [photoBlob, setPhotoBlob] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [processing, setProcessing] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [typ, setTyp] = useState("pred");
-  const [popis, setPopis] = useState("");
-  const [error, setError] = useState("");
-  const fileInputRef = useRef(null);
-
-  const handleFile = async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    setProcessing(true);
-    setError("");
-    try {
-      const blob = await resizeImageFile(file);
-      setPhotoBlob(blob);
-      setPhotoPreview(URL.createObjectURL(blob));
-    } catch (err) {
-      console.error(err);
-      setError("Fotku se nepodařilo zpracovat, zkus to znovu.");
-    }
-    setProcessing(false);
-  };
-
-  const save = async () => {
-    if (!photoBlob) return;
-    setUploading(true);
-    setError("");
-    try {
-      const path = await nahratFotku(photoBlob, `fotka-${order.cislo}-${typ}-${uid()}.jpg`, "fotky");
-      await onSubmit(order, { id: uid(), datum: todayISO(), path, typ, popis });
-    } catch (err) {
-      console.error(err);
-      setError("Uložení fotky se nepovedlo. Zkontroluj připojení a zkus to znovu.");
-      setUploading(false);
-    }
-  };
+export default function OrderPicker({ orders, onPick, excludeStavy, excludeNote }) {
+  const [q, setQ] = useState("");
+  const list = useMemo(() => {
+    const query = q.toLowerCase();
+    return orders
+      .filter((o) => !excludeStavy || !excludeStavy.includes(o.stav))
+      .filter(
+        (o) =>
+          !query ||
+          o.zakaznik.toLowerCase().includes(query) ||
+          o.cislo.toLowerCase().includes(query) ||
+          (o.popis || "").toLowerCase().includes(query)
+      )
+      .sort((a, b) => (a.vytvoreno < b.vytvoreno ? 1 : -1));
+  }, [orders, q, excludeStavy]);
 
   return (
     <div>
-      <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: "none" }} />
-
-      {!photoPreview ? (
-        <button
-          onClick={() => fileInputRef.current && fileInputRef.current.click()}
-          disabled={processing}
-          style={{
-            width: "100%",
-            border: `2px dashed ${C.line}`,
-            borderRadius: 10,
-            background: C.paper,
-            padding: "36px 16px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 8,
-            cursor: "pointer",
-            color: C.steel,
-          }}
-        >
-          <Camera size={34} />
-          <span style={{ fontFamily: FONTS.display, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 14 }}>
-            {processing ? "Zpracovávám…" : "Vyfotit"}
-          </span>
-        </button>
-      ) : (
-        <div>
-          <img src={photoPreview} alt="Náhled" style={{ width: "100%", borderRadius: 8, border: `1px solid ${C.line}`, marginBottom: 8 }} />
-          <Button variant="ghost" onClick={() => fileInputRef.current && fileInputRef.current.click()} type="button">
-            <Camera size={14} /> Vyfotit znovu
-          </Button>
-        </div>
+      {excludeStavy && excludeNote && (
+        <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 10 }}>{excludeNote}</div>
       )}
-
-      {photoPreview && (
-        <>
-          <Field label="Typ fotky">
-            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-              {TYPY.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setTyp(t.key)}
-                  style={{
-                    flex: 1,
-                    padding: "9px 10px",
-                    borderRadius: 6,
-                    border: `1.5px solid ${C.steel}`,
-                    background: typ === t.key ? C.steel : "transparent",
-                    color: typ === t.key ? "#fff" : C.steel,
-                    fontFamily: FONTS.display,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.03em",
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </Field>
-          <Field label="Popis (nepovinné)">
-            <TextInput value={popis} onChange={(e) => setPopis(e.target.value)} placeholder="např. stav před demontáží" />
-          </Field>
-          {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 8 }}>{error}</div>}
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
-            <Button variant="ghost" onClick={onClose} type="button">
-              Zrušit
-            </Button>
-            <Button variant="primary" type="button" onClick={save} disabled={uploading}>
-              {uploading ? "Nahrávám…" : "Uložit fotku"}
-            </Button>
-          </div>
-        </>
+      <div style={{ position: "relative", marginBottom: 12 }}>
+        <Search size={15} style={{ position: "absolute", left: 10, top: 13, color: C.inkSoft }} />
+        <TextInput autoFocus placeholder="Hledat zakázku…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 32 }} />
+      </div>
+      {list.length === 0 ? (
+        <div style={{ color: C.inkSoft, textAlign: "center", padding: 20 }}>Žádná zakázka nenalezena.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "55vh", overflowY: "auto" }}>
+          {list.map((o) => (
+            <button
+              key={o.id}
+              onClick={() => onPick(o)}
+              style={{
+                textAlign: "left",
+                background: C.paper,
+                border: `1px solid ${C.line}`,
+                borderRadius: 8,
+                padding: "12px 14px",
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 2 }}>
+                  <span style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft }}>{o.cislo}</span>
+                  <StampBadge status={o.stav} small />
+                </div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{o.zakaznik}</div>
+                <div style={{ fontSize: 12, color: C.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {o.popis}
+                </div>
+              </div>
+              <ChevronRight size={16} color={C.inkSoft} style={{ flexShrink: 0 }} />
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

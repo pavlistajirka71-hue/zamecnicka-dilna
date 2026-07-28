@@ -1,144 +1,108 @@
 "use client";
-import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { C, FONTS, STATUSES, fmtMoney, fmtDate, isOverdue } from "@/lib/theme";
+import { useEffect, useRef, useState } from "react";
+import { Eraser } from "lucide-react";
+import { C, FONTS } from "@/lib/theme";
+import { Button } from "./ui";
 
-export default function Nastenka({ orders, onOpen, onChangeStatus }) {
-  const [dragOverKey, setDragOverKey] = useState(null);
-  const [draggingId, setDraggingId] = useState(null);
+export default function SignaturePad({ onChange }) {
+  const canvasRef = useRef(null);
+  const drawing = useRef(false);
+  const empty = useRef(true);
+  const [isEmpty, setIsEmpty] = useState(true);
 
-  const handleDrop = (e, statusKey) => {
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    // Crisp lines on high-DPI phone screens
+    const ratio = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = C.ink;
+  }, []);
+
+  const pos = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const point = e.touches ? e.touches[0] : e;
+    return { x: point.clientX - rect.left, y: point.clientY - rect.top };
+  };
+
+  const start = (e) => {
     e.preventDefault();
-    setDragOverKey(null);
-    const id = e.dataTransfer.getData("text/plain");
-    const order = orders.find((o) => o.id === id);
-    if (order && order.stav !== statusKey) onChangeStatus(order, statusKey);
-    setDraggingId(null);
+    drawing.current = true;
+    const ctx = canvasRef.current.getContext("2d");
+    const { x, y } = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const move = (e) => {
+    if (!drawing.current) return;
+    e.preventDefault();
+    const ctx = canvasRef.current.getContext("2d");
+    const { x, y } = pos(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    if (empty.current) {
+      empty.current = false;
+      setIsEmpty(false);
+    }
+  };
+
+  const end = () => {
+    if (!drawing.current) return;
+    drawing.current = false;
+    canvasRef.current.toBlob((blob) => onChange(blob), "image/png");
+  };
+
+  const clear = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    empty.current = true;
+    setIsEmpty(true);
+    onChange(null);
   };
 
   return (
-    <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch" }}>
-      {STATUSES.map((s, colIdx) => {
-        const zakazky = orders.filter((o) => o.stav === s.key);
-        return (
+    <div>
+      <div style={{ position: "relative", border: `1.5px dashed ${C.line}`, borderRadius: 8, background: "#fff" }}>
+        <canvas
+          ref={canvasRef}
+          style={{ width: "100%", height: 160, display: "block", touchAction: "none", cursor: "crosshair" }}
+          onMouseDown={start}
+          onMouseMove={move}
+          onMouseUp={end}
+          onMouseLeave={end}
+          onTouchStart={start}
+          onTouchMove={move}
+          onTouchEnd={end}
+        />
+        {isEmpty && (
           <div
-            key={s.key}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOverKey(s.key);
-            }}
-            onDragLeave={() => setDragOverKey((cur) => (cur === s.key ? null : cur))}
-            onDrop={(e) => handleDrop(e, s.key)}
             style={{
-              flex: "0 0 260px",
-              width: 260,
-              background: dragOverKey === s.key ? "#EAE6DB" : C.paper,
-              border: `1px solid ${dragOverKey === s.key ? s.color : C.line}`,
-              borderRadius: 10,
+              position: "absolute",
+              inset: 0,
               display: "flex",
-              flexDirection: "column",
-              maxHeight: "72vh",
+              alignItems: "center",
+              justifyContent: "center",
+              color: C.inkSoft,
+              fontFamily: FONTS.body,
+              fontSize: 13,
+              pointerEvents: "none",
             }}
           >
-            <div
-              style={{
-                padding: "10px 12px",
-                borderBottom: `3px solid ${s.color}`,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                fontFamily: FONTS.display,
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-                fontSize: 13,
-                color: C.ink,
-                flexShrink: 0,
-              }}
-            >
-              <span>{s.label}</span>
-              <span style={{ fontFamily: FONTS.mono, color: C.inkSoft, fontSize: 12 }}>{zakazky.length}</span>
-            </div>
-
-            <div style={{ padding: 8, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
-              {zakazky.length === 0 ? (
-                <div style={{ fontSize: 12, color: C.inkSoft, textAlign: "center", padding: "16px 4px" }}>Prázdno</div>
-              ) : (
-                zakazky.map((o) => {
-                  const overdueCard = isOverdue(o);
-                  return (
-                    <div
-                      key={o.id}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("text/plain", o.id);
-                        setDraggingId(o.id);
-                      }}
-                      onDragEnd={() => setDraggingId(null)}
-                      onClick={() => onOpen(o)}
-                      style={{
-                        background: C.surface,
-                        border: `1px solid ${C.line}`,
-                        borderLeft: overdueCard ? `4px solid ${C.rust}` : `4px solid transparent`,
-                        borderRadius: 8,
-                        padding: "10px 10px",
-                        cursor: "pointer",
-                        opacity: draggingId === o.id ? 0.4 : 1,
-                      }}
-                    >
-                      <div style={{ fontFamily: FONTS.mono, fontSize: 11, color: C.inkSoft, marginBottom: 2 }}>{o.cislo}</div>
-                      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {o.zakaznik}
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
-                        <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(o.cena)}</span>
-                        <span style={{ color: overdueCard ? C.rust : C.inkSoft, fontFamily: FONTS.mono }}>{fmtDate(o.termin)}</span>
-                      </div>
-
-                      <div
-                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, borderTop: `1px dashed ${C.line}`, paddingTop: 4 }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          disabled={colIdx === 0}
-                          onClick={() => onChangeStatus(o, STATUSES[colIdx - 1].key)}
-                          title={colIdx > 0 ? `Přesunout do: ${STATUSES[colIdx - 1].label}` : ""}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: colIdx === 0 ? "default" : "pointer",
-                            color: colIdx === 0 ? C.line : C.steel,
-                            padding: 10,
-                            display: "inline-flex",
-                            WebkitTapHighlightColor: "transparent",
-                          }}
-                        >
-                          <ChevronLeft size={18} />
-                        </button>
-                        <button
-                          disabled={colIdx === STATUSES.length - 1}
-                          onClick={() => onChangeStatus(o, STATUSES[colIdx + 1].key)}
-                          title={colIdx < STATUSES.length - 1 ? `Přesunout do: ${STATUSES[colIdx + 1].label}` : ""}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: colIdx === STATUSES.length - 1 ? "default" : "pointer",
-                            color: colIdx === STATUSES.length - 1 ? C.line : C.steel,
-                            padding: 10,
-                            display: "inline-flex",
-                            WebkitTapHighlightColor: "transparent",
-                          }}
-                        >
-                          <ChevronRight size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+            Podepište prstem nebo myší sem
           </div>
-        );
-      })}
+        )}
+      </div>
+      <Button variant="ghost" type="button" onClick={clear} style={{ marginTop: 8 }}>
+        <Eraser size={14} /> Vymazat podpis
+      </Button>
     </div>
   );
 }

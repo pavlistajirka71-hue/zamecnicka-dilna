@@ -1,55 +1,64 @@
 "use client";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-import { C } from "@/lib/theme";
+import { useState } from "react";
+import { Field, TextInput, Select, Button, SectionLabel } from "./ui";
 
-export function useSignedUrl(bucket, path) {
-  const [url, setUrl] = useState(null);
-  useEffect(() => {
-    let active = true;
-    if (!path) return;
-    // Nové fotky mají path rovnou jako plnou URL (Google Drive) — není co podepisovat.
-    // Staré fotky (nahrané před zapnutím Drive) mají jen cestu v Supabase Storage.
-    if (path.startsWith("http")) {
-      setUrl(path);
-      return;
-    }
-    supabase.storage
-      .from(bucket)
-      .createSignedUrl(path, 3600)
-      .then(({ data, error }) => {
-        if (active && !error && data) setUrl(data.signedUrl);
-      });
-    return () => {
-      active = false;
-    };
-  }, [bucket, path]);
-  return url;
-}
-
-export default function PhotoThumbnail({ bucket, path, alt, caption, onOpen }) {
-  const url = useSignedUrl(bucket, path);
+export default function NastaveniForm({ initial, onSave, onClose }) {
+  const [f, setF] = useState(initial);
+  const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
   return (
-    <button
-      onClick={() => url && onOpen(url)}
-      style={{
-        border: `1px solid ${C.line}`,
-        borderRadius: 6,
-        padding: 0,
-        cursor: url ? "pointer" : "default",
-        background: C.paper,
-        overflow: "hidden",
-        width: 74,
-      }}
-    >
-      {url ? (
-        <img src={url} alt={alt || "Fotka"} style={{ width: 74, height: 74, objectFit: "cover", display: "block" }} />
-      ) : (
-        <div style={{ width: 74, height: 74, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: C.inkSoft }}>
-          načítám…
-        </div>
-      )}
-      {caption ? <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", padding: "2px 0", background: C.paper }}>{caption}</div> : null}
-    </button>
+    <div>
+      <SectionLabel>Sazby za práci</SectionLabel>
+      <div className="field-row">
+        <Field label="Sazba dílna (Kč/h)">
+          <TextInput type="number" value={f.sazbaDilna} onChange={(e) => set("sazbaDilna", e.target.value)} />
+        </Field>
+        <Field label="Sazba montáž (Kč/h)">
+          <TextInput type="number" value={f.sazbaMontaz} onChange={(e) => set("sazbaMontaz", e.target.value)} />
+        </Field>
+      </div>
+      <SectionLabel>Kooperace</SectionLabel>
+      <div className="field-row">
+        <Field label="Zinkování (Kč/kg)">
+          <TextInput type="number" value={f.cenaZinkovani} onChange={(e) => set("cenaZinkovani", e.target.value)} />
+        </Field>
+        <Field label="Lakování (Kč/m²)">
+          <TextInput type="number" value={f.cenaLakovani} onChange={(e) => set("cenaLakovani", e.target.value)} />
+        </Field>
+      </div>
+      <SectionLabel>Kalkulace</SectionLabel>
+      <Field label="Zaokrouhlovat finální cenu na (Kč)">
+        <Select value={f.zaokrouhleniNa} onChange={(e) => set("zaokrouhleniNa", Number(e.target.value))}>
+          <option value={1}>Nezaokrouhlovat</option>
+          <option value={10}>10 Kč</option>
+          <option value={100}>100 Kč</option>
+          <option value={1000}>1000 Kč</option>
+        </Select>
+      </Field>
+      <div style={{ fontSize: 12, color: "#5B5A52", marginTop: 4, marginBottom: 16 }}>DPH je pevně 21 % (aktuální česká sazba).</div>
+
+      <SectionLabel>Firma (zhotovitel na předávacím protokolu)</SectionLabel>
+      <Field label="Název firmy">
+        <TextInput value={f.firmaNazev} onChange={(e) => set("firmaNazev", e.target.value)} placeholder="Zámečnictví Novák s.r.o." />
+      </Field>
+      <Field label="Adresa">
+        <TextInput value={f.firmaAdresa} onChange={(e) => set("firmaAdresa", e.target.value)} placeholder="Dílenská 12, 100 00 Praha" />
+      </Field>
+      <div className="field-row">
+        <Field label="IČO">
+          <TextInput value={f.firmaIco} onChange={(e) => set("firmaIco", e.target.value)} />
+        </Field>
+        <Field label="DIČ">
+          <TextInput value={f.firmaDic} onChange={(e) => set("firmaDic", e.target.value)} />
+        </Field>
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+        <Button variant="ghost" onClick={onClose} type="button">
+          Zrušit
+        </Button>
+        <Button variant="primary" type="button" onClick={() => onSave(f)}>
+          Uložit nastavení
+        </Button>
+      </div>
+    </div>
   );
 }
