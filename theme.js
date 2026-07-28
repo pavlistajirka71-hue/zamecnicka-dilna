@@ -1,135 +1,242 @@
-"use client";
-import { useRef, useState } from "react";
-import { Camera } from "lucide-react";
-import { uid, todayISO, resizeImageFile } from "@/lib/theme";
-import { nahratFotku } from "@/lib/uploadClient";
-import { C, FONTS } from "@/lib/theme";
-import { Field, TextInput, Button } from "./ui";
+import fs from "fs";
+import path from "path";
+import PDFDocument from "pdfkit";
+import { odstranitDiakritiku } from "./diakritika";
+import {
+  STATUSES,
+  fmtDate,
+  fmtMoney,
+  computeKalkulaceCelkem,
+  normalizovatKalkulaci,
+  computeNakladyZakazky,
+  sumHodin,
+} from "./theme";
 
-const TYPY = [
-  { key: "pred", label: "Před" },
-  { key: "po", label: "Po" },
-  { key: "ostatni", label: "Ostatní" },
-];
+// Volitelný font s podporou české diakritiky. Pokud soubor existuje (viz README —
+// stačí přidat jeden .ttf soubor do projektu), PDF ho použije a diakritika bude
+// v pořádku. Pokud tam není, appka nespadne — jen text zbaví diakritiky (čitelné,
+// ale bez háčků/čárek), aby PDF fungovalo hned bez dalšího nastavování.
+const FONT_PATH = path.join(process.cwd(), "fonts", "NotoSans-Regular.ttf");
+const FONT_BOLD_PATH = path.join(process.cwd(), "fonts", "NotoSans-Bold.ttf");
 
-export default function WorkPhotoFlow({ order, onSubmit, onClose }) {
-  const [photoBlob, setPhotoBlob] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [processing, setProcessing] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [typ, setTyp] = useState("pred");
-  const [popis, setPopis] = useState("");
-  const [error, setError] = useState("");
-  const fileInputRef = useRef(null);
+function statusLabel(key) {
+  const s = STATUSES.find((x) => x.key === key);
+  return s ? s.label : key;
+}
 
-  const handleFile = async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    setProcessing(true);
-    setError("");
-    try {
-      const blob = await resizeImageFile(file);
-      setPhotoBlob(blob);
-      setPhotoPreview(URL.createObjectURL(blob));
-    } catch (err) {
-      console.error(err);
-      setError("Fotku se nepodařilo zpracovat, zkus to znovu.");
+// Stáhne obrázek z URL (Google Drive) nebo přes signed URL (starší fotky v Supabase
+// Storage). Při jakémkoliv selhání vrátí null — appka pak obrázek v PDF prostě vynechá,
+// ale zbytek dokumentu se vygeneruje normálně.
+async function stahnoutObrazek(pathNeboUrl, bucket, supabaseAdmin) {
+  if (!pathNeboUrl) return null;
+  try {
+    let url = pathNeboUrl;
+    if (!url.startsWith("http")) {
+      const { data } = await supabaseAdmin.storage.from(bucket).createSignedUrl(pathNeboUrl, 300);
+      url = data?.signedUrl;
+      if (!url) return null;
     }
-    setProcessing(false);
-  };
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const arrayBuffer = await res.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } catch (e) {
+    console.error("Stažení obrázku pro PDF se nepovedlo:", e);
+    return null;
+  }
+}
 
-  const save = async () => {
-    if (!photoBlob) return;
-    setUploading(true);
-    setError("");
-    try {
-      const path = await nahratFotku(photoBlob, `fotka-${order.cislo}-${typ}-${uid()}.jpg`, "fotky");
-      await onSubmit(order, { id: uid(), datum: todayISO(), path, typ, popis });
-    } catch (err) {
-      console.error(err);
-      setError("Uložení fotky se nepovedlo. Zkontroluj připojení a zkus to znovu.");
-      setUploading(false);
+export async function generovatPdfZakazky(order, nastaveni, supabaseAdmin) {
+  const maCeskyFont = fs.existsSync(FONT_PATH);
+  const t = maCeskyFont ? (s) => (s === null || s === undefined ? "" : String(s)) : odstranitDiakritiku;
+
+  const doc = new PDFDocument({ size: "A4", margin: 50, bufferPages: true });
+  const chunks = [];
+  doc.on("data", (c) => chunks.push(c));
+  const hotovo = new Promise((resolve, reject) => {
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+  });
+
+  if (maCeskyFont) {
+    doc.registerFont("Text", FONT_PATH);
+    doc.registerFont("TextBold", fs.existsSync(FONT_BOLD_PATH) ? FONT_BOLD_PATH : FONT_PATH);
+  } else {
+    doc.registerFont("Text", "Helvetica");
+    doc.registerFont("TextBold", "Helvetica-Bold");
+  }
+  doc.font("Text");
+
+  const INK = "#21231F";
+  const SOFT = "#5B5A52";
+  const LINE = "#D9D4C7";
+  const STEEL = "#34506B";
+
+  function zajistitMisto(potrebnaVyska = 80) {
+    if (doc.y > 792 - potrebnaVyska) doc.addPage();
+  }
+
+  function nadpisSekce(text) {
+    zajistitMisto(40);
+    doc.moveDown(0.6);
+    doc.font("TextBold").fontSize(13).fillColor(STEEL).text(t(text));
+    doc.moveTo(50, doc.y + 2).lineTo(545, doc.y + 2).strokeColor(LINE).stroke();
+    doc.moveDown(0.5);
+    doc.font("Text").fontSize(10).fillColor(INK);
+  }
+
+  function radek(label, hodnota) {
+    zajistitMisto(20);
+    doc.font("Text").fontSize(10).fillColor(SOFT).text(t(label), { continued: true }).fillColor(INK).text("  " + t(hodnota));
+  }
+
+  // ---------- Hlavička ----------
+  doc.font("TextBold").fontSize(20).fillColor(INK).text(t("Archiv zakázky"));
+  doc.font("Text").fontSize(11).fillColor(SOFT).text(`${order.cislo}  ·  ${t("vygenerováno")} ${fmtDate(new Date().toISOString().slice(0, 10))}`);
+  doc.moveDown();
+
+  // ---------- Základní údaje ----------
+  nadpisSekce("Základní údaje");
+  radek("Zákazník:", order.zakaznik);
+  if (order.zakaznikIdentifikace) radek("Identifikace:", order.zakaznikIdentifikace.replace(/\n/g, ", "));
+  radek("Popis zakázky:", order.popis);
+  radek("Stav:", statusLabel(order.stav));
+  radek("Termín:", fmtDate(order.termin));
+  radek("Vytvořeno:", fmtDate(order.vytvoreno));
+  radek("Kdo dělá:", order.reseni || "—");
+  if (order.cisloFaktury) radek("Číslo faktury:", order.cisloFaktury);
+  radek("Cena zakázky:", fmtMoney(order.cena));
+  if (order.poznamka) radek("Poznámka:", order.poznamka);
+
+  // ---------- Kalkulace ----------
+  const polozky = normalizovatKalkulaci(order.kalkulace);
+  if (polozky.length > 0) {
+    const celkem = computeKalkulaceCelkem(polozky, nastaveni);
+    nadpisSekce("Kalkulace");
+    celkem.items.forEach(({ polozka, vysledek }) => {
+      zajistitMisto(60);
+      doc.font("TextBold").fontSize(11).fillColor(INK).text(t(polozka.nazev || "Položka"));
+      doc.font("Text").fontSize(9).fillColor(SOFT);
+      (polozka.materialy || []).forEach((m) => {
+        const cena = (Number(m.cena) || 0) * (Number(m.mnozstvi) || 0);
+        doc.text(`  • ${t(m.nazev)}${m.dodavatel ? ` (${t(m.dodavatel)})` : ""} — ${m.mnozstvi || 0} ${t(m.jednotka || "")} — ${fmtMoney(cena)}`);
+      });
+      if (Number(polozka.praceDilnaHodiny) > 0) doc.text(`  • ${t("Práce dílna")}: ${polozka.praceDilnaHodiny} h`);
+      if (Number(polozka.praceMontazHodiny) > 0) doc.text(`  • ${t("Práce montáž")}: ${polozka.praceMontazHodiny} h`);
+      if (polozka.zinkovaniAktivni) doc.text(`  • ${t("Zinkování")}: ${fmtMoney(vysledek.zinkovaniSum)}`);
+      if (polozka.lakovaniAktivni) doc.text(`  • ${t("Lakování")}: ${fmtMoney(vysledek.lakovaniSum)}`);
+      doc.font("Text").fontSize(10).fillColor(INK).text(`  ${t("Cena položky")}: ${fmtMoney(vysledek.finalniCena)}`);
+      doc.moveDown(0.4);
+    });
+    doc.font("TextBold").fontSize(11).fillColor(INK);
+    doc.text(`${t("Cena celkem bez DPH")}: ${fmtMoney(celkem.cenaBezDph)}`);
+    doc.text(`${t("Cena celkem s DPH")}: ${fmtMoney(celkem.cenaSDph)}`);
+    doc.font("Text").fontSize(10);
+  }
+
+  // ---------- Práce ----------
+  if ((order.prace || []).length > 0) {
+    nadpisSekce("Zápisy práce");
+    order.prace.forEach((p) => {
+      zajistitMisto(16);
+      const typ = (p.typ || "dilna") === "dilna" ? "Dílna" : "Montáž";
+      doc.text(`${fmtDate(p.datum)}  ·  ${t(typ)}  ·  ${p.hodiny} h${p.pracovnik ? "  ·  " + t(p.pracovnik) : ""}${p.popis ? "  —  " + t(p.popis) : ""}`);
+    });
+    doc.moveDown(0.3);
+    doc.font("TextBold").text(`${t("Celkem dílna")}: ${sumHodin(order.prace, "dilna")} h    ${t("Celkem montáž")}: ${sumHodin(order.prace, "montaz")} h`);
+    doc.font("Text");
+  }
+
+  // ---------- Náklady, zisk, marže ----------
+  if (polozky.length > 0) {
+    const nv = computeNakladyZakazky(order, nastaveni);
+    nadpisSekce("Náklady, zisk a marže");
+    (order.naklady || []).forEach((n) => {
+      zajistitMisto(16);
+      doc.text(`${t(n.popis)} — ${fmtMoney(n.castka)}`);
+    });
+    doc.moveDown(0.3);
+    radek("Náklady na práci:", fmtMoney(nv.nakladyPrace));
+    radek("Náklady celkem:", fmtMoney(nv.nakladyCelkem));
+    radek("Příjem (cena bez DPH):", fmtMoney(nv.prijem));
+    doc.font("TextBold").fontSize(11);
+    radek("Zisk:", `${fmtMoney(nv.zisk)}  (${nv.marzePct.toFixed(1)} %)`);
+    doc.font("Text").fontSize(10);
+    if (order.stav === "fakturovano") {
+      radek("Plán z kalkulace:", `${fmtMoney(nv.planZisk)}  (${nv.planMarzePct.toFixed(1)} %)`);
     }
-  };
+  }
 
-  return (
-    <div>
-      <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: "none" }} />
+  // ---------- Předávací protokol ----------
+  if (order.protokol) {
+    nadpisSekce("Předávací protokol");
+    radek("Stav:", order.protokol.stav === "podepsano" ? "Podepsáno" : "Čeká na podpis");
+    if (order.protokol.podpisDatum) radek("Datum podpisu:", fmtDate(order.protokol.podpisDatum));
+    if (order.protokol.vyhrady) radek("Výhrady:", order.protokol.vyhrady);
+    if (order.protokol.podpisPath) {
+      const podpisBuffer = await stahnoutObrazek(order.protokol.podpisPath, "protokoly", supabaseAdmin);
+      if (podpisBuffer) {
+        zajistitMisto(90);
+        doc.moveDown(0.3);
+        try {
+          doc.image(podpisBuffer, { width: 160 });
+        } catch (e) {
+          console.error("Vložení obrázku podpisu do PDF selhalo:", e);
+        }
+      }
+    }
+  }
 
-      {!photoPreview ? (
-        <button
-          onClick={() => fileInputRef.current && fileInputRef.current.click()}
-          disabled={processing}
-          style={{
-            width: "100%",
-            border: `2px dashed ${C.line}`,
-            borderRadius: 10,
-            background: C.paper,
-            padding: "36px 16px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 8,
-            cursor: "pointer",
-            color: C.steel,
-          }}
-        >
-          <Camera size={34} />
-          <span style={{ fontFamily: FONTS.display, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 14 }}>
-            {processing ? "Zpracovávám…" : "Vyfotit"}
-          </span>
-        </button>
-      ) : (
-        <div>
-          <img src={photoPreview} alt="Náhled" style={{ width: "100%", borderRadius: 8, border: `1px solid ${C.line}`, marginBottom: 8 }} />
-          <Button variant="ghost" onClick={() => fileInputRef.current && fileInputRef.current.click()} type="button">
-            <Camera size={14} /> Vyfotit znovu
-          </Button>
-        </div>
-      )}
+  // ---------- Materiál objednán ----------
+  nadpisSekce("Materiál");
+  radek("Objednán:", order.materialObjednano ? `Ano${order.materialObjednanoDatum ? " (" + fmtDate(order.materialObjednanoDatum) + ")" : ""}` : "Ne");
 
-      {photoPreview && (
-        <>
-          <Field label="Typ fotky">
-            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-              {TYPY.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setTyp(t.key)}
-                  style={{
-                    flex: 1,
-                    padding: "9px 10px",
-                    borderRadius: 6,
-                    border: `1.5px solid ${C.steel}`,
-                    background: typ === t.key ? C.steel : "transparent",
-                    color: typ === t.key ? "#fff" : C.steel,
-                    fontFamily: FONTS.display,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.03em",
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </Field>
-          <Field label="Popis (nepovinné)">
-            <TextInput value={popis} onChange={(e) => setPopis(e.target.value)} placeholder="např. stav před demontáží" />
-          </Field>
-          {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 8 }}>{error}</div>}
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
-            <Button variant="ghost" onClick={onClose} type="button">
-              Zrušit
-            </Button>
-            <Button variant="primary" type="button" onClick={save} disabled={uploading}>
-              {uploading ? "Nahrávám…" : "Uložit fotku"}
-            </Button>
-          </div>
-        </>
-      )}
-    </div>
-  );
+  // ---------- Účtenky ----------
+  if ((order.uctenky || []).length > 0) {
+    nadpisSekce(`Účtenky (${order.uctenky.length})`);
+    for (const u of order.uctenky) {
+      zajistitMisto(110);
+      doc.text(`${fmtDate(u.datum)}${u.castka ? "  ·  " + fmtMoney(u.castka) : ""}${u.poznamka ? "  —  " + t(u.poznamka) : ""}`);
+      const buf = await stahnoutObrazek(u.path, "uctenky", supabaseAdmin);
+      if (buf) {
+        try {
+          doc.image(buf, { width: 90 });
+        } catch (e) {
+          console.error("Vložení účtenky do PDF selhalo:", e);
+        }
+      }
+      doc.moveDown(0.3);
+    }
+  }
+
+  // ---------- Fotky z průběhu práce ----------
+  if ((order.fotky || []).length > 0) {
+    nadpisSekce(`Fotky z průběhu práce (${order.fotky.length})`);
+    for (const f of order.fotky) {
+      zajistitMisto(110);
+      const typLabel = f.typ === "pred" ? "Před" : f.typ === "po" ? "Po" : "Ostatní";
+      doc.text(`${fmtDate(f.datum)}  ·  ${t(typLabel)}${f.popis ? "  —  " + t(f.popis) : ""}`);
+      const buf = await stahnoutObrazek(f.path, "fotky", supabaseAdmin);
+      if (buf) {
+        try {
+          doc.image(buf, { width: 140 });
+        } catch (e) {
+          console.error("Vložení fotky do PDF selhalo:", e);
+        }
+      }
+      doc.moveDown(0.3);
+    }
+  }
+
+  if (!maCeskyFont) {
+    zajistitMisto(40);
+    doc.moveDown();
+    doc.font("Text").fontSize(8).fillColor(SOFT).text(
+      "Pozn.: PDF je bez ceske diakritiky - chybi font s jeji podporou. Navod na doplneni je v README appky.",
+      { width: 495 }
+    );
+  }
+
+  doc.end();
+  return hotovo;
 }

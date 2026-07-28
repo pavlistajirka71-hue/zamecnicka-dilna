@@ -1,183 +1,185 @@
 "use client";
-import { useRef } from "react";
-import { X } from "lucide-react";
-import { C, FONTS, statusInfo } from "@/lib/theme";
+import { useRef, useState } from "react";
+import { Camera, ArrowLeft } from "lucide-react";
+import { C, FONTS, uid, todayISO, resizeImageFile, UZAVRENE_STAVY } from "@/lib/theme";
+import { nahratFotku } from "@/lib/uploadClient";
+import { Field, TextInput, Button } from "./ui";
+import OrderPicker from "./OrderPicker";
 
-export const inputStyle = {
-  width: "100%",
-  boxSizing: "border-box",
-  border: `1px solid ${C.line}`,
-  borderRadius: 6,
-  padding: "10px 10px",
-  fontFamily: FONTS.body,
-  fontSize: 16, // 16px avoids iOS Safari auto-zoom on focus
-  background: C.surface,
-  color: C.ink,
-  outline: "none",
-};
+export default function ReceiptFlow({ orders, onSubmit, onClose }) {
+  const [order, setOrder] = useState(null);
+  const [photoBlob, setPhotoBlob] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [castka, setCastka] = useState("");
+  const [poznamka, setPoznamka] = useState("");
+  const [error, setError] = useState("");
+  const [readingCastka, setReadingCastka] = useState(false);
+  const [castkaAutomaticky, setCastkaAutomaticky] = useState(false);
+  const fileInputRef = useRef(null);
 
-export const iconBtnStyle = {
-  background: "none",
-  border: "none",
-  cursor: "pointer",
-  padding: 10,
-  margin: -10,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  WebkitTapHighlightColor: "transparent",
-};
+  if (!order) {
+    return (
+      <OrderPicker
+        orders={orders}
+        onPick={setOrder}
+        excludeStavy={UZAVRENE_STAVY}
+        excludeNote="Hotové a fakturované zakázky se tu nenabízí — už se u nich nezapisuje práce ani účtenky."
+      />
+    );
+  }
 
-export function StampBadge({ status, small }) {
-  const s = statusInfo(status);
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        fontFamily: FONTS.display,
-        letterSpacing: "0.08em",
-        textTransform: "uppercase",
-        fontSize: small ? 10 : 12,
-        color: s.color,
-        border: `2px solid ${s.color}`,
-        borderRadius: 3,
-        padding: small ? "1px 6px" : "2px 9px",
-        transform: "rotate(-2deg)",
-        background: "rgba(255,255,255,0.6)",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {s.label}
-    </span>
-  );
-}
-
-export function SectionLabel({ children }) {
-  return (
-    <div
-      style={{
-        fontFamily: FONTS.display,
-        letterSpacing: "0.12em",
-        textTransform: "uppercase",
-        fontSize: 12,
-        color: C.inkSoft,
-        marginBottom: 8,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-export function Field({ label, children }) {
-  return (
-    <label style={{ display: "block", marginBottom: 12 }}>
-      <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 4, fontFamily: FONTS.body }}>{label}</div>
-      {children}
-    </label>
-  );
-}
-
-export function TextInput(props) {
-  return <input {...props} style={{ ...inputStyle, ...(props.style || {}) }} />;
-}
-export function TextArea(props) {
-  return <textarea {...props} style={{ ...inputStyle, minHeight: 70, resize: "vertical", ...(props.style || {}) }} />;
-}
-export function Select(props) {
-  return <select {...props} style={{ ...inputStyle, ...(props.style || {}) }} />;
-}
-
-export function Button({ variant = "primary", children, style, ...rest }) {
-  const base = {
-    fontFamily: FONTS.display,
-    letterSpacing: "0.04em",
-    textTransform: "uppercase",
-    fontSize: 13,
-    borderRadius: 6,
-    padding: "9px 16px",
-    border: "none",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    transition: "opacity 0.15s ease",
+  const precistCastku = async (blob) => {
+    setReadingCastka(true);
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      const res = await fetch("/api/precti-uctenku", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: dataUrl }),
+      });
+      const data = await res.json();
+      if (data.castka) {
+        setCastka(String(data.castka));
+        setCastkaAutomaticky(true);
+      }
+    } catch (err) {
+      console.error(err);
+      // Tiché selhání — čtení účtenky je jen pomocník, částku jde vždy doplnit ručně.
+    }
+    setReadingCastka(false);
   };
-  const variants = {
-    primary: { background: C.steel, color: "#fff" },
-    rust: { background: C.rust, color: "#fff" },
-    moss: { background: C.moss, color: "#fff" },
-    ghost: { background: "transparent", color: C.steel, border: `1px solid ${C.line}` },
-    danger: { background: "transparent", color: C.danger, border: `1px solid ${C.danger}` },
-  };
-  return (
-    <button
-      {...rest}
-      style={{ ...base, ...variants[variant], ...style }}
-      onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-      onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-    >
-      {children}
-    </button>
-  );
-}
 
-export function Modal({ title, onClose, children, width = 560, zIndex = 50 }) {
-  const mouseDownOnBackdrop = useRef(false);
+  const handleFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    setProcessing(true);
+    setError("");
+    setCastkaAutomaticky(false);
+    try {
+      const blob = await resizeImageFile(file);
+      setPhotoBlob(blob);
+      setPhotoPreview(URL.createObjectURL(blob));
+      precistCastku(blob); // na pozadí, nečeká se na to
+    } catch (err) {
+      console.error(err);
+      setError("Fotku se nepodařilo zpracovat, zkus to znovu.");
+    }
+    setProcessing(false);
+  };
+
+  const save = async () => {
+    if (!photoBlob) return;
+    setUploading(true);
+    setError("");
+    try {
+      const path = await nahratFotku(photoBlob, `uctenka-${order.cislo}-${uid()}.jpg`, "uctenky");
+      await onSubmit(order, {
+        id: uid(),
+        datum: todayISO(),
+        path,
+        castka: castka ? Number(castka) : null,
+        poznamka,
+      });
+      // On success the parent closes this modal (unmounting this component),
+      // so we intentionally don't touch state here afterwards.
+    } catch (err) {
+      console.error(err);
+      setError("Uložení účtenky se nepovedlo. Zkontroluj připojení a zkus to znovu.");
+      setUploading(false);
+    }
+  };
+
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(33,35,31,0.45)",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        padding: "5vh 16px",
-        zIndex,
-        overflowY: "auto",
-      }}
-      onMouseDown={(e) => {
-        mouseDownOnBackdrop.current = e.target === e.currentTarget;
-      }}
-      onClick={(e) => {
-        // Only close if BOTH the press and the release happened directly on the backdrop.
-        // Without this check, selecting text (or dragging a bit) inside the modal and
-        // releasing the mouse/finger just outside the content box would also fire a
-        // "click" on the backdrop and close the modal — which is what was happening.
-        if (mouseDownOnBackdrop.current && e.target === e.currentTarget) onClose();
-        mouseDownOnBackdrop.current = false;
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: C.surface,
-          borderRadius: 10,
-          width: "100%",
-          maxWidth: width,
-          boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
-          border: `1px solid ${C.line}`,
+    <div>
+      <button
+        onClick={() => {
+          setOrder(null);
+          setPhotoBlob(null);
+          setPhotoPreview(null);
         }}
+        style={{ background: "none", border: "none", color: C.steel, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, marginBottom: 12, fontSize: 13, padding: 4, marginLeft: -4 }}
       >
-        <div
+        <ArrowLeft size={14} /> Jiná zakázka
+      </button>
+      <div style={{ background: C.paper, borderRadius: 8, padding: "10px 12px", marginBottom: 14 }}>
+        <div style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft }}>{order.cislo}</div>
+        <div style={{ fontWeight: 600 }}>{order.zakaznik}</div>
+      </div>
+
+      <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: "none" }} />
+
+      {!photoPreview ? (
+        <button
+          onClick={() => fileInputRef.current && fileInputRef.current.click()}
+          disabled={processing}
           style={{
+            width: "100%",
+            border: `2px dashed ${C.line}`,
+            borderRadius: 10,
+            background: C.paper,
+            padding: "36px 16px",
             display: "flex",
-            justifyContent: "space-between",
+            flexDirection: "column",
             alignItems: "center",
-            padding: "16px 20px",
-            borderBottom: `2px dashed ${C.line}`,
+            gap: 8,
+            cursor: "pointer",
+            color: C.steel,
           }}
         >
-          <div style={{ fontFamily: FONTS.display, fontSize: 18, textTransform: "uppercase", letterSpacing: "0.05em", color: C.ink }}>
-            {title}
-          </div>
-          <button onClick={onClose} style={{ ...iconBtnStyle, color: C.inkSoft }}>
-            <X size={22} />
-          </button>
+          <Camera size={34} />
+          <span style={{ fontFamily: FONTS.display, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 14 }}>
+            {processing ? "Zpracovávám…" : "Vyfotit účtenku"}
+          </span>
+        </button>
+      ) : (
+        <div>
+          <img src={photoPreview} alt="Náhled účtenky" style={{ width: "100%", borderRadius: 8, border: `1px solid ${C.line}`, marginBottom: 8 }} />
+          <Button variant="ghost" onClick={() => fileInputRef.current && fileInputRef.current.click()} type="button">
+            <Camera size={14} /> Vyfotit znovu
+          </Button>
         </div>
-        <div style={{ padding: 20 }}>{children}</div>
-      </div>
+      )}
+
+      {photoPreview && (
+        <>
+          <div style={{ marginTop: 14 }}>
+            <Field label="Částka (Kč, nepovinné)">
+              <TextInput
+                type="number"
+                value={castka}
+                onChange={(e) => {
+                  setCastka(e.target.value);
+                  setCastkaAutomaticky(false);
+                }}
+                placeholder={readingCastka ? "Čtu z fotky…" : "0"}
+              />
+            </Field>
+            {readingCastka && <div style={{ fontSize: 12, color: C.inkSoft, marginTop: -8, marginBottom: 10 }}>Čtu částku z účtenky…</div>}
+            {castkaAutomaticky && !readingCastka && (
+              <div style={{ fontSize: 12, color: C.moss, marginTop: -8, marginBottom: 10 }}>Vyčteno automaticky z fotky — zkontroluj, prosím.</div>
+            )}
+            <Field label="Poznámka (nepovinné)">
+              <TextInput value={poznamka} onChange={(e) => setPoznamka(e.target.value)} placeholder="např. nákup materiálu" />
+            </Field>
+          </div>
+          {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 8 }}>{error}</div>}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
+            <Button variant="ghost" onClick={onClose} type="button">
+              Zrušit
+            </Button>
+            <Button variant="primary" type="button" onClick={save} disabled={uploading}>
+              {uploading ? "Nahrávám…" : "Uložit účtenku"}
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

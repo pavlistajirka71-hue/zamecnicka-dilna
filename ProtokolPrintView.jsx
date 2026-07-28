@@ -1,139 +1,110 @@
 "use client";
-import { useEffect, useState } from "react";
-import { Copy, Check, Printer, CheckCircle2 } from "lucide-react";
-import { nahratFotku } from "@/lib/uploadClient";
-import { C, FONTS, novyProtokol, fmtDate } from "@/lib/theme";
-import { Field, TextInput, TextArea, Button, SectionLabel } from "./ui";
-import ProtokolContent from "./ProtokolContent";
-import SignaturePad from "./SignaturePad";
-import { useSignedUrl } from "./PhotoThumbnail";
+import { useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { C, FONTS, uid, seedNakladyZKalkulace, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney } from "@/lib/theme";
+import { Field, TextInput, Button, SectionLabel, iconBtnStyle } from "./ui";
 
-export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrint }) {
-  const [protokol, setProtokol] = useState(order.protokol || novyProtokol(order, nastaveni));
+export default function NakladyForm({ order, nastaveni, onSave, onClose }) {
+  const [radky, setRadky] = useState(() => {
+    if (order.naklady && order.naklady.length > 0) return order.naklady;
+    const polozky = normalizovatKalkulaci(order.kalkulace);
+    return seedNakladyZKalkulace(polozky, nastaveni);
+  });
+  const [novyPopis, setNovyPopis] = useState("");
+  const [novaCastka, setNovaCastka] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [signatureBlob, setSignatureBlob] = useState(null);
-  const signatureUrl = useSignedUrl("protokoly", protokol.podpisPath);
 
-  // Persist a fresh protocol right away so a share link/token exists in the database.
-  useEffect(() => {
-    if (!order.protokol) {
-      onSave(order, protokol).catch(() => {});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const vysledek = computeNakladyZakazky({ ...order, naklady: radky }, nastaveni);
 
-  // If the customer signs remotely (via the public link) while this modal is open,
-  // pick up the signed state live instead of silently staying on the old unsigned view.
-  useEffect(() => {
-    if (order.protokol?.stav === "podepsano" && protokol.stav !== "podepsano") {
-      setProtokol(order.protokol);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order.protokol?.stav]);
+  const updateRadek = (id, patch) => setRadky((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const removeRadek = (id) => setRadky((prev) => prev.filter((r) => r.id !== id));
 
-  const set = (k, v) => setProtokol((prev) => ({ ...prev, [k]: v }));
-
-  const saveDetails = async () => {
-    setSaving(true);
-    setError("");
-    try {
-      await onSave(order, protokol);
-    } catch (e) {
-      setError("Uložení se nepovedlo, zkus to znovu.");
-    }
-    setSaving(false);
+  const pridatNaklad = () => {
+    if (!novyPopis.trim() || !novaCastka) return;
+    setRadky((prev) => [...prev, { id: uid(), popis: novyPopis.trim(), castka: Number(novaCastka) }]);
+    setNovyPopis("");
+    setNovaCastka("");
   };
-
-  const podepsatNaMiste = async () => {
-    if (!signatureBlob) return;
-    setSaving(true);
-    setError("");
-    try {
-      const path = await nahratFotku(signatureBlob, `podpis-${order.cislo}-${Date.now()}.png`, "protokoly");
-      const next = { ...protokol, podpisPath: path, podpisDatum: new Date().toISOString().slice(0, 10), stav: "podepsano" };
-      await onSave(order, next);
-      setProtokol(next);
-    } catch (e) {
-      setError("Uložení podpisu se nepovedlo. Zkontroluj připojení a zkus to znovu.");
-    }
-    setSaving(false);
-  };
-
-  const kopirovatOdkaz = async () => {
-    const link = `${window.location.origin}/protokol/${order.id}?token=${protokol.token}`;
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const jePodepsano = protokol.stav === "podepsano";
 
   return (
     <div>
-      <div style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 8, padding: 16, marginBottom: 16 }}>
-        <ProtokolContent protokol={protokol} />
-      </div>
-
-      {!jePodepsano && (
-        <>
-          <SectionLabel>Údaje protokolu</SectionLabel>
-          <div className="field-row">
-            <Field label="Datum předání">
-              <TextInput type="date" value={protokol.datumPredani} onChange={(e) => set("datumPredani", e.target.value)} />
-            </Field>
-          </div>
-          <Field label="Výhrady / poznámky (nepovinné — necháš prázdné, pokud je dílo bez vad)">
-            <TextArea value={protokol.vyhrady} onChange={(e) => set("vyhrady", e.target.value)} placeholder="Popis výhrad zákazníka, pokud nějaké jsou…" />
-          </Field>
-          <Button variant="ghost" onClick={saveDetails} disabled={saving} style={{ marginBottom: 20 }}>
-            {saving ? "Ukládám…" : "Uložit údaje protokolu"}
-          </Button>
-
-          <SectionLabel>Podpis objednatele</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
-            <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: 14 }}>
-              <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 10 }}>Na místě — zákazník podepíše přímo na tomto zařízení</div>
-              <SignaturePad onChange={setSignatureBlob} />
-              <Button variant="primary" style={{ marginTop: 10 }} disabled={!signatureBlob || saving} onClick={podepsatNaMiste}>
-                {saving ? "Ukládám…" : "Potvrdit podpis na místě"}
-              </Button>
+      <SectionLabel>Náklady (materiál, kooperace, ostatní)</SectionLabel>
+      {radky.length === 0 ? (
+        <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 12 }}>Zatím žádné náklady.</div>
+      ) : (
+        <div style={{ marginBottom: 12 }}>
+          {radky.map((r) => (
+            <div key={r.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+              <TextInput value={r.popis} onChange={(e) => updateRadek(r.id, { popis: e.target.value })} style={{ flex: 3 }} />
+              <TextInput type="number" value={r.castka} onChange={(e) => updateRadek(r.id, { castka: e.target.value })} style={{ flex: 1 }} />
+              <button onClick={() => removeRadek(r.id)} style={{ ...iconBtnStyle, color: C.danger }}>
+                <Trash2 size={16} />
+              </button>
             </div>
-
-            <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: 14 }}>
-              <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 10 }}>
-                Na dálku — zákazník otevře odkaz, uvidí celý protokol a podepíše sám odkudkoliv
-              </div>
-              <Button variant="ghost" onClick={kopirovatOdkaz}>
-                {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "Odkaz zkopírován" : "Kopírovat odkaz pro zákazníka"}
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {jePodepsano && (
-        <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: 14, marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: C.moss, marginBottom: 10, fontFamily: FONTS.display, textTransform: "uppercase", fontSize: 13 }}>
-            <CheckCircle2 size={16} /> Podepsáno {fmtDate(protokol.podpisDatum)}
-          </div>
-          {signatureUrl && <img src={signatureUrl} alt="Podpis zákazníka" style={{ maxWidth: 280, border: `1px solid ${C.line}`, borderRadius: 6, background: "#fff" }} />}
+          ))}
         </div>
       )}
 
-      {error && <div style={{ color: C.rust, fontSize: 13, marginBottom: 10 }}>{error}</div>}
-
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-        <Button variant="ghost" onClick={() => onPrint(protokol, signatureUrl)}>
-          <Printer size={14} /> Tisk protokolu
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <TextInput placeholder="Popis nákladu (např. doprava)" value={novyPopis} onChange={(e) => setNovyPopis(e.target.value)} style={{ flex: 3 }} />
+        <TextInput type="number" placeholder="Kč bez DPH" value={novaCastka} onChange={(e) => setNovaCastka(e.target.value)} style={{ flex: 1 }} />
+        <Button variant="ghost" type="button" onClick={pridatNaklad}>
+          <Plus size={14} />
         </Button>
-        <Button variant="ghost" onClick={onClose}>
-          Zavřít
+      </div>
+
+      <SectionLabel>Práce (dopočteno automaticky ze zápisů práce)</SectionLabel>
+      <div style={{ background: C.paper, borderRadius: 8, padding: 12, marginBottom: 16, border: `1px solid ${C.line}`, fontSize: 13 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
+          <span>Dílna</span>
+          <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(vysledek.praceDilnaSum)}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
+          <span>Montáž</span>
+          <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(vysledek.praceMontazSum)}</span>
+        </div>
+        <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 4 }}>
+          Podle skutečně odpracovaných hodin a aktuální sazby v Nastavení — mění se automaticky, jak přibývají zápisy práce.
+        </div>
+      </div>
+
+      <div style={{ background: C.paper, borderRadius: 8, padding: 14, border: `1px solid ${C.line}` }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "3px 0" }}>
+          <span>Náklady celkem (materiál/kooperace/ostatní + práce)</span>
+          <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(vysledek.nakladyCelkem)}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "3px 0" }}>
+          <span>Příjem (cena zakázky bez DPH)</span>
+          <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(vysledek.prijem)}</span>
+        </div>
+        <div style={{ borderTop: `1px dashed ${C.line}`, marginTop: 6, paddingTop: 6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 600 }}>
+            <span>Zisk</span>
+            <span style={{ fontFamily: FONTS.mono, color: vysledek.zisk >= 0 ? C.moss : C.danger }}>
+              {fmtMoney(vysledek.zisk)} ({vysledek.marzePct.toFixed(1)} %)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+        <Button variant="ghost" onClick={onClose} type="button">
+          Zrušit
+        </Button>
+        <Button
+          variant="primary"
+          type="button"
+          disabled={saving}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await onSave(radky);
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          {saving ? "Ukládám…" : "Uložit náklady"}
         </Button>
       </div>
     </div>

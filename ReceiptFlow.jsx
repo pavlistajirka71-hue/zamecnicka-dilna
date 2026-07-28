@@ -1,127 +1,93 @@
 "use client";
-import { useRef, useState } from "react";
-import { Download, Upload, AlertTriangle } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
-import { C, FONTS, todayISO } from "@/lib/theme";
+import { X, Printer } from "lucide-react";
+import { C, FONTS, DPH_SAZBA, fmtMoney, fmtDate, todayISO } from "@/lib/theme";
 import { Button } from "./ui";
 
-export default function ZalohaPanel({ orders, nastaveni, materialHistory, onRestored, onClose }) {
-  const fileRef = useRef(null);
-  const [restoring, setRestoring] = useState(false);
-  const [error, setError] = useState("");
-  const [confirmFile, setConfirmFile] = useState(null);
+function polozkaLines(vysledek) {
+  // Scale raw cost lines proportionally so they sum exactly to the položka's price,
+  // without exposing the markup as a separate line.
+  const scale = vysledek.naklady > 0 ? vysledek.cenaBezDph / vysledek.naklady : 1;
+  const lines = [];
+  if (vysledek.materialSum > 0) lines.push({ label: "Materiál", cena: vysledek.materialSum * scale });
+  if (vysledek.praceDilnaSum > 0) lines.push({ label: "Práce — dílna", cena: vysledek.praceDilnaSum * scale });
+  if (vysledek.praceMontazSum > 0) lines.push({ label: "Práce — montáž", cena: vysledek.praceMontazSum * scale });
+  if (vysledek.zinkovaniSum > 0) lines.push({ label: "Zinkování", cena: vysledek.zinkovaniSum * scale });
+  if (vysledek.lakovaniSum > 0) lines.push({ label: "Lakování", cena: vysledek.lakovaniSum * scale });
+  return lines;
+}
 
-  const stahnoutZalohu = () => {
-    const payload = {
-      typ: "zamecnictvi-app-zaloha",
-      verze: 1,
-      vytvoreno: new Date().toISOString(),
-      orders,
-      nastaveni,
-      materialHistory,
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `zaloha-dilna-${todayISO()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const vybratSoubor = async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    setError("");
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (data.typ !== "zamecnictvi-app-zaloha" || !Array.isArray(data.orders)) {
-        throw new Error("Soubor nevypadá jako platná záloha appky.");
-      }
-      setConfirmFile(data);
-    } catch (err) {
-      setError("Soubor se nepodařilo přečíst — zkontroluj, že jde o zálohu z téhle appky.");
-    }
-    if (fileRef.current) fileRef.current.value = "";
-  };
-
-  const obnovitZalohu = async () => {
-    if (!confirmFile) return;
-    setRestoring(true);
-    setError("");
-    try {
-      if (confirmFile.orders?.length) {
-        const { error: e1 } = await supabase.from("orders").upsert(confirmFile.orders);
-        if (e1) throw e1;
-      }
-      if (confirmFile.nastaveni) {
-        const { error: e2 } = await supabase.from("nastaveni").upsert({ id: 1, ...confirmFile.nastaveni });
-        if (e2) throw e2;
-      }
-      if (confirmFile.materialHistory?.length) {
-        const { error: e3 } = await supabase.from("material_history").upsert(confirmFile.materialHistory);
-        if (e3) throw e3;
-      }
-      await onRestored();
-      setConfirmFile(null);
-    } catch (err) {
-      console.error(err);
-      setError("Obnovení se nepovedlo. Zkontroluj připojení a zkus to znovu.");
-    }
-    setRestoring(false);
-  };
+// celkem = computeKalkulaceCelkem(...) výstup, obsahuje celkem.items = [{ polozka, vysledek }, ...]
+export default function QuoteView({ order, polozky, celkem, onClose }) {
+  const items = celkem.items || [];
+  const vicePolozek = items.length > 1;
 
   return (
-    <div>
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 10 }}>
-          Stáhne kompletní zálohu — zakázky, nastavení i katalog materiálů — do jednoho souboru. Ulož si ho někam mimo appku (Google Drive,
-          e-mail…). Fotky (účtenky, podpisy) v záloze nejsou, ty zůstávají bezpečně v Supabase Storage.
-        </div>
-        <Button variant="primary" onClick={stahnoutZalohu}>
-          <Download size={14} /> Stáhnout zálohu ({orders.length} zakázek)
-        </Button>
-      </div>
-
-      <div style={{ borderTop: `2px dashed ${C.line}`, paddingTop: 20 }}>
-        <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 10 }}>
-          Obnovení ze zálohy přepíše aktuální data uloženými v souboru (podle stejného ID). Použij jen v nouzi.
-        </div>
-        <input ref={fileRef} type="file" accept="application/json" onChange={vybratSoubor} style={{ display: "none" }} />
-        <Button variant="ghost" onClick={() => fileRef.current && fileRef.current.click()}>
-          <Upload size={14} /> Nahrát a obnovit ze zálohy
-        </Button>
-      </div>
-
-      {error && <div style={{ color: C.danger, fontSize: 13, marginTop: 12 }}>{error}</div>}
-
-      {confirmFile && (
-        <div style={{ marginTop: 16, background: "#FBEAE3", border: `1px solid ${C.rust}`, borderRadius: 8, padding: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: C.rust, fontFamily: FONTS.display, textTransform: "uppercase", fontSize: 13, marginBottom: 8 }}>
-            <AlertTriangle size={16} /> Opravdu obnovit tuhle zálohu?
-          </div>
-          <div style={{ fontSize: 13, color: C.ink, marginBottom: 10 }}>
-            Záloha z {confirmFile.vytvoreno ? new Date(confirmFile.vytvoreno).toLocaleString("cs-CZ") : "neznámého data"} —{" "}
-            {confirmFile.orders?.length || 0} zakázek. Přepíše se aktuální stav dat se stejným ID.
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Button variant="ghost" onClick={() => setConfirmFile(null)} disabled={restoring}>
-              Zrušit
-            </Button>
-            <Button variant="danger" onClick={obnovitZalohu} disabled={restoring}>
-              {restoring ? "Obnovuji…" : "Ano, obnovit"}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+    <div style={{ position: "fixed", inset: 0, background: "#fff", zIndex: 100, overflowY: "auto" }}>
+      <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: 16, borderBottom: `1px solid ${C.line}` }}>
         <Button variant="ghost" onClick={onClose}>
-          Zavřít
+          <X size={14} /> Zavřít
         </Button>
+        <Button variant="primary" onClick={() => window.print()}>
+          <Printer size={14} /> Tisk
+        </Button>
+      </div>
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "30px 24px", color: C.ink, fontFamily: FONTS.body }}>
+        <div style={{ fontFamily: FONTS.display, fontSize: 26, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 4 }}>
+          Cenová nabídka
+        </div>
+        <div style={{ color: C.inkSoft, marginBottom: 24, fontFamily: FONTS.mono, fontSize: 13 }}>
+          {order.cislo} · {fmtDate(todayISO())}
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, color: C.inkSoft, textTransform: "uppercase", letterSpacing: "0.06em" }}>Zákazník</div>
+          <div style={{ fontSize: 18, fontWeight: 600 }}>{order.zakaznik}</div>
+          <div style={{ color: C.inkSoft }}>{order.popis}</div>
+        </div>
+
+        {items.map(({ polozka, vysledek }, pi) => {
+          const lines = polozkaLines(vysledek);
+          return (
+            <div key={polozka.id || pi} style={{ marginBottom: 18 }}>
+              {vicePolozek && (
+                <div style={{ fontFamily: FONTS.display, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 15, marginBottom: 6 }}>
+                  {polozka.nazev || `Položka ${pi + 1}`}
+                </div>
+              )}
+              <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, overflow: "hidden" }}>
+                {lines.map((l, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", borderBottom: `1px solid ${C.line}`, fontSize: 14 }}>
+                    <span>{l.label}</span>
+                    <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(l.cena)}</span>
+                  </div>
+                ))}
+                {vicePolozek && (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", fontSize: 14, background: C.paper, fontWeight: 600 }}>
+                    <span>Mezisoučet bez DPH</span>
+                    <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(vysledek.cenaBezDph)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", fontSize: 14, background: C.paper }}>
+            <span>Cena celkem bez DPH</span>
+            <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(celkem.cenaBezDph)}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", fontSize: 14, background: C.paper }}>
+            <span>DPH 21 %</span>
+            <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(celkem.cenaBezDph * DPH_SAZBA)}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "14px", fontSize: 18, fontWeight: 700, background: C.steelDark, color: "#fff" }}>
+            <span>Cena celkem s DPH</span>
+            <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(celkem.cenaSDph)}</span>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 24, fontSize: 12, color: C.inkSoft }}>Nabídka je informativní a platí 30 dní od vystavení.</div>
       </div>
     </div>
   );

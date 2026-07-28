@@ -1,212 +1,135 @@
 "use client";
 import { useRef, useState } from "react";
-import { Plus, Trash2, Pencil, Upload, X } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
-import { C, FONTS, MATERIAL_UNITS, uid, fmtMoney } from "@/lib/theme";
-import { Field, TextInput, Select, Button, iconBtnStyle } from "./ui";
+import { Camera } from "lucide-react";
+import { uid, todayISO, resizeImageFile } from "@/lib/theme";
+import { nahratFotku } from "@/lib/uploadClient";
+import { C, FONTS } from "@/lib/theme";
+import { Field, TextInput, Button } from "./ui";
 
-function ParseError(msg) {
-  this.msg = msg;
-}
+const TYPY = [
+  { key: "pred", label: "Před" },
+  { key: "po", label: "Po" },
+  { key: "ostatni", label: "Ostatní" },
+];
 
-function parseCSV(text) {
-  // Podporuje oddělovač ; nebo , a hlavičku: dodavatel;nazev;cena;jednotka;vaha;plocha
-  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  if (lines.length < 2) throw new ParseError("Soubor neobsahuje žádná data.");
-  const delimiter = lines[0].includes(";") ? ";" : ",";
-  const header = lines[0].split(delimiter).map((h) => h.trim().toLowerCase());
-  const idx = {
-    dodavatel: header.indexOf("dodavatel"),
-    nazev: header.indexOf("nazev"),
-    cena: header.indexOf("cena"),
-    jednotka: header.indexOf("jednotka"),
-    vaha: header.indexOf("vaha"),
-    plocha: header.indexOf("plocha"),
-  };
-  if (idx.nazev === -1) throw new ParseError('CSV musí mít sloupec "nazev".');
+export default function WorkPhotoFlow({ order, onSubmit, onClose }) {
+  const [photoBlob, setPhotoBlob] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [typ, setTyp] = useState("pred");
+  const [popis, setPopis] = useState("");
+  const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
 
-  return lines.slice(1).map((line) => {
-    const cols = line.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, ""));
-    return {
-      nazev: cols[idx.nazev] || "",
-      dodavatel: idx.dodavatel > -1 ? cols[idx.dodavatel] || "" : "",
-      cena: idx.cena > -1 ? Number(cols[idx.cena].replace(",", ".")) || 0 : 0,
-      jednotka: idx.jednotka > -1 ? cols[idx.jednotka] || "kg" : "kg",
-      vaha: idx.vaha > -1 ? Number(cols[idx.vaha].replace(",", ".")) || 0 : 0,
-      plocha: idx.plocha > -1 ? Number(cols[idx.plocha].replace(",", ".")) || 0 : 0,
-    };
-  });
-}
-
-export default function MaterialyKatalog({ materialHistory, onChange, onClose }) {
-  const [editing, setEditing] = useState(null); // material object being edited, or "new"
-  const [importError, setImportError] = useState("");
-  const [importing, setImporting] = useState(false);
-  const fileRef = useRef(null);
-
-  const saveItem = async (item, originalNazev) => {
-    const clean = {
-      nazev: item.nazev.trim(),
-      dodavatel: item.dodavatel || "",
-      cena: Number(item.cena) || 0,
-      jednotka: item.jednotka || "kg",
-      vaha: Number(item.vaha) || 0,
-      plocha: Number(item.plocha) || 0,
-    };
-    if (!clean.nazev) return;
-    const renamed = originalNazev && originalNazev.toLowerCase() !== clean.nazev.toLowerCase();
-    if (renamed) {
-      // "nazev" is the primary key — upserting under a new name would leave the old row behind.
-      await supabase.from("material_history").delete().eq("nazev", originalNazev);
-    }
-    await supabase.from("material_history").upsert(clean);
-    const next = [...materialHistory.filter((m) => m.nazev.toLowerCase() !== clean.nazev.toLowerCase() && m.nazev !== originalNazev), clean];
-    onChange(next);
-    setEditing(null);
-  };
-
-  const deleteItem = async (nazev) => {
-    await supabase.from("material_history").delete().eq("nazev", nazev);
-    onChange(materialHistory.filter((m) => m.nazev !== nazev));
-  };
-
-  const handleImport = async (e) => {
+  const handleFile = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    setImportError("");
-    setImporting(true);
+    setProcessing(true);
+    setError("");
     try {
-      const text = await file.text();
-      const rows = parseCSV(text).filter((r) => r.nazev);
-      if (rows.length === 0) throw new ParseError("V souboru se nenašly žádné platné řádky.");
-      const { error } = await supabase.from("material_history").upsert(rows);
-      if (error) throw error;
-      const map = new Map(materialHistory.map((m) => [m.nazev.toLowerCase(), m]));
-      rows.forEach((r) => map.set(r.nazev.toLowerCase(), r));
-      onChange(Array.from(map.values()));
+      const blob = await resizeImageFile(file);
+      setPhotoBlob(blob);
+      setPhotoPreview(URL.createObjectURL(blob));
     } catch (err) {
-      setImportError(err.msg || "Import se nepovedl — zkontroluj formát souboru.");
+      console.error(err);
+      setError("Fotku se nepodařilo zpracovat, zkus to znovu.");
     }
-    setImporting(false);
-    if (fileRef.current) fileRef.current.value = "";
+    setProcessing(false);
   };
 
-  const list = [...materialHistory].sort((a, b) => a.nazev.localeCompare(b.nazev, "cs"));
+  const save = async () => {
+    if (!photoBlob) return;
+    setUploading(true);
+    setError("");
+    try {
+      const path = await nahratFotku(photoBlob, `fotka-${order.cislo}-${typ}-${uid()}.jpg`, "fotky");
+      await onSubmit(order, { id: uid(), datum: todayISO(), path, typ, popis });
+    } catch (err) {
+      console.error(err);
+      setError("Uložení fotky se nepovedlo. Zkontroluj připojení a zkus to znovu.");
+      setUploading(false);
+    }
+  };
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-        <div style={{ fontSize: 12, color: C.inkSoft, maxWidth: 340 }}>
-          CSV formát (oddělovač <code>;</code> nebo <code>,</code>): <br />
-          <span style={{ fontFamily: FONTS.mono }}>dodavatel;nazev;cena;jednotka;vaha;plocha</span>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={handleImport} style={{ display: "none" }} />
-          <Button variant="ghost" onClick={() => fileRef.current && fileRef.current.click()} disabled={importing}>
-            <Upload size={14} /> {importing ? "Importuji…" : "Import CSV"}
-          </Button>
-          <Button variant="rust" onClick={() => setEditing("new")}>
-            <Plus size={14} /> Přidat
-          </Button>
-        </div>
-      </div>
+      <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: "none" }} />
 
-      {importError && <div style={{ color: C.danger, fontSize: 13, marginBottom: 10 }}>{importError}</div>}
-
-      {editing && (
-        <MaterialEditForm
-          initial={editing === "new" ? null : editing}
-          onSave={(item) => saveItem(item, editing === "new" ? null : editing.nazev)}
-          onCancel={() => setEditing(null)}
-        />
-      )}
-
-      {list.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 30, color: C.inkSoft }}>Katalog materiálů je zatím prázdný.</div>
+      {!photoPreview ? (
+        <button
+          onClick={() => fileInputRef.current && fileInputRef.current.click()}
+          disabled={processing}
+          style={{
+            width: "100%",
+            border: `2px dashed ${C.line}`,
+            borderRadius: 10,
+            background: C.paper,
+            padding: "36px 16px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 8,
+            cursor: "pointer",
+            color: C.steel,
+          }}
+        >
+          <Camera size={34} />
+          <span style={{ fontFamily: FONTS.display, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 14 }}>
+            {processing ? "Zpracovávám…" : "Vyfotit"}
+          </span>
+        </button>
       ) : (
-        <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, overflow: "hidden", marginTop: 10 }}>
-          {list.map((m) => (
-            <div
-              key={m.nazev}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "10px 12px",
-                borderBottom: `1px solid ${C.line}`,
-                fontSize: 13,
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 600 }}>{m.nazev}</div>
-                <div style={{ color: C.inkSoft, fontFamily: FONTS.mono, fontSize: 11 }}>
-                  {m.dodavatel ? `${m.dodavatel} · ` : ""}
-                  {fmtMoney(m.cena)}/{m.jednotka} · {m.vaha || 0} kg/j · {m.plocha || 0} m²/j
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-                <button onClick={() => setEditing(m)} style={{ ...iconBtnStyle, color: C.steel }}>
-                  <Pencil size={15} />
-                </button>
-                <button onClick={() => deleteItem(m.nazev)} style={{ ...iconBtnStyle, color: C.danger }}>
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            </div>
-          ))}
+        <div>
+          <img src={photoPreview} alt="Náhled" style={{ width: "100%", borderRadius: 8, border: `1px solid ${C.line}`, marginBottom: 8 }} />
+          <Button variant="ghost" onClick={() => fileInputRef.current && fileInputRef.current.click()} type="button">
+            <Camera size={14} /> Vyfotit znovu
+          </Button>
         </div>
       )}
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-        <Button variant="ghost" onClick={onClose}>
-          <X size={14} /> Zavřít
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function MaterialEditForm({ initial, onSave, onCancel }) {
-  const [f, setF] = useState(initial || { nazev: "", dodavatel: "", cena: "", jednotka: "kg", vaha: "", plocha: "" });
-  const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
-  return (
-    <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: 12, marginBottom: 12, background: C.paper }}>
-      <Field label="Název">
-        <TextInput value={f.nazev} onChange={(e) => set("nazev", e.target.value)} placeholder="např. Plochá ocel 20x5" />
-      </Field>
-      <Field label="Dodavatel">
-        <TextInput value={f.dodavatel} onChange={(e) => set("dodavatel", e.target.value)} placeholder="např. MZ Hutní materiály" />
-      </Field>
-      <div className="field-row">
-        <Field label="Cena/jednotka">
-          <TextInput type="number" value={f.cena} onChange={(e) => set("cena", e.target.value)} />
-        </Field>
-        <Field label="Jednotka">
-          <Select value={f.jednotka} onChange={(e) => set("jednotka", e.target.value)}>
-            {MATERIAL_UNITS.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </Select>
-        </Field>
-      </div>
-      <div className="field-row">
-        <Field label="Váha kg/jednotka">
-          <TextInput type="number" value={f.vaha} onChange={(e) => set("vaha", e.target.value)} />
-        </Field>
-        <Field label="Plocha m²/jednotka">
-          <TextInput type="number" value={f.plocha} onChange={(e) => set("plocha", e.target.value)} />
-        </Field>
-      </div>
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-        <Button variant="ghost" onClick={onCancel}>
-          Zrušit
-        </Button>
-        <Button variant="primary" onClick={() => onSave(f)}>
-          Uložit
-        </Button>
-      </div>
+      {photoPreview && (
+        <>
+          <Field label="Typ fotky">
+            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+              {TYPY.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setTyp(t.key)}
+                  style={{
+                    flex: 1,
+                    padding: "9px 10px",
+                    borderRadius: 6,
+                    border: `1.5px solid ${C.steel}`,
+                    background: typ === t.key ? C.steel : "transparent",
+                    color: typ === t.key ? "#fff" : C.steel,
+                    fontFamily: FONTS.display,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Popis (nepovinné)">
+            <TextInput value={popis} onChange={(e) => setPopis(e.target.value)} placeholder="např. stav před demontáží" />
+          </Field>
+          {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 8 }}>{error}</div>}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
+            <Button variant="ghost" onClick={onClose} type="button">
+              Zrušit
+            </Button>
+            <Button variant="primary" type="button" onClick={save} disabled={uploading}>
+              {uploading ? "Nahrávám…" : "Uložit fotku"}
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
