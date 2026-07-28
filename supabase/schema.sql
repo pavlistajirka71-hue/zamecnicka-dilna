@@ -149,6 +149,19 @@ drop policy if exists "authenticated delete fotky" on storage.objects;
 create policy "authenticated delete fotky" on storage.objects
   for delete using (bucket_id = 'fotky' and auth.role() = 'authenticated');
 
+-- 4) Přihlášení ke Google Drive (OAuth refresh token) — appka se k Drive přihlašuje jako
+-- konkrétní lidský Google účet (ne servisní účet), aby mohla využívat jeho úložiště.
+-- Schválně BEZ "authenticated" policy níže — tahle tabulka nesmí být čitelná/zapisovatelná
+-- přímo z prohlížeče (anon klíčem), jen ze serveru přes service role klíč.
+create table if not exists google_drive_auth (
+  id int primary key default 1,
+  refresh_token text,
+  connected_email text,
+  connected_at timestamptz
+);
+alter table google_drive_auth enable row level security;
+-- Žádná "create policy ... for authenticated" tady záměrně není.
+
 -- ---- Úložiště na PDF archivy zakázek (jen záložní řešení, pokud není nastavený Google Drive) ----
 insert into storage.buckets (id, name, public)
 values ('archivy', 'archivy', false)

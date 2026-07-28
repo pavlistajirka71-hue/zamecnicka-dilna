@@ -17,6 +17,7 @@ import {
   Layers,
   BarChart3,
   DatabaseBackup,
+  Cloud,
   X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -53,6 +54,7 @@ import PraceReport from "@/components/PraceReport";
 import ProtokolView from "@/components/ProtokolView";
 import ProtokolPrintView from "@/components/ProtokolPrintView";
 import ZalohaPanel from "@/components/ZalohaPanel";
+import GoogleDrivePanel from "@/components/GoogleDrivePanel";
 import WorkPhotoFlow from "@/components/WorkPhotoFlow";
 import NakladyForm from "@/components/NakladyForm";
 import Nastenka from "@/components/Nastenka";
@@ -84,14 +86,30 @@ export default function HomePage() {
   const [protokolOrder, setProtokolOrder] = useState(null);
   const [protokolPrint, setProtokolPrint] = useState(null);
   const [showZaloha, setShowZaloha] = useState(false);
+  const [showGoogleDrive, setShowGoogleDrive] = useState(false);
   const [fotkaOrder, setFotkaOrder] = useState(null);
   const [nakladyOrder, setNakladyOrder] = useState(null);
   const [generatingPdfId, setGeneratingPdfId] = useState(null);
   const [kalkulaceOrder, setKalkulaceOrder] = useState(null);
   const [quoteData, setQuoteData] = useState(null);
   const [globalError, setGlobalError] = useState("");
+  const [globalMessage, setGlobalMessage] = useState("");
   const [isOffline, setIsOffline] = useState(false);
   const [offlineData, setOfflineData] = useState(false);
+
+  // Zpracování návratu z Google přihlašovací obrazovky (viz app/api/google-auth/callback).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const google = params.get("google");
+    if (google === "connected") {
+      setGlobalMessage("Google Drive úspěšně připojen.");
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (google === "error") {
+      setGlobalError("Připojení ke Google Drive se nepovedlo. Zkus to znovu přes ikonu mraku v hlavičce.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     setIsOffline(typeof navigator !== "undefined" && !navigator.onLine);
@@ -456,6 +474,9 @@ export default function HomePage() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ fontFamily: FONTS.mono, fontSize: 12, color: "#C9CDD2" }}>{fmtDate(todayISO())}</div>
+          <button onClick={() => setShowGoogleDrive(true)} title="Google Drive" style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 10, margin: -10 }}>
+            <Cloud size={20} />
+          </button>
           <button onClick={() => setShowZaloha(true)} title="Zálohování" style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 10, margin: -10 }}>
             <DatabaseBackup size={20} />
           </button>
@@ -486,6 +507,27 @@ export default function HomePage() {
           }}
         >
           Jsi offline — appka zobrazuje poslední stažená data{offlineData ? "" : " z aktuální relace"}. Nové změny se uloží, až se připojení obnoví.
+        </div>
+      )}
+
+      {globalMessage && (
+        <div
+          style={{
+            background: "#E6F0E8",
+            color: C.mossDark,
+            borderBottom: `1px solid ${C.moss}`,
+            padding: "10px 16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: 13,
+            gap: 10,
+          }}
+        >
+          <span>{globalMessage}</span>
+          <button onClick={() => setGlobalMessage("")} style={{ background: "none", border: "none", color: C.mossDark, cursor: "pointer", padding: 6, margin: -6 }}>
+            <X size={16} />
+          </button>
         </div>
       )}
 
@@ -822,6 +864,12 @@ export default function HomePage() {
       {showReport && (
         <Modal title="Měsíční report práce" onClose={() => setShowReport(false)} width={620}>
           <PraceReport orders={orders} onClose={() => setShowReport(false)} />
+        </Modal>
+      )}
+
+      {showGoogleDrive && (
+        <Modal title="Google Drive" onClose={() => setShowGoogleDrive(false)} width={480}>
+          <GoogleDrivePanel onClose={() => setShowGoogleDrive(false)} />
         </Modal>
       )}
 

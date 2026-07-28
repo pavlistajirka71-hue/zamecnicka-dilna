@@ -103,35 +103,50 @@ Knihovna, která PDF vytváří, **standardně neumí české háčky a čárky*
 
 ## Fotky a soubory na Google Drive místo Supabase Storage
 
-Appka teď ukládá fotky (účtenky, fotodokumentace práce, podpisy z protokolů) na **Google Drive**, do jedné sdílené složky. V databázi zůstává jen odkaz + náhled, ne samotný soubor — šetří to místo v Supabase.
+Appka umí ukládat fotky (účtenky, fotodokumentace práce, podpisy z protokolů) a PDF archivy na **Google Drive**, do jedné sdílené složky. V databázi zůstává jen odkaz + náhled, ne samotný soubor.
 
-### Jak to založit
+**Důležité:** appka se k Drive přihlašuje jako **konkrétní lidský Google účet** (přes standardní přihlašovací okno Google, jednou), ne jako "servisní účet". Servisní účty na běžném (ne firemním/Workspace) Google účtu nemají vlastní úložný prostor, takže by nahrávání souborů vždy selhalo — tenhle způsob funguje spolehlivě i na obyčejném @gmail.com účtu a využívá jeho 15 GB zdarma.
 
-1. **Google Cloud Console** ([console.cloud.google.com](https://console.cloud.google.com)) → vytvoř nový projekt (nebo použij stávající)
-2. V projektu zapni **Google Drive API**: menu → APIs & Services → Library → najdi "Google Drive API" → **Enable**
-3. Založ **servisní účet** (Service Account): APIs & Services → Credentials → **Create Credentials → Service Account** → pojmenuj ho (např. "dilna-uploader") → Create and Continue → Done
-4. U vytvořeného servisního účtu: záložka **Keys → Add Key → Create new key → JSON** → stáhne se soubor s klíčem
-5. Na svém **běžném Google Drive** (ne servisní účet) založ novou složku, např. "Dílna — fotky"
-6. Tu složku **sdílej** s e-mailem servisního účtu (najdeš ho v JSON souboru jako `client_email`, končí na `...iam.gserviceaccount.com`) s právem **Editor**
-7. Otevři tu složku v prohlížeči a z URL adresy zkopíruj ID složky — je to část za posledním `/`, např. `https://drive.google.com/drive/folders/`**`1a2B3c4D5e...`** → to je `GOOGLE_DRIVE_FOLDER_ID`
+### Krok 1 — Google Cloud Console
 
-### Přidání do appky — nejspolehlivější varianta
+1. **console.cloud.google.com** → vytvoř nový projekt (nebo použij stávající)
+2. Zapni **Google Drive API**: menu → APIs & Services → Library → najdi "Google Drive API" → **Enable**
+3. Nastav souhlasovou obrazovku: **APIs & Services → OAuth consent screen** → **External** → vyplň jen povinné (název appky, tvůj e-mail) → Save
+   - Na kartě **Test users** přidej e-maily všech, kdo se budou k appce přihlašovat ke Google (dokud appku Google oficiálně neověří, funguje přihlášení jen pro tyhle přidané testovací uživatele)
+   - **Poznámka:** dokud je appka v testovacím režimu, vydrží přihlášení ke Drive obvykle **cca 7 dní**, pak appka požádá o nové (jde to jedním kliknutím, viz níže) — to je normální chování neověřené appky u Googlu, ne chyba appky
+4. **APIs & Services → Credentials → Create Credentials → OAuth client ID**
+   - Application type: **Web application**
+   - Authorized redirect URIs → **Add URI** → vlož `https://TVOJE-ADRESA.vercel.app/api/google-auth/callback` (přesně tvoje doména appky, s `https://` na začátku)
+   - **Create**
+5. Zobrazí se **Client ID** a **Client secret** — obojí budeš potřebovat
 
-Stažený `.json` soubor otevři v **Poznámkovém bloku** (ne ve Wordu), **označ úplně všechno** (od první `{` po poslední `}`) a zkopíruj. Tohle vlož jako hodnotu proměnné **`GOOGLE_SERVICE_ACCOUNT_JSON`** — jedna proměnná, celý soubor, nic se nemusí ručně vystřihávat z prostředka textu, což je nejčastější zdroj chyb.
+### Krok 2 — Založ sdílenou složku
 
-Do `.env.local` (lokálně) a Vercel Environment Variables (nasazení) přidej celkem dvě proměnné:
-- `GOOGLE_SERVICE_ACCOUNT_JSON` — celý obsah staženého souboru
-- `GOOGLE_DRIVE_FOLDER_ID` — ID složky z bodu 7
+1. Na svém Google Drive založ novou složku, např. "Dílna — fotky"
+2. Otevři ji a z URL adresy zkopíruj ID — část za posledním `/`, např. `https://drive.google.com/drive/folders/`**`1a2B3c4D5e...`**
 
-(Appka podporuje i starší variantu se dvěma zvlášť zkopírovanými proměnnými `GOOGLE_SERVICE_ACCOUNT_EMAIL` a `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, ale je náchylnější na chybu při ručním kopírování — použij ji, jen pokud `GOOGLE_SERVICE_ACCOUNT_JSON` z nějakého důvodu nechceš.)
+### Krok 3 — Proměnné prostředí
 
-**Bezpečnost:** servisní účet má přístup **jen** k té jedné sdílené složce (a čemukoliv dalšímu, co mu výslovně nasdílíš) — ne k celému tvému Google Drive. Tenhle klíč je jen na serveru, nikdy v `NEXT_PUBLIC_*` proměnné ani v prohlížeči.
+Do `.env.local` (lokálně) a Vercel Environment Variables (nasazení) přidej tři proměnné:
+- `GOOGLE_OAUTH_CLIENT_ID` — z kroku 1.5
+- `GOOGLE_OAUTH_CLIENT_SECRET` — z kroku 1.5
+- `GOOGLE_DRIVE_FOLDER_ID` — z kroku 2
 
-**Sdílení fotek:** appka po nahrání každou fotku nastaví na "kdokoliv s odkazem může zobrazit" (jinak by appka neuměla fotky zobrazovat bez opakovaného přihlašování každého člena týmu ke Google). Fotky nejsou nikde veřejně vypsané/indexované — najde je jen ten, kdo zná přesný odkaz z appky.
+Po přidání udělej **Redeploy**.
 
-**Starší fotky:** appka pozná, jestli fotka byla nahraná před zapnutím Drive (starý formát, uložená v Supabase Storage) nebo po něm (nová, na Drive), a zobrazí ji správně v obou případech — nic se nerozbije, staré fotky nemusíš nikam přesouvat.
+### Krok 4 — Připojení v appce
 
-**Pokud tenhle krok vynecháš:** appka pořád funguje normálně — bez nastavených proměnných automaticky (a potichu) nahrává fotky do Supabase Storage jako předtím. Google Drive tak můžeš zapnout kdykoliv později, není to nutná podmínka k nasazení.
+1. V appce klikni na ikonu mraku (☁️) v hlavičce
+2. **Připojit Google Drive** → přesměruje tě na přihlašovací okno Google → přihlas se (musí to být e-mail přidaný jako Test user v kroku 1.3) → potvrď přístup
+3. Appka tě vrátí zpátky a ukáže "Připojeno jako [tvůj e-mail]"
+
+Od teď appka nahrává fotky i PDF na tenhle účet. Když přihlášení jednou za čas vyprší (viz poznámka výše), appka to pozná a v appce stačí kliknout na **Připojit Google Drive** znovu — netřeba nic přenastavovat.
+
+**Sdílení fotek:** appka po nahrání každou fotku/PDF nastaví na "kdokoliv s odkazem může zobrazit" (jinak by appka neuměla fotky zobrazovat bez opakovaného přihlašování každého člena týmu). Nejsou nikde veřejně vypsané/indexované — najde je jen ten, kdo zná přesný odkaz z appky.
+
+**Starší fotky:** appka pozná, jestli fotka byla nahraná do Supabase Storage (starší formát) nebo na Drive, a zobrazí ji správně v obou případech.
+
+**Pokud Google Drive nepřipojíš:** appka pořád funguje normálně — automaticky (a potichu) nahrává fotky do Supabase Storage. Připojit jde kdykoliv později, není to podmínka k nasazení.
 
 ## Sledování nákladů, zisk a marže
 
