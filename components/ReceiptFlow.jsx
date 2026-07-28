@@ -15,8 +15,6 @@ export default function ReceiptFlow({ orders, onSubmit, onClose }) {
   const [castka, setCastka] = useState("");
   const [poznamka, setPoznamka] = useState("");
   const [error, setError] = useState("");
-  const [readingCastka, setReadingCastka] = useState(false);
-  const [castkaAutomaticky, setCastkaAutomaticky] = useState(false);
   const fileInputRef = useRef(null);
 
   if (!order) {
@@ -30,43 +28,15 @@ export default function ReceiptFlow({ orders, onSubmit, onClose }) {
     );
   }
 
-  const precistCastku = async (blob) => {
-    setReadingCastka(true);
-    try {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-      const res = await fetch("/api/precti-uctenku", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: dataUrl }),
-      });
-      const data = await res.json();
-      if (data.castka) {
-        setCastka(String(data.castka));
-        setCastkaAutomaticky(true);
-      }
-    } catch (err) {
-      console.error(err);
-      // Tiché selhání — čtení účtenky je jen pomocník, částku jde vždy doplnit ručně.
-    }
-    setReadingCastka(false);
-  };
-
   const handleFile = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     setProcessing(true);
     setError("");
-    setCastkaAutomaticky(false);
     try {
       const blob = await resizeImageFile(file);
       setPhotoBlob(blob);
       setPhotoPreview(URL.createObjectURL(blob));
-      precistCastku(blob); // na pozadí, nečeká se na to
     } catch (err) {
       console.error(err);
       setError("Fotku se nepodařilo zpracovat, zkus to znovu.");
@@ -79,7 +49,7 @@ export default function ReceiptFlow({ orders, onSubmit, onClose }) {
     setUploading(true);
     setError("");
     try {
-      const path = await nahratFotku(photoBlob, `uctenka-${order.cislo}-${uid()}.jpg`, "uctenky");
+      const path = await nahratFotku(photoBlob, `uctenka-${order.cislo}-${uid()}.jpg`, "uctenky", order);
       await onSubmit(order, {
         id: uid(),
         datum: todayISO(),
@@ -151,20 +121,8 @@ export default function ReceiptFlow({ orders, onSubmit, onClose }) {
         <>
           <div style={{ marginTop: 14 }}>
             <Field label="Částka (Kč, nepovinné)">
-              <TextInput
-                type="number"
-                value={castka}
-                onChange={(e) => {
-                  setCastka(e.target.value);
-                  setCastkaAutomaticky(false);
-                }}
-                placeholder={readingCastka ? "Čtu z fotky…" : "0"}
-              />
+              <TextInput type="number" value={castka} onChange={(e) => setCastka(e.target.value)} placeholder="0" />
             </Field>
-            {readingCastka && <div style={{ fontSize: 12, color: C.inkSoft, marginTop: -8, marginBottom: 10 }}>Čtu částku z účtenky…</div>}
-            {castkaAutomaticky && !readingCastka && (
-              <div style={{ fontSize: 12, color: C.moss, marginTop: -8, marginBottom: 10 }}>Vyčteno automaticky z fotky — zkontroluj, prosím.</div>
-            )}
             <Field label="Poznámka (nepovinné)">
               <TextInput value={poznamka} onChange={(e) => setPoznamka(e.target.value)} placeholder="např. nákup materiálu" />
             </Field>

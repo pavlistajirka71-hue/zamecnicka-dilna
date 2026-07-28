@@ -222,7 +222,18 @@ export default function HomePage() {
 
   // ---- persistence helpers ----
   const saveOrder = async (order) => {
-    const { data, error } = await supabase.from("orders").upsert(order).select().single();
+    // Číselné a datumové sloupce v databázi odmítnou prázdný textový řetězec "" —
+    // musí být buď vyplněná hodnota, nebo null (nevyplněno).
+    const NUMERICKA_POLE = ["cena", "planCasDilna", "planCasMontaz"];
+    const DATUMOVA_POLE = ["termin"];
+    const cistaZakazka = { ...order };
+    [...NUMERICKA_POLE, ...DATUMOVA_POLE].forEach((klic) => {
+      if (cistaZakazka[klic] === "") cistaZakazka[klic] = null;
+    });
+
+    const predchoziZakazka = orders.find((o) => o.id === order.id);
+
+    const { data, error } = await supabase.from("orders").upsert(cistaZakazka).select().single();
     if (error) {
       console.error(error);
       setGlobalError("Uložení zakázky se nepovedlo. Zkontroluj připojení a zkus to znovu.");
@@ -235,6 +246,14 @@ export default function HomePage() {
     setShowOrderForm(false);
     setEditingOrder(null);
     setDetailOrder(data);
+
+    // Automatický archiv PDF: jakmile zakázka nově přejde do stavu Hotovo nebo
+    // Fakturováno, appka sama vygeneruje a uloží PDF na Drive — netřeba na nic klikat.
+    const CIL_STAVY_PRO_PDF = ["hotovo", "fakturovano"];
+    if (CIL_STAVY_PRO_PDF.includes(data.stav) && predchoziZakazka?.stav !== data.stav) {
+      generatePdf(data).catch(() => {});
+    }
+
     return data;
   };
 

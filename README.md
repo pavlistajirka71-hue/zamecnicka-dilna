@@ -80,17 +80,6 @@ Přiložil jsem `supabase/seed_materialy_mzhutni.csv` se ~20 reálnými položka
 
 **Důležité:** Jejich e-shop má přes 80 stránek jen v jedné kategorii a ceny oceli se běžně mění, takže jsem stáhnul jen reprezentativní vzorek jako výchozí data — appka se automaticky nesynchronizuje s jejich ceníkem. Když budeš chtít doplnit další položky, nejrychlejší cesta je zkopírovat si ceník z e-shopu (nebo z jiného dodavatele) do tabulky/CSV ve stejném formátu a naimportovat.
 
-## Automatické čtení částky z účtenky
-
-Když v "Vyfotit účtenku" vyfotíš nebo vybereš fotku, appka na pozadí pošle fotku na Claude API a **zkusí sama vyčíst celkovou částku** — políčko "Částka" se samo doplní, s poznámkou "Vyčteno automaticky z fotky — zkontroluj, prosím". Vždy jde ručně opravit nebo smazat, appka nic nevynucuje.
-
-Potřebuješ navíc:
-1. Založit si účet na **console.anthropic.com** (nebo použít stávající)
-2. **API Keys → Create Key** → zkopírovat klíč
-3. Přidat ho jako `ANTHROPIC_API_KEY` do `.env.local` (lokálně) a do Vercel Environment Variables (nasazení) — **stejné bezpečnostní pravidlo jako u service role klíče: jen na serveru, nikdy v `NEXT_PUBLIC_*` proměnné**
-
-**Náklady:** appka používá nejlevnější aktuální model (Claude Haiku), jedno vyfocení účtenky stojí zlomek koruny (řádově desetiny haléře až pár haléřů na účtenku) — i při stovkách účtenek měsíčně jde o pár korun. Je to samostatné, pay-as-you-go placení přes Anthropic (ne přes Supabase), platí se jen za to, co appka skutečně použije. Pokud `ANTHROPIC_API_KEY` nenastavíš, appka funguje úplně normálně dál — jen se částka nedoplní sama a zadáš ji ručně jako doteď.
-
 ## Archiv zakázky jako PDF na Google Drive
 
 **Appka teď generuje PDF automaticky** — jakmile zakázku přepneš na stav **Hotovo** nebo **Fakturováno** (v detailu zakázky, na nástěnce, kdekoliv), appka sama na pozadí sesbírá všechna podstatná data a uloží PDF na Drive, bez nutnosti na cokoliv klikat. Přepnutí na Fakturováno vygeneruje nové, aktuální PDF i podruhé (např. s doplněnými náklady). V detailu zakázky zůstává i ruční tlačítko **"Vygenerovat PDF a uložit na Drive"**, kdyby sis chtěl/a archiv vytvořit znovu mimo tyhle dva okamžiky.

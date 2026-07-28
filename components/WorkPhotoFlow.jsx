@@ -43,7 +43,7 @@ export default function WorkPhotoFlow({ order, onSubmit, onClose }) {
     setUploading(true);
     setError("");
     try {
-      const path = await nahratFotku(photoBlob, `fotka-${order.cislo}-${typ}-${uid()}.jpg`, "fotky");
+      const path = await nahratFotku(photoBlob, `fotka-${order.cislo}-${typ}-${uid()}.jpg`, "fotky", order);
       await onSubmit(order, { id: uid(), datum: todayISO(), path, typ, popis });
     } catch (err) {
       console.error(err);

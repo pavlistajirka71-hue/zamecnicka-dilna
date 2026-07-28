@@ -60,8 +60,8 @@ export default function OrderForm({ initial, orders, onSave, onClose }) {
         <TextArea value={f.popis} onChange={(e) => set("popis", e.target.value)} placeholder="Co se má vyrobit / opravit" />
       </Field>
       <div className="field-row">
-        <Field label="Cena (Kč)">
-          <TextInput type="number" value={f.cena} onChange={(e) => set("cena", e.target.value)} placeholder="0" />
+        <Field label="Cena (Kč, nepovinné — doplní se z kalkulace)">
+          <TextInput type="number" value={f.cena} onChange={(e) => set("cena", e.target.value)} placeholder="doplní se z kalkulace, nebo zadej odhad" />
         </Field>
         <Field label="Termín dokončení">
           <TextInput type="date" value={f.termin} onChange={(e) => set("termin", e.target.value)} />

@@ -51,7 +51,7 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
     setSaving(true);
     setError("");
     try {
-      const path = await nahratFotku(signatureBlob, `podpis-${order.cislo}-${Date.now()}.png`, "protokoly");
+      const path = await nahratFotku(signatureBlob, `podpis-${order.cislo}-${Date.now()}.png`, "protokoly", order);
       const next = { ...protokol, podpisPath: path, podpisDatum: new Date().toISOString().slice(0, 10), stav: "podepsano" };
       await onSave(order, next);
       setProtokol(next);

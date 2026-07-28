@@ -14,7 +14,7 @@ export async function POST(request) {
   }
 
   const body = await request.json();
-  const { image, filename, kind } = body;
+  const { image, filename, kind, slozkaZakazky } = body;
   if (!image || !filename) return NextResponse.json({ error: "Chybí fotka nebo název souboru." }, { status: 400 });
 
   const match = /^data:(image\/\w+);base64,(.+)$/.exec(image);
@@ -24,7 +24,7 @@ export async function POST(request) {
   try {
     const bytes = Buffer.from(base64Data, "base64");
     const bucket = kind === "protokoly" ? "protokoly" : kind === "fotky" ? "fotky" : "uctenky";
-    const path = await nahratFotkuNaServeru(bytes, filename, mediaType, bucket);
+    const path = await nahratFotkuNaServeru(bytes, filename, mediaType, bucket, slozkaZakazky);
     return NextResponse.json({ url: path });
   } catch (err) {
     console.error(err);

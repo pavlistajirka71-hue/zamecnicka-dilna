@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { generovatPdfZakazky } from "@/lib/orderPdf";
 import { nahratFotkuNaServeru } from "@/lib/photoUpload";
-import { uid, todayISO } from "@/lib/theme";
+import { uid, todayISO, nazevSlozkyZakazky } from "@/lib/theme";
 
 export async function POST(request, { params }) {
   const { id } = params;
@@ -28,7 +28,7 @@ export async function POST(request, { params }) {
   try {
     const pdfBuffer = await generovatPdfZakazky(order, nastaveni, supabaseAdmin);
     const filename = `archiv-${order.cislo}-${Date.now()}.pdf`;
-    const url = await nahratFotkuNaServeru(pdfBuffer, filename, "application/pdf", "archivy");
+    const url = await nahratFotkuNaServeru(pdfBuffer, filename, "application/pdf", "archivy", nazevSlozkyZakazky(order));
 
     const noveArchivy = [{ id: uid(), datum: todayISO(), url }, ...(order.archivy || [])];
     const { data: updated, error: updateError } = await supabaseAdmin

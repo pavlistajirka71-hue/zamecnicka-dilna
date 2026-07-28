@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { nahratFotkuNaServeru } from "@/lib/photoUpload";
+import { nazevSlozkyZakazky } from "@/lib/theme";
 
 function safeProtokol(protokol, signatureUrl) {
   return {
@@ -49,7 +50,7 @@ export async function POST(request, { params }) {
   if (!token || !signature) return NextResponse.json({ error: "Chybí token nebo podpis." }, { status: 400 });
 
   const supabase = getSupabaseAdmin();
-  const { data: order, error } = await supabase.from("orders").select("id, protokol").eq("id", id).maybeSingle();
+  const { data: order, error } = await supabase.from("orders").select("id, cislo, zakaznik, protokol").eq("id", id).maybeSingle();
   if (error || !order || !order.protokol || order.protokol.token !== token) {
     return NextResponse.json({ error: "Odkaz nenalezen nebo už neplatí." }, { status: 404 });
   }
@@ -62,7 +63,7 @@ export async function POST(request, { params }) {
 
   let podpisPath;
   try {
-    podpisPath = await nahratFotkuNaServeru(bytes, `podpis-${id}-${Date.now()}.png`, "image/png", "protokoly");
+    podpisPath = await nahratFotkuNaServeru(bytes, `podpis-${id}-${Date.now()}.png`, "image/png", "protokoly", nazevSlozkyZakazky(order));
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Nahrání podpisu se nepovedlo." }, { status: 500 });
