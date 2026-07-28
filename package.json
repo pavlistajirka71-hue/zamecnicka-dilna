@@ -1,17 +1,23 @@
-NEXT_PUBLIC_SUPABASE_URL=https://tvuj-projekt.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tvuj-anon-key
-
-# POZOR: tento klíč NIKDY nesmí mít prefix NEXT_PUBLIC_ a nesmí se objevit v žádném
-# klientském (prohlížečovém) kódu — používá se jen na serveru v app/api/* routách,
-# pro veřejnou stránku podpisu předávacího protokolu bez přihlášení.
-SUPABASE_SERVICE_ROLE_KEY=tvuj-service-role-key
-
-# Pro automatické čtení částky z vyfocené účtenky.
-# Získáš na console.anthropic.com -> API Keys -> Create Key. Klíč je jen na serveru, nikdy v prohlížeči.
-ANTHROPIC_API_KEY=tvuj-anthropic-api-key
-
-# Pro ukládání fotek (účtenky, fotodokumentace, podpisy) do sdílené složky na Google Drive
-# místo Supabase Storage. Návod na založení je v README.md. Klíč je jen na serveru.
-GOOGLE_SERVICE_ACCOUNT_EMAIL=nazev@projekt.iam.gserviceaccount.com
-GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMII...\n-----END PRIVATE KEY-----\n"
-GOOGLE_DRIVE_FOLDER_ID=id-sdilene-slozky-na-disku
+{
+  "name": "zamecnictvi-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "lucide-react": "^0.383.0",
+    "next": "^14.2.5",
+    "pdfkit": "^0.15.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.5"
+  }
+}
