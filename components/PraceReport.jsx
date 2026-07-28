@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { FileDown } from "lucide-react";
-import { C, FONTS, fmtMoney, downloadTextFile } from "@/lib/theme";
+import { C, FONTS, downloadTextFile } from "@/lib/theme";
 import { Button, Field, TextInput } from "./ui";
 
 function currentMonthValue() {

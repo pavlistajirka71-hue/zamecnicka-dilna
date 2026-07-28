@@ -1,6 +1,6 @@
 "use client";
 import { X, Printer } from "lucide-react";
-import { C, FONTS } from "@/lib/theme";
+import { C } from "@/lib/theme";
 import { Button } from "./ui";
 import ProtokolContent from "./ProtokolContent";
 

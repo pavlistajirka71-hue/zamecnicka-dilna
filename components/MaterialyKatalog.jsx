@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { Plus, Trash2, Pencil, Upload, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { C, FONTS, MATERIAL_UNITS, uid, fmtMoney } from "@/lib/theme";
+import { C, FONTS, MATERIAL_UNITS, fmtMoney } from "@/lib/theme";
 import { Field, TextInput, Select, Button, iconBtnStyle } from "./ui";
 
 function ParseError(msg) {

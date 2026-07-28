@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { C, FONTS, uid, seedNakladyZKalkulace, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney } from "@/lib/theme";
-import { Field, TextInput, Button, SectionLabel, iconBtnStyle } from "./ui";
+import { TextInput, Button, SectionLabel, iconBtnStyle } from "./ui";
 
 export default function NakladyForm({ order, nastaveni, onSave, onClose }) {
   const [radky, setRadky] = useState(() => {
