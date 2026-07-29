@@ -1,13 +1,28 @@
 "use client";
 import { useState } from "react";
-import { Users } from "lucide-react";
+import { Users, ArrowRightLeft } from "lucide-react";
 import { Field, TextInput, Select, Button, SectionLabel, Modal } from "./ui";
 import UzivateleForm from "./UzivateleForm";
 
-export default function NastaveniForm({ initial, onSave, onClose }) {
+export default function NastaveniForm({ initial, onSave, onMigrovatUctenky, onClose }) {
   const [f, setF] = useState(initial);
   const [showUzivatele, setShowUzivatele] = useState(false);
+  const [migruji, setMigruji] = useState(false);
+  const [migraceVysledek, setMigraceVysledek] = useState(null);
   const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
+
+  const spustitMigraci = async () => {
+    setMigruji(true);
+    setMigraceVysledek(null);
+    try {
+      const vysledek = await onMigrovatUctenky();
+      setMigraceVysledek(vysledek);
+    } catch (e) {
+      // chyba se appce ukáže přes globální hlášku, tady nic navíc dělat nemusíme
+    }
+    setMigruji(false);
+  };
+
   return (
     <div>
       <SectionLabel>Sazby za práci</SectionLabel>
@@ -59,6 +74,23 @@ export default function NastaveniForm({ initial, onSave, onClose }) {
         <Button variant="ghost" type="button" onClick={() => setShowUzivatele(true)}>
           <Users size={14} /> Spravovat uživatele
         </Button>
+      </div>
+
+      <SectionLabel>Údržba dat</SectionLabel>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: "#5B5A52", marginBottom: 8 }}>
+          Starší samostatně vyfocené účtenky appka teď zapisuje rovnou jako náklad — tímhle tlačítkem přesuneš i ty už dřív uložené.
+        </div>
+        <Button variant="ghost" type="button" onClick={spustitMigraci} disabled={migruji}>
+          <ArrowRightLeft size={14} /> {migruji ? "Přesouvám…" : "Přesunout staré účtenky do nákladů"}
+        </Button>
+        {migraceVysledek && (
+          <div style={{ fontSize: 12, marginTop: 8, color: "#5B5A52" }}>
+            {migraceVysledek.presunuto === 0
+              ? "Nic k přesunutí — všechno je už v nákladech."
+              : `Přesunuto ${migraceVysledek.presunuto} účtenek u ${migraceVysledek.zakazek} zakázek.`}
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>

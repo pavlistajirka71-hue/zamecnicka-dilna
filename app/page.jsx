@@ -45,7 +45,7 @@ import { Button, TextInput, Select, Modal, StampBadge } from "@/components/ui";
 import OrderForm from "@/components/OrderForm";
 import OrderPicker from "@/components/OrderPicker";
 import WorkLogFlow from "@/components/WorkLogFlow";
-import ReceiptFlow from "@/components/ReceiptFlow";
+import ZapsatNakladFlow from "@/components/ZapsatNakladFlow";
 import KalkulaceForm from "@/components/KalkulaceForm";
 import Kalendar from "@/components/Kalendar";
 import UzivateleForm from "@/components/UzivateleForm";
@@ -339,16 +339,28 @@ export default function HomePage() {
     if (detailOrder && detailOrder.id === data.id) setDetailOrder(data);
   };
 
-  const addReceipt = async (order, entry) => {
-    const nextUctenky = [entry, ...(order.uctenky || [])];
-    const { data, error } = await supabase.from("orders").update({ uctenky: nextUctenky }).eq("id", order.id).select().single();
-    if (error) {
+  // rozpocet = [{ order, naklad: {id, popis, castka, fotoPath} }, ...] — jeden náklad
+  // zapsaný (případně poměrově rozdělený) do víc zakázek najednou.
+  const zapsatNaklady = async (rozpocet) => {
+    try {
+      const vysledky = await Promise.all(
+        rozpocet.map(({ order, naklad }) => {
+          const noveNaklady = [naklad, ...(order.naklady || [])];
+          return supabase.from("orders").update({ naklady: noveNaklady }).eq("id", order.id).select().single();
+        })
+      );
+      const chyba = vysledky.find((v) => v.error);
+      if (chyba) throw chyba.error;
+      setOrders((prev) => {
+        const mapa = new Map(vysledky.map((v) => [v.data.id, v.data]));
+        return prev.map((o) => mapa.get(o.id) || o);
+      });
+      setShowReceiptModal(false);
+    } catch (error) {
       console.error(error);
-      setGlobalError("Účtenku se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
+      setGlobalError("Náklad se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
       throw error;
     }
-    setOrders((prev) => prev.map((o) => (o.id === data.id ? data : o)));
-    setShowReceiptModal(false);
   };
 
   const addWorkPhoto = async (order, entry) => {
@@ -406,6 +418,42 @@ export default function HomePage() {
     }
     setNastaveni({ ...DEFAULT_NASTAVENI, ...data });
     setShowNastaveni(false);
+  };
+
+  // Jednorázová migrace: staré samostatné "účtenky" se přesunou do Sledování nákladů
+  // (nový způsob zápisu je od teď spojený s náklady). Bezpečné spustit i vícekrát —
+  // po prvním úspěšném běhu už žádná zakázka nemá co migrovat.
+  const migrovatUctenky = async () => {
+    const kMigraci = orders.filter((o) => (o.uctenky || []).length > 0);
+    if (kMigraci.length === 0) return { presunuto: 0, zakazek: 0 };
+    let presunuto = 0;
+    const vysledky = await Promise.all(
+      kMigraci.map((order) => {
+        const noveNaklady = order.uctenky.map((u) => ({
+          id: u.id,
+          popis: u.poznamka?.trim() || "Účtenka",
+          castka: Number(u.castka) || 0,
+          fotoPath: u.path || null,
+        }));
+        presunuto += noveNaklady.length;
+        return supabase
+          .from("orders")
+          .update({ naklady: [...noveNaklady, ...(order.naklady || [])], uctenky: [] })
+          .eq("id", order.id)
+          .select()
+          .single();
+      })
+    );
+    const chyba = vysledky.find((v) => v.error);
+    if (chyba) {
+      setGlobalError("Migrace účtenek se nepovedla, zkus to znovu.");
+      throw chyba.error;
+    }
+    setOrders((prev) => {
+      const mapa = new Map(vysledky.map((v) => [v.data.id, v.data]));
+      return prev.map((o) => mapa.get(o.id) || o);
+    });
+    return { presunuto, zakazek: kMigraci.length };
   };
 
   const saveProtokol = async (order, protokol) => {
@@ -607,7 +655,7 @@ export default function HomePage() {
           style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "14px 6px", borderRadius: 10, border: `1.5px solid ${C.brass}`, background: C.surface, color: C.brass, cursor: "pointer" }}
         >
           <Camera size={22} />
-          <span style={{ fontFamily: FONTS.display, textTransform: "uppercase", fontSize: 12, letterSpacing: "0.03em", textAlign: "center" }}>Vyfotit účtenku</span>
+          <span style={{ fontFamily: FONTS.display, textTransform: "uppercase", fontSize: 12, letterSpacing: "0.03em", textAlign: "center" }}>Zapsat náklady/účtenky</span>
         </button>
         <button
           onClick={() => setShowDetailPicker(true)}
@@ -894,14 +942,14 @@ export default function HomePage() {
       )}
 
       {showReceiptModal && (
-        <Modal title="Vyfotit účtenku" onClose={() => setShowReceiptModal(false)}>
-          <ReceiptFlow orders={orders} onSubmit={addReceipt} onClose={() => setShowReceiptModal(false)} />
+        <Modal title="Zapsat náklady/účtenky" onClose={() => setShowReceiptModal(false)}>
+          <ZapsatNakladFlow orders={orders} onSubmit={zapsatNaklady} onClose={() => setShowReceiptModal(false)} />
         </Modal>
       )}
 
       {showNastaveni && (
         <Modal title="Nastavení" onClose={() => setShowNastaveni(false)} width={460}>
-          <NastaveniForm initial={nastaveni} onSave={saveNastaveni} onClose={() => setShowNastaveni(false)} />
+          <NastaveniForm initial={nastaveni} onSave={saveNastaveni} onMigrovatUctenky={migrovatUctenky} onClose={() => setShowNastaveni(false)} />
         </Modal>
       )}
 

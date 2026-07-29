@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { C, FONTS, uid, seedNakladyZKalkulace, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney } from "@/lib/theme";
-import { TextInput, Button, SectionLabel, MiniLabel, iconBtnStyle } from "./ui";
+import { TextInput, Button, SectionLabel, MiniLabel, iconBtnStyle, Modal } from "./ui";
+import PhotoThumbnail from "./PhotoThumbnail";
 
 export default function NakladyForm({ order, nastaveni, onSave, onClose }) {
   const [radky, setRadky] = useState(() => {
@@ -13,6 +14,7 @@ export default function NakladyForm({ order, nastaveni, onSave, onClose }) {
   const [novyPopis, setNovyPopis] = useState("");
   const [novaCastka, setNovaCastka] = useState("");
   const [saving, setSaving] = useState(false);
+  const [viewPhoto, setViewPhoto] = useState(null);
 
   const vysledek = computeNakladyZakazky({ ...order, naklady: radky }, nastaveni);
 
@@ -45,12 +47,19 @@ export default function NakladyForm({ order, nastaveni, onSave, onClose }) {
       ) : (
         <div style={{ marginBottom: 12 }}>
           {radky.map((r) => (
-            <div key={r.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-              <TextInput value={r.popis} onChange={(e) => updateRadek(r.id, { popis: e.target.value })} style={{ flex: 3 }} />
-              <TextInput type="number" value={r.castka} onChange={(e) => updateRadek(r.id, { castka: e.target.value })} style={{ flex: 1 }} />
-              <button onClick={() => removeRadek(r.id)} style={{ ...iconBtnStyle, color: C.danger }}>
-                <Trash2 size={16} />
-              </button>
+            <div key={r.id} style={{ marginBottom: 6 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <TextInput value={r.popis} onChange={(e) => updateRadek(r.id, { popis: e.target.value })} style={{ flex: 3 }} />
+                <TextInput type="number" value={r.castka} onChange={(e) => updateRadek(r.id, { castka: e.target.value })} style={{ flex: 1 }} />
+                <button onClick={() => removeRadek(r.id)} style={{ ...iconBtnStyle, color: C.danger }}>
+                  <Trash2 size={16} />
+                </button>
+              </div>
+              {r.fotoPath && (
+                <div style={{ marginTop: 4 }}>
+                  <PhotoThumbnail bucket="uctenky" path={r.fotoPath} alt="Účtenka" onOpen={setViewPhoto} />
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -127,6 +136,12 @@ export default function NakladyForm({ order, nastaveni, onSave, onClose }) {
           {saving ? "Ukládám…" : "Uložit náklady"}
         </Button>
       </div>
+
+      {viewPhoto && (
+        <Modal title="Účtenka" onClose={() => setViewPhoto(null)} width={520} zIndex={70}>
+          <img src={viewPhoto} alt="Účtenka" referrerPolicy="no-referrer" style={{ width: "100%", borderRadius: 8 }} />
+        </Modal>
+      )}
     </div>
   );
 }

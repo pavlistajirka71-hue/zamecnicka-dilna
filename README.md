@@ -98,6 +98,19 @@ Appka má rovnou zabalený font s plnou podporou češtiny (IBM Plex Serif, lice
 
 **Odolnost proti výpadku:** appka teď při JAKÉMKOLIV selhání nahrávání na Drive (ne jen při úplně chybějícím nastavení) potichu přejde na Supabase Storage — nikdy nezůstaneš bez uložené fotky jen kvůli dočasnému výpadku Google. Když appka zjistí, že přihlášení vypršelo, sama si v appce nastaví stav na "nepřipojeno", ať víš, že je potřeba se znovu přihlásit.
 
+## Zapsat náklady/účtenky (nahrazuje starší "Vyfotit účtenku")
+
+Tlačítko v hlavičce appky teď funguje jinak — místo focení účtenky k jedné zakázce appka rovnou zapisuje **náklad** do Sledování nákladů:
+
+1. Zaškrtneš jednu nebo víc zakázek — nabízí se jen zakázky ve stavu **Rozpracováno**
+2. Vyplníš **popis** a **cenu** (obojí povinné)
+3. Volitelně přiložíš fotku účtenky
+4. Appka náklad rovnou zapíše do Vyhodnocení dané zakázky — a když vybereš víc zakázek, částku **rozpočítá poměrově podle ceny každé zakázky** (appka ti to při zadávání i ukáže, ať vidíš, kolik připadne kam)
+
+Fotka účtenky (pokud je přiložená) se zobrazí přímo u daného nákladu ve Vyhodnocení zakázky i v PDF archivu.
+
+**Starší, dřív samostatně vyfocené účtenky** se dají jedním tlačítkem přesunout do stejného systému — **Nastavení → Přesunout staré účtenky do nákladů**. Je to bezpečné spustit i vícekrát, appka přesouvá jen to, co ještě nebylo přesunuté.
+
 ## Role — Správce (SA) a Uživatel
 
 Appka rozlišuje dvě role:
