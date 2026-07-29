@@ -43,7 +43,7 @@ export default function PhotoThumbnail({ bucket, path, alt, caption, onOpen }) {
       }}
     >
       {url ? (
-        <img src={url} alt={alt || "Fotka"} style={{ width: 74, height: 74, objectFit: "cover", display: "block" }} />
+        <img src={url} alt={alt || "Fotka"} referrerPolicy="no-referrer" style={{ width: 74, height: 74, objectFit: "cover", display: "block" }} />
       ) : (
         <div style={{ width: 74, height: 74, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: C.inkSoft }}>
           načítám…

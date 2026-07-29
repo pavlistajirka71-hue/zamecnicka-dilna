@@ -122,7 +122,7 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: C.moss, marginBottom: 10, fontFamily: FONTS.display, textTransform: "uppercase", fontSize: 13 }}>
             <CheckCircle2 size={16} /> Podepsáno {fmtDate(protokol.podpisDatum)}
           </div>
-          {signatureUrl && <img src={signatureUrl} alt="Podpis zákazníka" style={{ maxWidth: 280, border: `1px solid ${C.line}`, borderRadius: 6, background: "#fff" }} />}
+          {signatureUrl && <img src={signatureUrl} alt="Podpis zákazníka" referrerPolicy="no-referrer" style={{ maxWidth: 280, border: `1px solid ${C.line}`, borderRadius: 6, background: "#fff" }} />}
         </div>
       )}
 

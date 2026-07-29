@@ -21,7 +21,7 @@ export default function ProtokolPrintView({ protokol, signatureUrl, onClose }) {
         <div style={{ marginTop: 40, display: "flex", justifyContent: "flex-end" }}>
           <div style={{ textAlign: "center" }}>
             {signatureUrl ? (
-              <img src={signatureUrl} alt="Podpis objednatele" style={{ maxWidth: 240, display: "block", marginBottom: 4 }} />
+              <img src={signatureUrl} alt="Podpis objednatele" referrerPolicy="no-referrer" style={{ maxWidth: 240, display: "block", marginBottom: 4 }} />
             ) : (
               <div style={{ height: 60 }} />
             )}

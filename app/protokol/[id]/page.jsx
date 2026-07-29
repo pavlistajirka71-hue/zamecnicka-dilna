@@ -109,7 +109,7 @@ function PublicProtokolPageInner() {
                   <CheckCircle2 size={16} /> Podepsáno {protokol.podpisDatum ? `(${protokol.podpisDatum})` : ""}
                 </div>
                 {protokol.signatureUrl && (
-                  <img src={protokol.signatureUrl} alt="Podpis" style={{ maxWidth: 280, border: `1px solid ${C.line}`, borderRadius: 6, background: "#fff" }} />
+                  <img src={protokol.signatureUrl} alt="Podpis" referrerPolicy="no-referrer" style={{ maxWidth: 280, border: `1px solid ${C.line}`, borderRadius: 6, background: "#fff" }} />
                 )}
                 <div style={{ marginTop: 12, fontSize: 13, color: C.inkSoft }}>Děkujeme, protokol je uzavřený. Tuto stránku už můžete zavřít.</div>
               </div>

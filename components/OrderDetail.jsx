@@ -341,7 +341,7 @@ export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit
 
       {viewPhoto && (
         <Modal title="Účtenka" onClose={() => setViewPhoto(null)} width={520}>
-          <img src={viewPhoto} alt="Účtenka" style={{ width: "100%", borderRadius: 8 }} />
+          <img src={viewPhoto} alt="Účtenka" referrerPolicy="no-referrer" style={{ width: "100%", borderRadius: 8 }} />
         </Modal>
       )}
     </div>
