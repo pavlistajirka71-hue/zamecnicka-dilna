@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { C, FONTS, STATUSES, computeKalkulaceCelkem, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney, fmtDate, isOverdue } from "@/lib/theme";
-import { Button, SectionLabel, StampBadge, Modal } from "./ui";
+import { Button, SectionLabel, StampBadge, Modal, Field, TextInput, Select, iconBtnStyle } from "./ui";
 import ReceiptThumbnail from "./ReceiptThumbnail";
 import PhotoThumbnail from "./PhotoThumbnail";
 
@@ -15,12 +15,15 @@ const ZALOZKY = [
   { key: "kalkulace", label: "Kalkulace" },
 ];
 
-export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit, onOpenKalkulace, onOpenPoptavka, onOpenProtokol, onOpenFotka, onOpenNaklady, onGeneratePdf, generatingPdf, onClose }) {
+export default function OrderDetail({ order, nastaveni, mojeRole, onSave, onDelete, onEdit, onOpenKalkulace, onOpenPoptavka, onOpenProtokol, onOpenFotka, onOpenNaklady, onEditPrace, onGeneratePdf, generatingPdf, onClose }) {
   const [viewPhoto, setViewPhoto] = useState(null);
   const [tab, setTab] = useState("prace");
+  const [editujiciPrace, setEditujiciPrace] = useState(null);
+  const [praceForm, setPraceForm] = useState({ datum: "", typ: "dilna", hodiny: "", pracovnik: "", popis: "" });
   const polozkyKalkulace = normalizovatKalkulaci(order.kalkulace);
   const nakladyVysledek = computeNakladyZakazky(order, nastaveni);
   const maMaterial = polozkyKalkulace.some((p) => (p.materialy || []).length > 0);
+  const jsemSA = mojeRole === "sa";
 
   return (
     <div>
@@ -137,19 +140,86 @@ export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit
             {order.prace && order.prace.length > 0 && (
               <div style={{ marginTop: 14 }}>
                 <SectionLabel>Záznamy práce</SectionLabel>
-                {order.prace.map((p) => (
-                  <div key={p.id} style={{ fontSize: 13, padding: "5px 0", borderBottom: `1px solid ${C.line}` }}>
-                    <span style={{ fontFamily: FONTS.mono, color: C.inkSoft }}>{fmtDate(p.datum)}</span>
-                    {"  ·  "}
-                    <span style={{ fontFamily: FONTS.display, textTransform: "uppercase", fontSize: 11, color: (p.typ || "dilna") === "dilna" ? C.steel : C.brass }}>
-                      {(p.typ || "dilna") === "dilna" ? "Dílna" : "Montáž"}
-                    </span>
-                    {"  ·  "}
-                    <span style={{ fontFamily: FONTS.mono }}>{p.hodiny} h</span>
-                    {p.pracovnik && <span> · {p.pracovnik}</span>}
-                    {p.popis && <div style={{ color: C.inkSoft }}>{p.popis}</div>}
-                  </div>
-                ))}
+                {order.prace.map((p) =>
+                  editujiciPrace === p.id ? (
+                    <div key={p.id} style={{ background: C.paper, borderRadius: 6, padding: 10, marginBottom: 6 }}>
+                      <div className="field-row">
+                        <Field label="Datum">
+                          <TextInput type="date" value={praceForm.datum} onChange={(e) => setPraceForm((f) => ({ ...f, datum: e.target.value }))} />
+                        </Field>
+                        <Field label="Typ">
+                          <Select value={praceForm.typ} onChange={(e) => setPraceForm((f) => ({ ...f, typ: e.target.value }))}>
+                            <option value="dilna">Dílna</option>
+                            <option value="montaz">Montáž</option>
+                          </Select>
+                        </Field>
+                      </div>
+                      <div className="field-row">
+                        <Field label="Hodiny">
+                          <TextInput type="number" step="0.5" value={praceForm.hodiny} onChange={(e) => setPraceForm((f) => ({ ...f, hodiny: e.target.value }))} />
+                        </Field>
+                        <Field label="Pracovník">
+                          <TextInput value={praceForm.pracovnik} onChange={(e) => setPraceForm((f) => ({ ...f, pracovnik: e.target.value }))} />
+                        </Field>
+                      </div>
+                      <Field label="Popis">
+                        <TextInput value={praceForm.popis} onChange={(e) => setPraceForm((f) => ({ ...f, popis: e.target.value }))} />
+                      </Field>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                        <button
+                          onClick={() => {
+                            onEditPrace(order, order.prace.filter((x) => x.id !== p.id));
+                            setEditujiciPrace(null);
+                          }}
+                          style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
+                        >
+                          <Trash2 size={13} /> Smazat záznam
+                        </button>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <Button variant="ghost" onClick={() => setEditujiciPrace(null)}>
+                            Zrušit
+                          </Button>
+                          <Button
+                            variant="primary"
+                            onClick={() => {
+                              onEditPrace(
+                                order,
+                                order.prace.map((x) => (x.id === p.id ? { ...x, ...praceForm, hodiny: Number(praceForm.hodiny) || 0 } : x))
+                              );
+                              setEditujiciPrace(null);
+                            }}
+                          >
+                            Uložit opravu
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", fontSize: 13, padding: "5px 0", borderBottom: `1px solid ${C.line}` }}>
+                      <div>
+                        <span style={{ fontFamily: FONTS.mono, color: C.inkSoft }}>{fmtDate(p.datum)}</span>
+                        {"  ·  "}
+                        <span style={{ fontFamily: FONTS.display, textTransform: "uppercase", fontSize: 11, color: (p.typ || "dilna") === "dilna" ? C.steel : C.brass }}>
+                          {(p.typ || "dilna") === "dilna" ? "Dílna" : "Montáž"}
+                        </span>
+                        {"  ·  "}
+                        <span style={{ fontFamily: FONTS.mono }}>{p.hodiny} h</span>
+                        {p.pracovnik && <span> · {p.pracovnik}</span>}
+                        {p.popis && <div style={{ color: C.inkSoft }}>{p.popis}</div>}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setPraceForm({ datum: p.datum, typ: p.typ || "dilna", hodiny: p.hodiny, pracovnik: p.pracovnik || "", popis: p.popis || "" });
+                          setEditujiciPrace(p.id);
+                        }}
+                        title="Opravit záznam"
+                        style={{ ...iconBtnStyle, flexShrink: 0 }}
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    </div>
+                  )
+                )}
               </div>
             )}
           </div>
@@ -361,9 +431,13 @@ export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit
             ) : (
               <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 8 }}>Kalkulace zatím není vytvořená.</div>
             )}
-            <Button variant="ghost" style={{ marginTop: 8 }} onClick={onOpenKalkulace}>
-              <Calculator size={14} /> {polozkyKalkulace.length > 0 ? "Upravit kalkulaci" : "Vytvořit kalkulaci"}
-            </Button>
+            {jsemSA ? (
+              <Button variant="ghost" style={{ marginTop: 8 }} onClick={onOpenKalkulace}>
+                <Calculator size={14} /> {polozkyKalkulace.length > 0 ? "Upravit kalkulaci" : "Vytvořit kalkulaci"}
+              </Button>
+            ) : (
+              <div style={{ fontSize: 12, color: C.inkSoft, marginTop: 8 }}>Úpravu kalkulace smí jen správce.</div>
+            )}
           </div>
         )}
       </div>
@@ -402,9 +476,13 @@ export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20, borderTop: `2px dashed ${C.line}`, paddingTop: 16 }}>
-        <Button variant="danger" onClick={() => onDelete(order.id)}>
-          <Trash2 size={14} /> Smazat
-        </Button>
+        {jsemSA ? (
+          <Button variant="danger" onClick={() => onDelete(order.id)}>
+            <Trash2 size={14} /> Smazat
+          </Button>
+        ) : (
+          <span />
+        )}
         <Button variant="primary" onClick={onEdit}>
           <Pencil size={14} /> Upravit
         </Button>

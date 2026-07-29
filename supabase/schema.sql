@@ -76,9 +76,59 @@ alter table orders enable row level security;
 alter table nastaveni enable row level security;
 alter table material_history enable row level security;
 
+-- 7) Role uživatelů — "sa" (správce) vs. "user" (běžný pracovník). Kdo nemá přiřazenou
+-- roli vůbec, počítá se jako "user" (bezpečný výchozí stav — nic navíc mu nejde).
+create table if not exists uzivatele_role (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  role text not null default 'user',
+  created_at timestamptz default now()
+);
+alter table uzivatele_role enable row level security;
+-- Kdokoliv přihlášený smí zjistit role (appka to potřebuje k zobrazení "kdo je uživatel") —
+-- zápis do téhle tabulky appka řeší jen přes server (service role), ne přímo z prohlížeče.
+drop policy if exists "authenticated read uzivatele_role" on uzivatele_role;
+create policy "authenticated read uzivatele_role" on uzivatele_role
+  for select using (auth.role() = 'authenticated');
+
+-- Smazání zakázky smí jen "sa" — vynucené přímo v databázi, ne jen schované tlačítko v appce.
 drop policy if exists "authenticated full access orders" on orders;
-create policy "authenticated full access orders" on orders
-  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+drop policy if exists "authenticated read orders" on orders;
+create policy "authenticated read orders" on orders
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "authenticated insert orders" on orders;
+create policy "authenticated insert orders" on orders
+  for insert with check (auth.role() = 'authenticated');
+drop policy if exists "authenticated update orders" on orders;
+create policy "authenticated update orders" on orders
+  for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+drop policy if exists "sa delete orders" on orders;
+create policy "sa delete orders" on orders
+  for delete using (exists (select 1 from uzivatele_role where user_id = auth.uid() and role = 'sa'));
+
+-- Úpravu kalkulace smí jen "sa" — řeší se přes trigger, protože kalkulace je jen jeden
+-- sloupec z mnoha na téže zakázce (RLS pravidla fungují na celý řádek, ne na sloupec).
+create or replace function chranit_kalkulaci()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  uzivatelova_role text;
+begin
+  if NEW.kalkulace is distinct from OLD.kalkulace then
+    select role into uzivatelova_role from uzivatele_role where user_id = auth.uid();
+    if uzivatelova_role is distinct from 'sa' then
+      raise exception 'Úpravu kalkulace smí jen správce (role sa).';
+    end if;
+  end if;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists chranit_kalkulaci_trigger on orders;
+create trigger chranit_kalkulaci_trigger
+  before update on orders
+  for each row execute function chranit_kalkulaci();
 
 -- Živé sdílení změn mezi zařízeními (Realtime) — bezpečné i při opakovaném spuštění skriptu
 do $$

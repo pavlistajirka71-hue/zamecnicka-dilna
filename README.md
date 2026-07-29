@@ -98,6 +98,26 @@ Appka má rovnou zabalený font s plnou podporou češtiny (IBM Plex Serif, lice
 
 **Odolnost proti výpadku:** appka teď při JAKÉMKOLIV selhání nahrávání na Drive (ne jen při úplně chybějícím nastavení) potichu přejde na Supabase Storage — nikdy nezůstaneš bez uložené fotky jen kvůli dočasnému výpadku Google. Když appka zjistí, že přihlášení vypršelo, sama si v appce nastaví stav na "nepřipojeno", ať víš, že je potřeba se znovu přihlásit.
 
+## Role — Správce (SA) a Uživatel
+
+Appka rozlišuje dvě role:
+- **Uživatel** — běžný přístup, nesmí mazat zakázky ani upravovat kalkulace (appka to vynucuje přímo v databázi — přes pravidla přístupu a přes kontrolní pravidlo při ukládání, ne jen schovaným tlačítkem)
+- **Správce (SA)** — plný přístup, jen správce může přidávat uživatele a měnit role
+
+Role se nastavuje a mění v appce: **Nastavení → Spravovat uživatele**.
+
+### Nutný jednorázový krok po nasazení téhle verze
+
+Appka nemá jak sama poznat, kdo má být první správce — nikdo zatím nemá přiřazenou žádnou roli (bezpečný výchozí stav je "Uživatel", tedy nejnižší oprávnění). Spusť **jednou** v Supabase → SQL Editor (nahraď e-mail svým):
+
+```sql
+insert into uzivatele_role (user_id, role)
+select id, 'sa' from auth.users where email = 'tvuj@email.cz'
+on conflict (user_id) do update set role = 'sa';
+```
+
+Od té chvíle se dají další role nastavovat pohodlně přímo v appce, bez SQL.
+
 ## Denní automatická kontrola appky
 
 Appka má veřejnou kontrolní adresu **`/api/health`** (např. `https://tvoje-appka.vercel.app/api/health`), která ověří, že appka doopravdy funguje (databáze, případně Google Drive) — vrátí `{"ok": true, ...}`, nebo chybu, pokud něco nefunguje.

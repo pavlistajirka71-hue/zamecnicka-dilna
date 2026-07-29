@@ -66,6 +66,7 @@ import Nastenka from "@/components/Nastenka";
 export default function HomePage() {
   const router = useRouter();
   const [session, setSession] = useState(undefined); // undefined = still checking
+  const [mojeRole, setMojeRole] = useState("user"); // bezpečný výchozí stav, dokud se role nezjistí
   const [loading, setLoading] = useState(true);
 
   const [orders, setOrders] = useState([]);
@@ -205,6 +206,19 @@ export default function HomePage() {
       }
       setLoading(false);
     })();
+
+    // Vlastní role appka zjišťuje samostatně od hlavních dat, ať jedno pomalé/chybějící
+    // API nezablokuje druhé.
+    (async () => {
+      try {
+        const token = session.access_token;
+        const res = await fetch("/api/users/me", { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        if (res.ok && data.role) setMojeRole(data.role);
+      } catch (e) {
+        // ponechá se bezpečný výchozí stav "user"
+      }
+    })();
   }, [session?.user?.id]);
 
   // Keep the offline snapshot fresh on every change (including live updates from teammates),
@@ -310,6 +324,19 @@ export default function HomePage() {
     }
     setOrders((prev) => prev.map((o) => (o.id === data.id ? data : o)));
     setShowWorkModal(false);
+  };
+
+  // Oprava/smazání už zapsaného záznamu práce (pracovník se spletl atd.) — dostává
+  // rovnou celé nové pole prace (upravené nebo bez smazaného záznamu).
+  const editPrace = async (order, novePrace) => {
+    const { data, error } = await supabase.from("orders").update({ prace: novePrace }).eq("id", order.id).select().single();
+    if (error) {
+      console.error(error);
+      setGlobalError("Opravu záznamu práce se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
+      throw error;
+    }
+    setOrders((prev) => prev.map((o) => (o.id === data.id ? data : o)));
+    if (detailOrder && detailOrder.id === data.id) setDetailOrder(data);
   };
 
   const addReceipt = async (order, entry) => {
@@ -958,6 +985,7 @@ export default function HomePage() {
           <OrderDetail
             order={detailOrder}
             nastaveni={nastaveni}
+            mojeRole={mojeRole}
             onSave={saveOrder}
             onDelete={deleteOrder}
             onEdit={() => {
@@ -970,6 +998,7 @@ export default function HomePage() {
             onOpenProtokol={() => setProtokolOrder(detailOrder)}
             onOpenFotka={() => setFotkaOrder(detailOrder)}
             onOpenNaklady={() => setNakladyOrder(detailOrder)}
+            onEditPrace={editPrace}
             onGeneratePdf={() => generatePdf(detailOrder)}
             generatingPdf={generatingPdfId === detailOrder?.id}
             onClose={() => setDetailOrder(null)}
