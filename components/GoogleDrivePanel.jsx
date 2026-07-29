@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Cloud, CheckCircle2, LogOut } from "lucide-react";
+import { Cloud, CheckCircle2, LogOut, ArrowRightLeft } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { C, FONTS } from "@/lib/theme";
 import { Button } from "./ui";
@@ -10,6 +10,8 @@ export default function GoogleDrivePanel({ onClose }) {
   const [loading, setLoading] = useState(true);
   const [odpojovani, setOdpojovani] = useState(false);
   const [error, setError] = useState("");
+  const [migrace, setMigrace] = useState(false);
+  const [migraceVysledek, setMigraceVysledek] = useState(null);
 
   const nacistStav = async () => {
     setLoading(true);
@@ -50,6 +52,23 @@ export default function GoogleDrivePanel({ onClose }) {
     setOdpojovani(false);
   };
 
+  const spustitMigraci = async () => {
+    setMigrace(true);
+    setError("");
+    setMigraceVysledek(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch("/api/google-auth/migrate", { method: "POST", headers: { Authorization: token ? `Bearer ${token}` : "" } });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Přesun se nepovedl.");
+      setMigraceVysledek(data);
+    } catch (e) {
+      setError(e.message || "Přesun se nepovedl, zkus to znovu.");
+    }
+    setMigrace(false);
+  };
+
   return (
     <div>
       <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 16 }}>
@@ -68,6 +87,26 @@ export default function GoogleDrivePanel({ onClose }) {
           <Button variant="danger" onClick={odpojit} disabled={odpojovani}>
             <LogOut size={14} /> {odpojovani ? "Odpojuji…" : "Odpojit"}
           </Button>
+
+          <div style={{ borderTop: `1px dashed ${C.line}`, marginTop: 14, paddingTop: 14 }}>
+            <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 8 }}>
+              Pokud appka mezitím (výpadek nebo vypršelé přihlášení) uložila nějaké soubory záložně do Supabase Storage, tímhle je přesuneš sem na Drive.
+            </div>
+            <Button variant="ghost" onClick={spustitMigraci} disabled={migrace}>
+              <ArrowRightLeft size={14} /> {migrace ? "Přesouvám…" : "Přesunout starší soubory na Drive"}
+            </Button>
+            {migraceVysledek && (
+              <div style={{ fontSize: 13, marginTop: 10, background: "#E6F0E8", border: `1px solid ${C.moss}`, borderRadius: 6, padding: 10 }}>
+                Přesunuto souborů: <strong>{migraceVysledek.presunuto}</strong>
+                {migraceVysledek.chyby > 0 && (
+                  <>
+                    , chyb: <strong>{migraceVysledek.chyby}</strong>
+                    <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 4 }}>{migraceVysledek.chybyDetail.join(" · ")}</div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 8, padding: 14 }}>

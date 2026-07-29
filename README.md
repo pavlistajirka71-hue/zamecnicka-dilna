@@ -94,6 +94,22 @@ Všechny soubory jedné zakázky — účtenky, fotodokumentace, podpis z protok
 
 Appka má rovnou zabalený font s plnou podporou češtiny (IBM Plex Serif, licence SIL Open Font License — volně použitelná), takže háčky a čárky v PDF fungují bez jakéhokoliv dalšího nastavování. Appka navíc kvůli tomu záměrně nikdy nepoužívá vestavěné fonty PDF knihovny (ty na Vercelu při generování spolehlivě padaly — běžný technický problém této konkrétní knihovny na serverless nasazení, ne chyba appky).
 
+**Přesun starších souborů:** pokud appka mezitím (výpadek nebo vypršelé přihlášení) uložila nějaké soubory záložně do Supabase Storage, v panelu Google Drive přibylo tlačítko **"Přesunout starší soubory na Drive"** — jedním kliknutím je všechny přesune a v zakázkách přepíše odkazy na nové místo.
+
+**Odolnost proti výpadku:** appka teď při JAKÉMKOLIV selhání nahrávání na Drive (ne jen při úplně chybějícím nastavení) potichu přejde na Supabase Storage — nikdy nezůstaneš bez uložené fotky jen kvůli dočasnému výpadku Google. Když appka zjistí, že přihlášení vypršelo, sama si v appce nastaví stav na "nepřipojeno", ať víš, že je potřeba se znovu přihlásit.
+
+## Denní automatická kontrola appky
+
+Appka má veřejnou kontrolní adresu **`/api/health`** (např. `https://tvoje-appka.vercel.app/api/health`), která ověří, že appka doopravdy funguje (databáze, případně Google Drive) — vrátí `{"ok": true, ...}`, nebo chybu, pokud něco nefunguje.
+
+Appka sama o sobě e-maily neposílá (přidávat do appky vlastní odesílání pošty by znamenalo další externí službu a účet navíc). Doporučený a nejjednodušší způsob, jak z tohohle dostat denní kontrolu s upozorněním na e-mail:
+
+1. Založ si zdarma účet na **uptimerobot.com** (nebo podobné službě, např. Better Stack)
+2. **Add New Monitor** → typ **HTTP(s)** → vlož adresu `https://tvoje-appka.vercel.app/api/health`
+3. Nastav interval kontroly (zdarma jde třeba jednou za pár minut, klidně to nastav jen jednou denně)
+4. V nastavení upozornění (Alert Contacts) přidej svůj e-mail
+5. Hotovo — pokud appka přestane odpovídat nebo `/api/health` vrátí chybu, přijde ti e-mail
+
 ## Fotky a soubory na Google Drive místo Supabase Storage
 
 Appka umí ukládat fotky (účtenky, fotodokumentace práce, podpisy z protokolů) a PDF archivy na **Google Drive**, do jedné sdílené složky. V databázi zůstává jen odkaz + náhled, ne samotný soubor.

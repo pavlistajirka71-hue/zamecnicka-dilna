@@ -9,7 +9,7 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
   const [f, setF] = useState(
     initial || {
       id: uid(),
-      cislo: nextOrderNumber(orders),
+      cislo: "", // přidělí se bezpečně na serveru až při uložení, ne tady
       zakaznik: "",
       zakaznikIdentifikace: "",
       ico: "",
@@ -33,6 +33,21 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
   const [showSuggest, setShowSuggest] = useState(false);
 
   const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
+
+  // Číslo zakázky se u nové zakázky získává atomicky ze serveru (databázová funkce),
+  // ne spočítáním "nejvyšší dosavadní +1" v prohlížeči — to by při současném založení
+  // dvou zakázek různými lidmi mohlo dvěma zakázkám přidělit stejné číslo.
+  const ziskatCisloZeSeru = async () => {
+    const rok = new Date().getFullYear();
+    try {
+      const { data, error } = await supabase.rpc("ziskat_dalsi_cislo_zakazky", { p_rok: rok });
+      if (error) throw error;
+      return `Z-${rok}-${String(data).padStart(4, "0")}`;
+    } catch (e) {
+      console.error("Serverové přidělení čísla se nepovedlo, používám záložní výpočet:", e);
+      return nextOrderNumber(orders); // záložní řešení (např. offline) — vzácně se může potkat s jiným číslem
+    }
+  };
 
 
   const navrhy = useMemo(() => {
@@ -77,7 +92,7 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
     <div>
       <div className="field-row">
         <Field label="Číslo zakázky">
-          <TextInput value={f.cislo} readOnly style={{ fontFamily: FONTS.mono, background: C.paper }} />
+          <TextInput value={f.cislo || "Přidělí se při uložení"} readOnly style={{ fontFamily: FONTS.mono, background: C.paper, color: f.cislo ? C.ink : C.inkSoft }} />
         </Field>
         <Field label="Stav">
           <Select value={f.stav} onChange={(e) => set("stav", e.target.value)}>
@@ -213,7 +228,8 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
             setSaving(true);
             setError("");
             try {
-              await onSave(f);
+              const zaUlozeni = f.cislo ? f : { ...f, cislo: await ziskatCisloZeSeru() };
+              await onSave(zaUlozeni);
             } catch (e) {
               setError("Uložení se nepovedlo, zkus to prosím znovu.");
               setSaving(false);

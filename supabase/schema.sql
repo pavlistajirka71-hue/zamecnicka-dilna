@@ -151,6 +151,34 @@ drop policy if exists "authenticated delete fotky" on storage.objects;
 create policy "authenticated delete fotky" on storage.objects
   for delete using (bucket_id = 'fotky' and auth.role() = 'authenticated');
 
+-- 6) Bezpečné (atomické) číslování zakázek — počítadlo na serveru, ať se dvěma lidem
+-- založivším zakázku ve stejnou chvíli nikdy nepřidělí stejné číslo (běžné riziko,
+-- pokud by se číslo počítalo jen v prohlížeči z toho, co appka zrovna vidí).
+create table if not exists cislo_pocitadlo (
+  rok int primary key,
+  posledni_cislo int not null default 0
+);
+alter table cislo_pocitadlo enable row level security;
+drop policy if exists "authenticated full access cislo_pocitadlo" on cislo_pocitadlo;
+create policy "authenticated full access cislo_pocitadlo" on cislo_pocitadlo
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+create or replace function ziskat_dalsi_cislo_zakazky(p_rok int)
+returns int
+language plpgsql
+security definer
+as $$
+declare
+  vysledek int;
+begin
+  insert into cislo_pocitadlo (rok, posledni_cislo)
+  values (p_rok, 1)
+  on conflict (rok) do update set posledni_cislo = cislo_pocitadlo.posledni_cislo + 1
+  returning posledni_cislo into vysledek;
+  return vysledek;
+end;
+$$;
+
 -- 5) Katalog organizací (firemní zákazníci doplnění přes ARES podle IČO) — stejný princip
 -- jako katalog materiálů: jednou vyhledané se uloží, příště se nabídne bez nutnosti volat ARES znovu.
 create table if not exists organizace (
