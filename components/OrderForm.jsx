@@ -18,7 +18,6 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
       cena: "",
       termin: "",
       vytvoreno: todayISO(),
-      reseni: "",
       poznamka: "",
       cisloFaktury: "",
       prace: [],
@@ -34,6 +33,7 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
   const [showSuggest, setShowSuggest] = useState(false);
 
   const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
+
 
   const navrhy = useMemo(() => {
     const dotaz = (f.ico || "").trim().toLowerCase();
@@ -165,9 +165,6 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
           <TextInput type="date" value={f.termin} onChange={(e) => set("termin", e.target.value)} />
         </Field>
       </div>
-      <Field label="Kdo dělá">
-        <TextInput value={f.reseni} onChange={(e) => set("reseni", e.target.value)} />
-      </Field>
 
       <SectionLabel>Fond pracovní (nepovinné — doplní se automaticky z kalkulace)</SectionLabel>
       <div className="field-row">

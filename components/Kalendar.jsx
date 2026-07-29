@@ -111,7 +111,7 @@ export default function Kalendar({ orders, onOpen }) {
             <div
               key={dateStr}
               style={{
-                minHeight: 74,
+                minHeight: 92,
                 border: `1px solid ${jeDnes ? C.steel : C.line}`,
                 borderRadius: 6,
                 padding: 4,
@@ -122,7 +122,7 @@ export default function Kalendar({ orders, onOpen }) {
               <div style={{ fontSize: 11, fontFamily: FONTS.mono, color: jeDnes ? C.steel : C.inkSoft, fontWeight: jeDnes ? 700 : 400, marginBottom: 3 }}>
                 {den}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 {zobrazene.map((o) => {
                   const s = statusInfo(o.stav);
                   return (
@@ -134,23 +134,26 @@ export default function Kalendar({ orders, onOpen }) {
                         display: "block",
                         width: "100%",
                         textAlign: "left",
-                        background: "none",
+                        background: s.color,
+                        color: "#fff",
                         border: "none",
-                        borderLeft: `3px solid ${s.color}`,
-                        padding: "1px 3px",
+                        borderRadius: 4,
+                        padding: "3px 6px",
                         cursor: "pointer",
-                        fontSize: 10,
-                        lineHeight: 1.3,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        lineHeight: 1.35,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
                       }}
                     >
                       {o.zakaznik}
                     </button>
                   );
                 })}
-                {zbyva > 0 && <div style={{ fontSize: 10, color: C.inkSoft, paddingLeft: 4 }}>+{zbyva} další</div>}
+                {zbyva > 0 && <div style={{ fontSize: 11, fontWeight: 600, color: C.inkSoft, paddingLeft: 4 }}>+{zbyva} další</div>}
               </div>
             </div>
           );

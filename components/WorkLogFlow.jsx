@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { C, FONTS, uid, todayISO, UZAVRENE_STAVY } from "@/lib/theme";
+import { supabase } from "@/lib/supabaseClient";
 import { Field, TextInput, TextArea, Button } from "./ui";
 import OrderPicker from "./OrderPicker";
 
@@ -14,6 +15,12 @@ export default function WorkLogFlow({ orders, onSubmit, onClose }) {
   const [popis, setPopis] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session?.user?.email) setPracovnik((prev) => prev || data.session.user.email);
+    });
+  }, []);
 
   if (!order) {
     return (

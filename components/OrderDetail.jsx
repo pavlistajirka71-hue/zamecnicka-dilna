@@ -32,10 +32,6 @@ export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit
           <div style={{ fontFamily: FONTS.mono, fontSize: 16, color: isOverdue(order) ? C.rust : C.ink }}>{fmtDate(order.termin)}</div>
         </div>
         <div>
-          <div style={{ color: C.inkSoft, fontSize: 12 }}>Kdo dělá</div>
-          <div>{order.reseni || "—"}</div>
-        </div>
-        <div>
           <div style={{ color: C.inkSoft, fontSize: 12 }}>Vytvořeno</div>
           <div style={{ fontFamily: FONTS.mono }}>{fmtDate(order.vytvoreno)}</div>
         </div>
