@@ -90,16 +90,9 @@ Do PDF appka vloží: zákazníka, popis, kalkulaci po položkách, zápisy prá
 
 Všechny soubory jedné zakázky — účtenky, fotodokumentace, podpis z protokolu i PDF archiv — appka ukládá do **jedné společné podsložky pojmenované podle zakázky** (např. "Z-2026-0001 – Jan Novák"), uvnitř té hlavní sdílené složky, kterou jsi nastavil/a v `GOOGLE_DRIVE_FOLDER_ID`. Appka tuhle podsložku při prvním souboru dané zakázky sama založí, další soubory stejné zakázky se pak řadí do ní. Nic se tedy neztrácí porůznu v jedné velké složce — na Drive máš stejnou strukturu jako appka: zakázka → všechny její dokumenty.
 
-### Důležité: české znaky v PDF
+### České znaky v PDF
 
-Knihovna, která PDF vytváří, **standardně neumí české háčky a čárky** — je to běžné technické omezení (vestavěné fonty v PDF pokrývají jen základní latinku). Appka na to reaguje takhle:
-
-- **Bez dalšího nastavení appka funguje hned** — text v PDF bude čitelný, ale bez diakritiky (např. "Zakazka" místo "Zakázka")
-- **Chceš-li plnou diakritiku**, stačí jeden krok navíc:
-  1. Stáhni si font s podporou češtiny, např. [Noto Sans](https://fonts.google.com/noto/specimen/Noto+Sans) (zdarma, Google Fonts) — potřebuješ soubory `NotoSans-Regular.ttf` a `NotoSans-Bold.ttf`
-  2. Vlož je do appky do složky `fonts/` (vytvoř ji v kořeni projektu, vedle `app/` a `components/`)
-  3. Nahraj to na GitHub jako součást appky — Vercel to při dalším nasazení automaticky použije
-  4. Appka font sama rozpozná a od té chvíle budou všechna nově vygenerovaná PDF s plnou diakritikou — nic dalšího se měnit nemusí
+Appka má rovnou zabalený font s plnou podporou češtiny (IBM Plex Serif, licence SIL Open Font License — volně použitelná), takže háčky a čárky v PDF fungují bez jakéhokoliv dalšího nastavování. Appka navíc kvůli tomu záměrně nikdy nepoužívá vestavěné fonty PDF knihovny (ty na Vercelu při generování spolehlivě padaly — běžný technický problém této konkrétní knihovny na serverless nasazení, ne chyba appky).
 
 ## Fotky a soubory na Google Drive místo Supabase Storage
 
