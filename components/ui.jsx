@@ -69,6 +69,24 @@ export function SectionLabel({ children }) {
   );
 }
 
+// Drobný trvalý popisek nad políčkem — pro místa, kde se pole vejdou vedle sebe
+// v úzké mřížce a plnohodnotný <Field label="..."> by se tam nevešel.
+export function MiniLabel({ children }) {
+  return (
+    <div
+      style={{
+        fontSize: 10,
+        color: C.inkSoft,
+        marginBottom: 3,
+        textTransform: "uppercase",
+        letterSpacing: "0.04em",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function Field({ label, children }) {
   return (
     <label style={{ display: "block", marginBottom: 12 }}>

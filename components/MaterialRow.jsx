@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { C, FONTS, MATERIAL_UNITS, fmtMoney } from "@/lib/theme";
-import { TextInput, Select, iconBtnStyle } from "./ui";
+import { TextInput, Select, MiniLabel, iconBtnStyle } from "./ui";
 
 export default function MaterialRow({ item, history, onChange, onRemove }) {
   const [showSuggest, setShowSuggest] = useState(false);
@@ -25,6 +25,7 @@ export default function MaterialRow({ item, history, onChange, onRemove }) {
   return (
     <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: 10, marginBottom: 8, background: C.paper }}>
       <div style={{ position: "relative", marginBottom: 8 }}>
+        <MiniLabel>Název materiálu</MiniLabel>
         <TextInput
           value={item.nazev}
           onChange={(e) => {
@@ -78,26 +79,44 @@ export default function MaterialRow({ item, history, onChange, onRemove }) {
           </div>
         )}
       </div>
+
+      <MiniLabel>Dodavatel (nepovinné)</MiniLabel>
       <TextInput
         value={item.dodavatel || ""}
         onChange={(e) => onChange({ ...item, dodavatel: e.target.value })}
         style={{ marginBottom: 6 }}
       />
+
       <div className="material-grid-3">
-        <TextInput type="number" value={item.cena} onChange={(e) => onChange({ ...item, cena: e.target.value })} />
-        <Select value={item.jednotka || "kg"} onChange={(e) => onChange({ ...item, jednotka: e.target.value })}>
-          {MATERIAL_UNITS.map((u) => (
-            <option key={u} value={u}>
-              {u}
-            </option>
-          ))}
-        </Select>
-        <TextInput type="number" value={item.mnozstvi} onChange={(e) => onChange({ ...item, mnozstvi: e.target.value })} />
+        <div>
+          <MiniLabel>Cena/jednotku</MiniLabel>
+          <TextInput type="number" value={item.cena} onChange={(e) => onChange({ ...item, cena: e.target.value })} />
+        </div>
+        <div>
+          <MiniLabel>Jednotka</MiniLabel>
+          <Select value={item.jednotka || "kg"} onChange={(e) => onChange({ ...item, jednotka: e.target.value })}>
+            {MATERIAL_UNITS.map((u) => (
+              <option key={u} value={u}>
+                {u}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <MiniLabel>Množství</MiniLabel>
+          <TextInput type="number" value={item.mnozstvi} onChange={(e) => onChange({ ...item, mnozstvi: e.target.value })} />
+        </div>
       </div>
-      <div className="material-grid-3b">
-        <TextInput type="number" value={item.vaha} onChange={(e) => onChange({ ...item, vaha: e.target.value })} />
-        <TextInput type="number" value={item.plocha} onChange={(e) => onChange({ ...item, plocha: e.target.value })} />
-        <button onClick={onRemove} type="button" style={{ ...iconBtnStyle, color: C.danger }}>
+      <div className="material-grid-3b" style={{ marginTop: 6 }}>
+        <div>
+          <MiniLabel>Váha kg/jednotku</MiniLabel>
+          <TextInput type="number" value={item.vaha} onChange={(e) => onChange({ ...item, vaha: e.target.value })} />
+        </div>
+        <div>
+          <MiniLabel>Plocha m²/jednotku</MiniLabel>
+          <TextInput type="number" value={item.plocha} onChange={(e) => onChange({ ...item, plocha: e.target.value })} />
+        </div>
+        <button onClick={onRemove} type="button" style={{ ...iconBtnStyle, alignSelf: "end", color: C.danger }}>
           <Trash2 size={16} />
         </button>
       </div>

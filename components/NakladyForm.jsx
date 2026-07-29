@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { C, FONTS, uid, seedNakladyZKalkulace, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney } from "@/lib/theme";
-import { TextInput, Button, SectionLabel, iconBtnStyle } from "./ui";
+import { TextInput, Button, SectionLabel, MiniLabel, iconBtnStyle } from "./ui";
 
 export default function NakladyForm({ order, nastaveni, onSave, onClose }) {
   const [radky, setRadky] = useState(() => {
@@ -29,6 +29,17 @@ export default function NakladyForm({ order, nastaveni, onSave, onClose }) {
   return (
     <div>
       <SectionLabel>Náklady (materiál, kooperace, ostatní)</SectionLabel>
+      {radky.length > 0 && (
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 3 }}>
+            <MiniLabel>Popis nákladu</MiniLabel>
+          </div>
+          <div style={{ flex: 1 }}>
+            <MiniLabel>Kč bez DPH</MiniLabel>
+          </div>
+          <div style={{ width: 32 }} />
+        </div>
+      )}
       {radky.length === 0 ? (
         <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 12 }}>Zatím žádné náklady.</div>
       ) : (
@@ -45,6 +56,15 @@ export default function NakladyForm({ order, nastaveni, onSave, onClose }) {
         </div>
       )}
 
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 3 }}>
+          <MiniLabel>Přidat další náklad — popis</MiniLabel>
+        </div>
+        <div style={{ flex: 1 }}>
+          <MiniLabel>Kč bez DPH</MiniLabel>
+        </div>
+        <div style={{ width: 32 }} />
+      </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <TextInput value={novyPopis} onChange={(e) => setNovyPopis(e.target.value)} style={{ flex: 3 }} />
         <TextInput type="number" value={novaCastka} onChange={(e) => setNovaCastka(e.target.value)} style={{ flex: 1 }} />
