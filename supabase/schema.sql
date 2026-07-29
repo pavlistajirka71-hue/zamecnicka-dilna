@@ -21,6 +21,7 @@ create table if not exists orders (
   "materialObjednano" boolean default false,
   "materialObjednanoDatum" date,
   "zakaznikIdentifikace" text,
+  ico text,
   protokol jsonb,
   fotky jsonb not null default '[]'::jsonb,
   naklady jsonb not null default '[]'::jsonb,
@@ -31,6 +32,7 @@ create table if not exists orders (
 alter table orders add column if not exists "materialObjednano" boolean default false;
 alter table orders add column if not exists "materialObjednanoDatum" date;
 alter table orders add column if not exists "zakaznikIdentifikace" text;
+alter table orders add column if not exists ico text;
 alter table orders add column if not exists protokol jsonb;
 alter table orders add column if not exists fotky jsonb not null default '[]'::jsonb;
 alter table orders add column if not exists naklady jsonb not null default '[]'::jsonb;
@@ -148,6 +150,20 @@ create policy "authenticated upload fotky" on storage.objects
 drop policy if exists "authenticated delete fotky" on storage.objects;
 create policy "authenticated delete fotky" on storage.objects
   for delete using (bucket_id = 'fotky' and auth.role() = 'authenticated');
+
+-- 5) Katalog organizací (firemní zákazníci doplnění přes ARES podle IČO) — stejný princip
+-- jako katalog materiálů: jednou vyhledané se uloží, příště se nabídne bez nutnosti volat ARES znovu.
+create table if not exists organizace (
+  ico text primary key,
+  nazev text,
+  adresa text,
+  dic text,
+  aktualizovano timestamptz default now()
+);
+alter table organizace enable row level security;
+drop policy if exists "authenticated full access organizace" on organizace;
+create policy "authenticated full access organizace" on organizace
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- 4) Přihlášení ke Google Drive (OAuth refresh token) — appka se k Drive přihlašuje jako
 -- konkrétní lidský Google účet (ne servisní účet), aby mohla využívat jeho úložiště.

@@ -231,6 +231,22 @@ Podepsaný protokol jde i vytisknout / uložit jako PDF (tlačítko Tisk → v d
    - **Tento klíč obchází veškeré zabezpečení databáze — nikdy ho nedávej do kódu, do `NEXT_PUBLIC_*` proměnné, ani ho nikde nezveřejňuj.** V appce se používá výhradně na serveru (v `app/api/protokol/[id]/route.js`), nikdy v prohlížeči.
 4. Spusť znovu `supabase/schema.sql` (přidává sloupec `protokol`, `zakaznikIdentifikace` a firemní údaje — je bezpečné spustit i podruhé)
 
+## Kalendář
+
+Nová záložka vedle Přehledu a Zakázek — zakázky se zobrazí v měsíční mřížce podle termínu dokončení, barevně podle stavu. Zamítnuté nabídky (Neúspěšná nabídka) se v kalendáři schválně nezobrazují — jinak to funguje stejně jako jinde v appce (zakázky bez vyplněného termínu logicky nemají kam se zařadit). Kliknutím na zakázku se otevře její detail.
+
+## IČO, ARES a katalog organizací
+
+Při zakládání/úpravě zakázky přibylo pole **IČO** a tlačítko **"Doplnit z ARES"** — appka zavolá veřejné rozhraní ARES (Ministerstvo financí ČR, zdarma, bez registrace) a rovnou přepíše jméno zákazníka i identifikaci (adresa, DIČ). Zároveň appka firmu uloží do **katalogu organizací** — příště při psaní jména nebo IČO appka nabídne našeptávač bez nutnosti volat ARES znovu.
+
+Soukromé osoby (bez IČO) fungují úplně stejně jako doteď — pole IČO prostě zůstane prázdné.
+
+## Uživatelé (Nastavení → Spravovat uživatele)
+
+Appka teď umí zakládat přístupy pro kolegy přímo v appce, bez nutnosti ručně zasahovat do Supabase. V Nastavení → **Spravovat uživatele** uvidíš seznam všech, kdo mají přístup, a formulář na přidání nového (e-mail + vygenerované heslo, které předáš kolegovi osobně).
+
+**Veřejná registrace byla zrušena** — přihlašovací stránka appky teď má jen "Přihlásit se", tlačítko "Vytvoř si účet" zmizelo. **Důležité:** tohle samo o sobě úplně nezabrání registraci zvenčí (přes přímé volání Supabase mimo appku) — ať je to jisté, jdi do **Supabase Dashboard → Authentication → Providers → Email** a vypni **"Allow new users to sign up"**. Tenhle krok appka udělat sama nemůže, je to nastavení projektu.
+
 ## Co appka umí
 
 - Zakázky s fondem pracovní (plán dílna/montáž) a stavy (Nabídnuto → Rozpracováno → Hotovo → Fakturováno, + Neúspěšná nabídka)

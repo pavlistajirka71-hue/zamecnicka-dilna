@@ -8,11 +8,9 @@ import { Field, TextInput, Button } from "@/components/ui";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [heslo, setHeslo] = useState("");
   const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -24,27 +22,12 @@ export default function LoginPage() {
   const submit = async (e) => {
     e.preventDefault();
     setError("");
-    setInfo("");
     setLoading(true);
-    if (mode === "signin") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: heslo });
-      if (error) {
-        setError("Přihlášení se nepovedlo — zkontroluj e-mail a heslo.");
-      } else {
-        router.replace("/");
-      }
+    const { error } = await supabase.auth.signInWithPassword({ email, password: heslo });
+    if (error) {
+      setError("Přihlášení se nepovedlo — zkontroluj e-mail a heslo.");
     } else {
-      const { data, error } = await supabase.auth.signUp({ email, password: heslo });
-      if (error) {
-        setError("Registrace se nepovedla: " + error.message);
-      } else if (data.session) {
-        // E-mail potvrzení je vypnuté — Supabase rovnou vrátila platnou session, netřeba se přihlašovat znovu.
-        router.replace("/");
-        return;
-      } else {
-        setInfo("Účet vytvořen. Zkontroluj e-mail a potvrď registraci, pak se přihlas.");
-        setMode("signin");
-      }
+      router.replace("/");
     }
     setLoading(false);
   };
@@ -76,23 +59,15 @@ export default function LoginPage() {
           </Field>
 
           {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 10 }}>{error}</div>}
-          {info && <div style={{ color: C.moss, fontSize: 13, marginBottom: 10 }}>{info}</div>}
 
           <Button variant="primary" type="submit" style={{ width: "100%", justifyContent: "center" }} disabled={loading}>
-            {loading ? "Chvilku…" : mode === "signin" ? "Přihlásit se" : "Vytvořit účet"}
+            {loading ? "Chvilku…" : "Přihlásit se"}
           </Button>
         </form>
 
-        <button
-          onClick={() => {
-            setMode(mode === "signin" ? "signup" : "signin");
-            setError("");
-            setInfo("");
-          }}
-          style={{ background: "none", border: "none", color: C.steel, cursor: "pointer", fontSize: 13, marginTop: 14, width: "100%", textAlign: "center" }}
-        >
-          {mode === "signin" ? "Nemáš účet? Vytvoř si ho" : "Už máš účet? Přihlas se"}
-        </button>
+        <div style={{ fontSize: 12, color: C.inkSoft, marginTop: 14, textAlign: "center" }}>
+          Nemáš účet? Požádej administrátora appky, ať tě přidá v Nastavení → Uživatelé.
+        </div>
       </div>
     </div>
   );

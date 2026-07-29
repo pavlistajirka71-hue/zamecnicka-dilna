@@ -5,6 +5,7 @@ import {
   Wrench,
   LayoutDashboard,
   ClipboardList,
+  CalendarDays,
   Plus,
   Search,
   ChevronRight,
@@ -31,6 +32,7 @@ import {
   computeKalkulaceCelkem,
   normalizovatKalkulaci,
   upsertMaterialHistory,
+  upsertOrganizaceHistory,
   planHodin,
   sumHodin,
   isOverdue,
@@ -45,6 +47,8 @@ import OrderPicker from "@/components/OrderPicker";
 import WorkLogFlow from "@/components/WorkLogFlow";
 import ReceiptFlow from "@/components/ReceiptFlow";
 import KalkulaceForm from "@/components/KalkulaceForm";
+import Kalendar from "@/components/Kalendar";
+import UzivateleForm from "@/components/UzivateleForm";
 import NastaveniForm from "@/components/NastaveniForm";
 import QuoteView from "@/components/QuoteView";
 import OrderDetail from "@/components/OrderDetail";
@@ -67,6 +71,7 @@ export default function HomePage() {
   const [orders, setOrders] = useState([]);
   const [nastaveni, setNastaveni] = useState(DEFAULT_NASTAVENI);
   const [materialHistory, setMaterialHistory] = useState([]);
+  const [organizace, setOrganizace] = useState([]);
 
   const [tab, setTab] = useState("prehled");
   const [search, setSearch] = useState("");
@@ -171,14 +176,16 @@ export default function HomePage() {
 
   // ---- initial data load ----
   const loadAllData = async () => {
-    const [ordersRes, nastaveniRes, historyRes] = await Promise.all([
+    const [ordersRes, nastaveniRes, historyRes, organizaceRes] = await Promise.all([
       supabase.from("orders").select("*").order("vytvoreno", { ascending: false }),
       supabase.from("nastaveni").select("*").eq("id", 1).maybeSingle(),
       supabase.from("material_history").select("*"),
+      supabase.from("organizace").select("*"),
     ]);
     setOrders(ordersRes.data || []);
     if (nastaveniRes.data) setNastaveni({ ...DEFAULT_NASTAVENI, ...nastaveniRes.data });
     setMaterialHistory(historyRes.data || []);
+    setOrganizace(organizaceRes.data || []);
     setOfflineData(false);
   };
 
@@ -239,6 +246,13 @@ export default function HomePage() {
   };
 
   // ---- persistence helpers ----
+  const saveOrganizace = async (org) => {
+    const nextHistory = upsertOrganizaceHistory(organizace, org);
+    setOrganizace(nextHistory);
+    const { error } = await supabase.from("organizace").upsert({ ico: org.ico, nazev: org.nazev, adresa: org.adresa, dic: org.dic });
+    if (error) console.error("Uložení organizace se nepovedlo:", error);
+  };
+
   const saveOrder = async (order) => {
     // Číselné a datumové sloupce v databázi odmítnou prázdný textový řetězec "" —
     // musí být buď vyplněná hodnota, nebo null (nevyplněno).
@@ -582,6 +596,7 @@ export default function HomePage() {
         {[
           { key: "prehled", label: "Přehled", icon: LayoutDashboard },
           { key: "zakazky", label: "Zakázky", icon: ClipboardList },
+          { key: "kalendar", label: "Kalendář", icon: CalendarDays },
         ].map((t) => {
           const Icon = t.icon;
           const active = tab === t.key;
@@ -823,11 +838,13 @@ export default function HomePage() {
             )}
           </div>
         )}
+
+        {tab === "kalendar" && <Kalendar orders={orders} onOpen={setDetailOrder} />}
       </div>
 
       {showOrderForm && (
         <Modal title={editingOrder ? "Upravit zakázku" : "Nová zakázka"} onClose={() => setShowOrderForm(false)}>
-          <OrderForm initial={editingOrder} orders={orders} onSave={saveOrder} onClose={() => setShowOrderForm(false)} />
+          <OrderForm initial={editingOrder} orders={orders} organizace={organizace} onSaveOrganizace={saveOrganizace} onSave={saveOrder} onClose={() => setShowOrderForm(false)} />
         </Modal>
       )}
 

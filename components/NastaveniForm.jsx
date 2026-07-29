@@ -1,9 +1,12 @@
 "use client";
 import { useState } from "react";
-import { Field, TextInput, Select, Button, SectionLabel } from "./ui";
+import { Users } from "lucide-react";
+import { Field, TextInput, Select, Button, SectionLabel, Modal } from "./ui";
+import UzivateleForm from "./UzivateleForm";
 
 export default function NastaveniForm({ initial, onSave, onClose }) {
   const [f, setF] = useState(initial);
+  const [showUzivatele, setShowUzivatele] = useState(false);
   const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
   return (
     <div>
@@ -51,6 +54,13 @@ export default function NastaveniForm({ initial, onSave, onClose }) {
           <TextInput value={f.firmaDic} onChange={(e) => set("firmaDic", e.target.value)} />
         </Field>
       </div>
+      <SectionLabel>Uživatelé</SectionLabel>
+      <div style={{ marginBottom: 16 }}>
+        <Button variant="ghost" type="button" onClick={() => setShowUzivatele(true)}>
+          <Users size={14} /> Spravovat uživatele
+        </Button>
+      </div>
+
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
         <Button variant="ghost" onClick={onClose} type="button">
           Zrušit
@@ -59,6 +69,12 @@ export default function NastaveniForm({ initial, onSave, onClose }) {
           Uložit nastavení
         </Button>
       </div>
+
+      {showUzivatele && (
+        <Modal title="Uživatelé" onClose={() => setShowUzivatele(false)} width={460} zIndex={60}>
+          <UzivateleForm onClose={() => setShowUzivatele(false)} />
+        </Modal>
+      )}
     </div>
   );
 }
