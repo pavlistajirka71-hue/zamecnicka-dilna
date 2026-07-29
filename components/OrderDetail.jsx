@@ -8,15 +8,16 @@ import ReceiptThumbnail from "./ReceiptThumbnail";
 import PhotoThumbnail from "./PhotoThumbnail";
 
 const ZALOZKY = [
-  { key: "naklady", label: "Náklady" },
-  { key: "kalkulace", label: "Kalkulace" },
+  { key: "prace", label: "Práce" },
   { key: "material", label: "Materiál" },
   { key: "dokumenty", label: "Dokumenty" },
+  { key: "naklady", label: "Vyhodnocení" },
+  { key: "kalkulace", label: "Kalkulace" },
 ];
 
 export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit, onOpenKalkulace, onOpenPoptavka, onOpenProtokol, onOpenFotka, onOpenNaklady, onGeneratePdf, generatingPdf, onClose }) {
   const [viewPhoto, setViewPhoto] = useState(null);
-  const [tab, setTab] = useState("dokumenty");
+  const [tab, setTab] = useState("prace");
   const polozkyKalkulace = normalizovatKalkulaci(order.kalkulace);
   const nakladyVysledek = computeNakladyZakazky(order, nastaveni);
   const maMaterial = polozkyKalkulace.some((p) => (p.materialy || []).length > 0);
@@ -95,16 +96,16 @@ export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit
               key={z.key}
               onClick={() => setTab(z.key)}
               style={{
-                flex: "1 1 70px",
-                padding: "8px 6px",
+                flex: "1 1 62px",
+                padding: "8px 4px",
                 borderRadius: 6,
                 border: `1px solid ${active ? C.steel : C.line}`,
                 background: active ? C.steel : "transparent",
                 color: active ? "#fff" : C.ink,
                 fontFamily: FONTS.display,
                 textTransform: "uppercase",
-                letterSpacing: "0.03em",
-                fontSize: 11,
+                letterSpacing: "0.02em",
+                fontSize: 10,
                 cursor: "pointer",
               }}
             >
@@ -115,100 +116,90 @@ export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit
       </div>
 
       <div style={{ background: C.surface, border: `1px solid ${C.line}`, borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        {tab === "naklady" && (
+        {tab === "prace" && (
           <div>
-            <SectionLabel>Sledování nákladů</SectionLabel>
-            <div style={{ background: C.paper, borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
-                <span>Náklady celkem (vč. práce)</span>
-                <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(nakladyVysledek.nakladyCelkem)}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
-                <span>Zisk / Marže</span>
-                <span style={{ fontFamily: FONTS.mono, color: nakladyVysledek.zisk >= 0 ? C.moss : C.danger }}>
-                  {fmtMoney(nakladyVysledek.zisk)} ({nakladyVysledek.marzePct.toFixed(1)} %)
-                </span>
-              </div>
-            </div>
-            <Button variant="ghost" onClick={onOpenNaklady}>
-              <Wallet size={14} /> {order.naklady && order.naklady.length > 0 ? "Upravit náklady" : "Sledovat náklady"}
-            </Button>
-          </div>
-        )}
+            <SectionLabel>Fond pracovní — plán / skutečnost</SectionLabel>
+            {["dilna", "montaz"].map((typKey) => {
+              const label = typKey === "dilna" ? "Dílna" : "Montáž";
+              const plan = Number(typKey === "dilna" ? order.planCasDilna : order.planCasMontaz) || 0;
+              const skut = (order.prace || []).filter((p) => (p.typ || "dilna") === typKey).reduce((s, p) => s + Number(p.hodiny || 0), 0);
+              const over = skut > plan;
+              return (
+                <div key={typKey} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: `1px solid ${C.line}`, fontSize: 14 }}>
+                  <span>{label}</span>
+                  <span style={{ fontFamily: FONTS.mono, color: over ? C.rust : C.ink }}>
+                    {skut} h / plán {plan} h
+                  </span>
+                </div>
+              );
+            })}
 
-        {tab === "kalkulace" && (
-          <div>
-            <SectionLabel>Kalkulace zakázky</SectionLabel>
-            {polozkyKalkulace.length > 0 ? (
-              (() => {
-                const celkem = computeKalkulaceCelkem(polozkyKalkulace, nastaveni);
-                return (
-                  <div style={{ background: C.paper, borderRadius: 8, padding: "10px 12px", fontSize: 13 }}>
-                    {celkem.items.map(({ polozka, vysledek }) => (
-                      <div key={polozka.id} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: `1px dashed ${C.line}` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, marginBottom: 2 }}>
-                          <span>{polozka.nazev || "Položka"}</span>
-                          <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(vysledek.finalniCena)}</span>
-                        </div>
-                        {(polozka.materialy || []).map((m, i) => (
-                          <div key={i} style={{ display: "flex", justifyContent: "space-between", fontFamily: FONTS.mono, fontSize: 12, padding: "1px 0", color: C.inkSoft }}>
-                            <span style={{ fontFamily: FONTS.body }}>
-                              {m.nazev || "—"}
-                              {m.dodavatel ? ` (${m.dodavatel})` : ""} · {m.mnozstvi || 0} {m.jednotka || ""}
-                            </span>
-                            <span>{fmtMoney((Number(m.cena) || 0) * (Number(m.mnozstvi) || 0))}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontWeight: 600 }}>
-                      <span>Cena celkem bez DPH / s DPH</span>
-                      <span style={{ fontFamily: FONTS.mono }}>
-                        {fmtMoney(celkem.cenaBezDph)} / {fmtMoney(celkem.cenaSDph)}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
-                      <span>Plánovaná marže</span>
-                      <span style={{ fontFamily: FONTS.mono, color: celkem.marzeKc >= 0 ? C.moss : C.danger }}>
-                        {fmtMoney(celkem.marzeKc)} ({celkem.marzePct.toFixed(1)} %)
-                      </span>
-                    </div>
+            {order.prace && order.prace.length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <SectionLabel>Záznamy práce</SectionLabel>
+                {order.prace.map((p) => (
+                  <div key={p.id} style={{ fontSize: 13, padding: "5px 0", borderBottom: `1px solid ${C.line}` }}>
+                    <span style={{ fontFamily: FONTS.mono, color: C.inkSoft }}>{fmtDate(p.datum)}</span>
+                    {"  ·  "}
+                    <span style={{ fontFamily: FONTS.display, textTransform: "uppercase", fontSize: 11, color: (p.typ || "dilna") === "dilna" ? C.steel : C.brass }}>
+                      {(p.typ || "dilna") === "dilna" ? "Dílna" : "Montáž"}
+                    </span>
+                    {"  ·  "}
+                    <span style={{ fontFamily: FONTS.mono }}>{p.hodiny} h</span>
+                    {p.pracovnik && <span> · {p.pracovnik}</span>}
+                    {p.popis && <div style={{ color: C.inkSoft }}>{p.popis}</div>}
                   </div>
-                );
-              })()
-            ) : (
-              <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 8 }}>Kalkulace zatím není vytvořená.</div>
+                ))}
+              </div>
             )}
-            <Button variant="ghost" style={{ marginTop: 8 }} onClick={onOpenKalkulace}>
-              <Calculator size={14} /> {polozkyKalkulace.length > 0 ? "Upravit kalkulaci" : "Vytvořit kalkulaci"}
-            </Button>
           </div>
         )}
 
         {tab === "material" && (
           <div>
-            <SectionLabel>Objednávka materiálu</SectionLabel>
+            <SectionLabel>Materiál</SectionLabel>
             {maMaterial ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <Button variant="ghost" onClick={onOpenPoptavka}>
-                  <Truck size={14} /> Poptávka materiálu
-                </Button>
-                {order.materialObjednano ? (
-                  <button
-                    onClick={() => onSave({ ...order, materialObjednano: false, materialObjednanoDatum: null })}
-                    style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: C.moss, fontSize: 13 }}
-                  >
-                    <CheckCircle2 size={16} /> Objednáno {order.materialObjednanoDatum ? `(${fmtDate(order.materialObjednanoDatum)})` : ""} — zrušit
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => onSave({ ...order, materialObjednano: true, materialObjednanoDatum: new Date().toISOString().slice(0, 10) })}
-                    style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${C.line}`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: C.inkSoft, fontSize: 13 }}
-                  >
-                    Označit jako objednané u dodavatele
-                  </button>
-                )}
-              </div>
+              <>
+                <div style={{ background: C.paper, borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 12 }}>
+                  {polozkyKalkulace.map(
+                    (p) =>
+                      (p.materialy || []).length > 0 && (
+                        <div key={p.id} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: `1px dashed ${C.line}` }}>
+                          <div style={{ fontWeight: 600, marginBottom: 2 }}>{p.nazev || "Položka"}</div>
+                          {p.materialy.map((m, i) => (
+                            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "1px 0", color: C.inkSoft }}>
+                              <span style={{ fontFamily: FONTS.body }}>
+                                {m.nazev || "—"}
+                                {m.dodavatel ? ` (${m.dodavatel})` : ""} · {m.mnozstvi || 0} {m.jednotka || ""}
+                              </span>
+                              <span style={{ fontFamily: FONTS.mono }}>{fmtMoney((Number(m.cena) || 0) * (Number(m.mnozstvi) || 0))}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <Button variant="ghost" onClick={onOpenPoptavka}>
+                    <Truck size={14} /> Poptávka materiálu
+                  </Button>
+                  {order.materialObjednano ? (
+                    <button
+                      onClick={() => onSave({ ...order, materialObjednano: false, materialObjednanoDatum: null })}
+                      style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: C.moss, fontSize: 13 }}
+                    >
+                      <CheckCircle2 size={16} /> Objednáno {order.materialObjednanoDatum ? `(${fmtDate(order.materialObjednanoDatum)})` : ""} — zrušit
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => onSave({ ...order, materialObjednano: true, materialObjednanoDatum: new Date().toISOString().slice(0, 10) })}
+                      style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${C.line}`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: C.inkSoft, fontSize: 13 }}
+                    >
+                      Označit jako objednané u dodavatele
+                    </button>
+                  )}
+                </div>
+              </>
             ) : (
               <div style={{ fontSize: 13, color: C.inkSoft }}>Kalkulace zatím neobsahuje žádný materiál.</div>
             )}
@@ -305,44 +296,77 @@ export default function OrderDetail({ order, nastaveni, onSave, onDelete, onEdit
             )}
           </div>
         )}
-      </div>
 
-      <div style={{ marginBottom: 14 }}>
-        <SectionLabel>Fond pracovní — plán / skutečnost</SectionLabel>
-        {["dilna", "montaz"].map((typKey) => {
-          const label = typKey === "dilna" ? "Dílna" : "Montáž";
-          const plan = Number(typKey === "dilna" ? order.planCasDilna : order.planCasMontaz) || 0;
-          const skut = (order.prace || []).filter((p) => (p.typ || "dilna") === typKey).reduce((s, p) => s + Number(p.hodiny || 0), 0);
-          const over = skut > plan;
-          return (
-            <div key={typKey} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: `1px solid ${C.line}`, fontSize: 14 }}>
-              <span>{label}</span>
-              <span style={{ fontFamily: FONTS.mono, color: over ? C.rust : C.ink }}>
-                {skut} h / plán {plan} h
-              </span>
+        {tab === "naklady" && (
+          <div>
+            <SectionLabel>Vyhodnocení zakázky</SectionLabel>
+            <div style={{ background: C.paper, borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
+                <span>Náklady celkem (vč. práce)</span>
+                <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(nakladyVysledek.nakladyCelkem)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
+                <span>Zisk / Marže</span>
+                <span style={{ fontFamily: FONTS.mono, color: nakladyVysledek.zisk >= 0 ? C.moss : C.danger }}>
+                  {fmtMoney(nakladyVysledek.zisk)} ({nakladyVysledek.marzePct.toFixed(1)} %)
+                </span>
+              </div>
             </div>
-          );
-        })}
-      </div>
+            <Button variant="ghost" onClick={onOpenNaklady}>
+              <Wallet size={14} /> {order.naklady && order.naklady.length > 0 ? "Upravit náklady" : "Sledovat náklady"}
+            </Button>
+          </div>
+        )}
 
-      {order.prace && order.prace.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <SectionLabel>Záznamy práce</SectionLabel>
-          {order.prace.map((p) => (
-            <div key={p.id} style={{ fontSize: 13, padding: "5px 0", borderBottom: `1px solid ${C.line}` }}>
-              <span style={{ fontFamily: FONTS.mono, color: C.inkSoft }}>{fmtDate(p.datum)}</span>
-              {"  ·  "}
-              <span style={{ fontFamily: FONTS.display, textTransform: "uppercase", fontSize: 11, color: (p.typ || "dilna") === "dilna" ? C.steel : C.brass }}>
-                {(p.typ || "dilna") === "dilna" ? "Dílna" : "Montáž"}
-              </span>
-              {"  ·  "}
-              <span style={{ fontFamily: FONTS.mono }}>{p.hodiny} h</span>
-              {p.pracovnik && <span> · {p.pracovnik}</span>}
-              {p.popis && <div style={{ color: C.inkSoft }}>{p.popis}</div>}
-            </div>
-          ))}
-        </div>
-      )}
+        {tab === "kalkulace" && (
+          <div>
+            <SectionLabel>Kalkulace zakázky</SectionLabel>
+            {polozkyKalkulace.length > 0 ? (
+              (() => {
+                const celkem = computeKalkulaceCelkem(polozkyKalkulace, nastaveni);
+                return (
+                  <div style={{ background: C.paper, borderRadius: 8, padding: "10px 12px", fontSize: 13 }}>
+                    {celkem.items.map(({ polozka, vysledek }) => (
+                      <div key={polozka.id} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: `1px dashed ${C.line}` }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, marginBottom: 2 }}>
+                          <span>{polozka.nazev || "Položka"}</span>
+                          <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(vysledek.finalniCena)}</span>
+                        </div>
+                        {(polozka.materialy || []).map((m, i) => (
+                          <div key={i} style={{ display: "flex", justifyContent: "space-between", fontFamily: FONTS.mono, fontSize: 12, padding: "1px 0", color: C.inkSoft }}>
+                            <span style={{ fontFamily: FONTS.body }}>
+                              {m.nazev || "—"}
+                              {m.dodavatel ? ` (${m.dodavatel})` : ""} · {m.mnozstvi || 0} {m.jednotka || ""}
+                            </span>
+                            <span>{fmtMoney((Number(m.cena) || 0) * (Number(m.mnozstvi) || 0))}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontWeight: 600 }}>
+                      <span>Cena celkem bez DPH / s DPH</span>
+                      <span style={{ fontFamily: FONTS.mono }}>
+                        {fmtMoney(celkem.cenaBezDph)} / {fmtMoney(celkem.cenaSDph)}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
+                      <span>Plánovaná marže</span>
+                      <span style={{ fontFamily: FONTS.mono, color: celkem.marzeKc >= 0 ? C.moss : C.danger }}>
+                        {fmtMoney(celkem.marzeKc)} ({celkem.marzePct.toFixed(1)} %)
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 8 }}>Kalkulace zatím není vytvořená.</div>
+            )}
+            <Button variant="ghost" style={{ marginTop: 8 }} onClick={onOpenKalkulace}>
+              <Calculator size={14} /> {polozkyKalkulace.length > 0 ? "Upravit kalkulaci" : "Vytvořit kalkulaci"}
+            </Button>
+          </div>
+        )}
+      </div>
 
       {order.poznamka && (
         <div style={{ marginBottom: 14 }}>
