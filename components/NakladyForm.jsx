@@ -46,8 +46,8 @@ export default function NakladyForm({ order, nastaveni, onSave, onClose }) {
       )}
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <TextInput placeholder="Popis nákladu (např. doprava)" value={novyPopis} onChange={(e) => setNovyPopis(e.target.value)} style={{ flex: 3 }} />
-        <TextInput type="number" placeholder="Kč bez DPH" value={novaCastka} onChange={(e) => setNovaCastka(e.target.value)} style={{ flex: 1 }} />
+        <TextInput value={novyPopis} onChange={(e) => setNovyPopis(e.target.value)} style={{ flex: 3 }} />
+        <TextInput type="number" value={novaCastka} onChange={(e) => setNovaCastka(e.target.value)} style={{ flex: 1 }} />
         <Button variant="ghost" type="button" onClick={pridatNaklad}>
           <Plus size={14} />
         </Button>

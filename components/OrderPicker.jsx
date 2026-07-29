@@ -27,7 +27,7 @@ export default function OrderPicker({ orders, onPick, excludeStavy, excludeNote 
       )}
       <div style={{ position: "relative", marginBottom: 12 }}>
         <Search size={15} style={{ position: "absolute", left: 10, top: 13, color: C.inkSoft }} />
-        <TextInput autoFocus placeholder="Hledat zakázku…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 32 }} />
+        <TextInput autoFocus value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 32 }} />
       </div>
       {list.length === 0 ? (
         <div style={{ color: C.inkSoft, textAlign: "center", padding: 20 }}>Žádná zakázka nenalezena.</div>

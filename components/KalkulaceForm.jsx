@@ -131,7 +131,6 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
               <TextInput
                 value={p.nazev}
                 onChange={(e) => updatePolozka(p.id, { ...p, nazev: e.target.value })}
-                placeholder={`Položka ${idx + 1} (např. Brána)`}
                 style={{ flex: 1, background: C.surface }}
               />
               <span style={{ fontFamily: FONTS.mono, fontSize: 13, color: C.inkSoft, whiteSpace: "nowrap" }}>{fmtMoney(v.finalniCena)}</span>

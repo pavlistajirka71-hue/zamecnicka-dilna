@@ -172,10 +172,10 @@ function MaterialEditForm({ initial, onSave, onCancel }) {
   return (
     <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: 12, marginBottom: 12, background: C.paper }}>
       <Field label="Název">
-        <TextInput value={f.nazev} onChange={(e) => set("nazev", e.target.value)} placeholder="např. Plochá ocel 20x5" />
+        <TextInput value={f.nazev} onChange={(e) => set("nazev", e.target.value)} />
       </Field>
       <Field label="Dodavatel">
-        <TextInput value={f.dodavatel} onChange={(e) => set("dodavatel", e.target.value)} placeholder="např. MZ Hutní materiály" />
+        <TextInput value={f.dodavatel} onChange={(e) => set("dodavatel", e.target.value)} />
       </Field>
       <div className="field-row">
         <Field label="Cena/jednotka">

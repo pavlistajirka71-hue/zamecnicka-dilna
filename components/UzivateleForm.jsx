@@ -79,7 +79,7 @@ export default function UzivateleForm({ onClose }) {
           Přidat uživatele
         </div>
         <Field label="E-mail">
-          <TextInput type="email" value={novyEmail} onChange={(e) => setNovyEmail(e.target.value)} placeholder="jmeno@dilna.cz" />
+          <TextInput type="email" value={novyEmail} onChange={(e) => setNovyEmail(e.target.value)} />
         </Field>
         <Field label="Heslo (vygenerováno, klidně uprav)">
           <TextInput value={noveHeslo} onChange={(e) => setNoveHeslo(e.target.value)} />

@@ -117,7 +117,7 @@ export default function WorkPhotoFlow({ order, onSubmit, onClose }) {
             </div>
           </Field>
           <Field label="Popis (nepovinné)">
-            <TextInput value={popis} onChange={(e) => setPopis(e.target.value)} placeholder="např. stav před demontáží" />
+            <TextInput value={popis} onChange={(e) => setPopis(e.target.value)} />
           </Field>
           {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 8 }}>{error}</div>}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>

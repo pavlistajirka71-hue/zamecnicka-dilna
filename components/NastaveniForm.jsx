@@ -41,10 +41,10 @@ export default function NastaveniForm({ initial, onSave, onClose }) {
 
       <SectionLabel>Firma (zhotovitel na předávacím protokolu)</SectionLabel>
       <Field label="Název firmy">
-        <TextInput value={f.firmaNazev} onChange={(e) => set("firmaNazev", e.target.value)} placeholder="Zámečnictví Novák s.r.o." />
+        <TextInput value={f.firmaNazev} onChange={(e) => set("firmaNazev", e.target.value)} />
       </Field>
       <Field label="Adresa">
-        <TextInput value={f.firmaAdresa} onChange={(e) => set("firmaAdresa", e.target.value)} placeholder="Dílenská 12, 100 00 Praha" />
+        <TextInput value={f.firmaAdresa} onChange={(e) => set("firmaAdresa", e.target.value)} />
       </Field>
       <div className="field-row">
         <Field label="IČO">

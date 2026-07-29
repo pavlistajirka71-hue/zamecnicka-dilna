@@ -26,7 +26,6 @@ export default function MaterialRow({ item, history, onChange, onRemove }) {
     <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: 10, marginBottom: 8, background: C.paper }}>
       <div style={{ position: "relative", marginBottom: 8 }}>
         <TextInput
-          placeholder="Název materiálu…"
           value={item.nazev}
           onChange={(e) => {
             onChange({ ...item, nazev: e.target.value });
@@ -80,13 +79,12 @@ export default function MaterialRow({ item, history, onChange, onRemove }) {
         )}
       </div>
       <TextInput
-        placeholder="Dodavatel (nepovinné)"
         value={item.dodavatel || ""}
         onChange={(e) => onChange({ ...item, dodavatel: e.target.value })}
         style={{ marginBottom: 6 }}
       />
       <div className="material-grid-3">
-        <TextInput type="number" placeholder="Cena/jednotka" value={item.cena} onChange={(e) => onChange({ ...item, cena: e.target.value })} />
+        <TextInput type="number" value={item.cena} onChange={(e) => onChange({ ...item, cena: e.target.value })} />
         <Select value={item.jednotka || "kg"} onChange={(e) => onChange({ ...item, jednotka: e.target.value })}>
           {MATERIAL_UNITS.map((u) => (
             <option key={u} value={u}>
@@ -94,11 +92,11 @@ export default function MaterialRow({ item, history, onChange, onRemove }) {
             </option>
           ))}
         </Select>
-        <TextInput type="number" placeholder="Množství" value={item.mnozstvi} onChange={(e) => onChange({ ...item, mnozstvi: e.target.value })} />
+        <TextInput type="number" value={item.mnozstvi} onChange={(e) => onChange({ ...item, mnozstvi: e.target.value })} />
       </div>
       <div className="material-grid-3b">
-        <TextInput type="number" placeholder="Váha kg / jednotka" value={item.vaha} onChange={(e) => onChange({ ...item, vaha: e.target.value })} />
-        <TextInput type="number" placeholder="Plocha m² / jednotka" value={item.plocha} onChange={(e) => onChange({ ...item, plocha: e.target.value })} />
+        <TextInput type="number" value={item.vaha} onChange={(e) => onChange({ ...item, vaha: e.target.value })} />
+        <TextInput type="number" value={item.plocha} onChange={(e) => onChange({ ...item, plocha: e.target.value })} />
         <button onClick={onRemove} type="button" style={{ ...iconBtnStyle, color: C.danger }}>
           <Trash2 size={16} />
         </button>

@@ -97,7 +97,6 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
             onChange={(e) => set("zakaznik", e.target.value)}
             onFocus={() => setShowSuggest(true)}
             onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
-            placeholder="Jméno / firma"
           />
         </Field>
         {showSuggest && navrhy.length > 0 && (
@@ -140,7 +139,6 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
             onChange={(e) => set("ico", e.target.value.replace(/\D/g, "").slice(0, 8))}
             onFocus={() => setShowSuggest(true)}
             onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
-            placeholder="např. 12345678"
           />
         </Field>
         <Button variant="ghost" type="button" onClick={doplnitZAres} disabled={hledamAres || !(f.ico || "").trim()} style={{ marginBottom: 12 }}>
@@ -153,23 +151,22 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
         <TextArea
           value={f.zakaznikIdentifikace || ""}
           onChange={(e) => set("zakaznikIdentifikace", e.target.value)}
-          placeholder="Adresa, IČO/DIČ — použije se na předávacím protokolu"
           style={{ minHeight: 44 }}
         />
       </Field>
       <Field label="Popis zakázky">
-        <TextArea value={f.popis} onChange={(e) => set("popis", e.target.value)} placeholder="Co se má vyrobit / opravit" />
+        <TextArea value={f.popis} onChange={(e) => set("popis", e.target.value)} />
       </Field>
       <div className="field-row">
         <Field label="Cena (Kč, nepovinné — doplní se z kalkulace)">
-          <TextInput type="number" value={f.cena} onChange={(e) => set("cena", e.target.value)} placeholder="doplní se z kalkulace, nebo zadej odhad" />
+          <TextInput type="number" value={f.cena} onChange={(e) => set("cena", e.target.value)} />
         </Field>
         <Field label="Termín dokončení">
           <TextInput type="date" value={f.termin} onChange={(e) => set("termin", e.target.value)} />
         </Field>
       </div>
       <Field label="Kdo dělá">
-        <TextInput value={f.reseni} onChange={(e) => set("reseni", e.target.value)} placeholder="Jméno pracovníka" />
+        <TextInput value={f.reseni} onChange={(e) => set("reseni", e.target.value)} />
       </Field>
 
       <SectionLabel>Fond pracovní (nepovinné — doplní se automaticky z kalkulace)</SectionLabel>
@@ -180,7 +177,6 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
             step="0.5"
             value={f.planCasDilna}
             onChange={(e) => set("planCasDilna", e.target.value)}
-            placeholder="doplní se z kalkulace, nebo zadej odhad"
           />
         </Field>
         <Field label="Plánovaný čas – montáž (h)">
@@ -189,18 +185,17 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
             step="0.5"
             value={f.planCasMontaz}
             onChange={(e) => set("planCasMontaz", e.target.value)}
-            placeholder="doplní se z kalkulace, nebo zadej odhad"
           />
         </Field>
       </div>
 
       <Field label="Poznámka">
-        <TextArea value={f.poznamka} onChange={(e) => set("poznamka", e.target.value)} placeholder="Interní poznámky…" />
+        <TextArea value={f.poznamka} onChange={(e) => set("poznamka", e.target.value)} />
       </Field>
 
       {f.stav === "fakturovano" && (
         <Field label="Číslo faktury">
-          <TextInput value={f.cisloFaktury} onChange={(e) => set("cisloFaktury", e.target.value)} placeholder="F-2026-..." />
+          <TextInput value={f.cisloFaktury} onChange={(e) => set("cisloFaktury", e.target.value)} />
         </Field>
       )}
 

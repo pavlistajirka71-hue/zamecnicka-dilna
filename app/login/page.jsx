@@ -52,10 +52,10 @@ export default function LoginPage() {
 
         <form onSubmit={submit}>
           <Field label="E-mail">
-            <TextInput type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jmeno@dilna.cz" />
+            <TextInput type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
           <Field label="Heslo">
-            <TextInput type="password" required minLength={6} value={heslo} onChange={(e) => setHeslo(e.target.value)} placeholder="••••••••" />
+            <TextInput type="password" required minLength={6} value={heslo} onChange={(e) => setHeslo(e.target.value)} />
           </Field>
 
           {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 10 }}>{error}</div>}

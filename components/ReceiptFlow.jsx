@@ -121,10 +121,10 @@ export default function ReceiptFlow({ orders, onSubmit, onClose }) {
         <>
           <div style={{ marginTop: 14 }}>
             <Field label="Částka (Kč, nepovinné)">
-              <TextInput type="number" value={castka} onChange={(e) => setCastka(e.target.value)} placeholder="0" />
+              <TextInput type="number" value={castka} onChange={(e) => setCastka(e.target.value)} />
             </Field>
             <Field label="Poznámka (nepovinné)">
-              <TextInput value={poznamka} onChange={(e) => setPoznamka(e.target.value)} placeholder="např. nákup materiálu" />
+              <TextInput value={poznamka} onChange={(e) => setPoznamka(e.target.value)} />
             </Field>
           </div>
           {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 8 }}>{error}</div>}

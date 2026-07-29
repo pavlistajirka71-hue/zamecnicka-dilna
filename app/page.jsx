@@ -734,7 +734,7 @@ export default function HomePage() {
             <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
               <div style={{ position: "relative", flex: "1 1 220px" }}>
                 <Search size={15} style={{ position: "absolute", left: 10, top: 10, color: C.inkSoft }} />
-                <TextInput placeholder="Hledat podle zákazníka, čísla…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: 32 }} />
+                <TextInput value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: 32 }} />
               </div>
               <Select value={filterStav} onChange={(e) => setFilterStav(e.target.value)} style={{ width: 180 }}>
                 <option value="vse">Všechny stavy</option>

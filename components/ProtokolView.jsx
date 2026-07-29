@@ -89,7 +89,7 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
             </Field>
           </div>
           <Field label="Výhrady / poznámky (nepovinné — necháš prázdné, pokud je dílo bez vad)">
-            <TextArea value={protokol.vyhrady} onChange={(e) => set("vyhrady", e.target.value)} placeholder="Popis výhrad zákazníka, pokud nějaké jsou…" />
+            <TextArea value={protokol.vyhrady} onChange={(e) => set("vyhrady", e.target.value)} />
           </Field>
           <Button variant="ghost" onClick={saveDetails} disabled={saving} style={{ marginBottom: 20 }}>
             {saving ? "Ukládám…" : "Uložit údaje protokolu"}

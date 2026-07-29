@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { C, FONTS, STATUSES, statusInfo, todayISO } from "@/lib/theme";
+import { C, FONTS, statusInfo, todayISO } from "@/lib/theme";
 import { Button } from "./ui";
 
 const DNY_TYDNE = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
@@ -47,7 +47,7 @@ export default function Kalendar({ orders, onOpen }) {
   const zakazkyPodleDne = useMemo(() => {
     const mapa = new Map();
     orders
-      .filter((o) => o.termin && o.stav !== "neuspesnaNabidka")
+      .filter((o) => o.termin && o.stav === "probiha")
       .forEach((o) => {
         if (!mapa.has(o.termin)) mapa.set(o.termin, []);
         mapa.get(o.termin).push(o);
@@ -157,14 +157,7 @@ export default function Kalendar({ orders, onOpen }) {
         })}
       </div>
 
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 14, fontSize: 11, color: C.inkSoft }}>
-        {STATUSES.filter((s) => s.key !== "neuspesnaNabidka").map((s) => (
-          <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color, display: "inline-block" }} />
-            {s.label}
-          </div>
-        ))}
-      </div>
+      <div style={{ marginTop: 14, fontSize: 11, color: C.inkSoft }}>Zobrazují se jen rozpracované zakázky s vyplněným termínem.</div>
     </div>
   );
 }

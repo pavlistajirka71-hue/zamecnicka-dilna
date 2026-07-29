@@ -77,14 +77,14 @@ export default function WorkLogFlow({ orders, onSubmit, onClose }) {
           <TextInput type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
         </Field>
         <Field label="Odpracované hodiny">
-          <TextInput type="number" step="0.5" placeholder="např. 3.5" value={hodiny} onChange={(e) => setHodiny(e.target.value)} />
+          <TextInput type="number" step="0.5" value={hodiny} onChange={(e) => setHodiny(e.target.value)} />
         </Field>
       </div>
       <Field label="Kdo pracoval">
-        <TextInput value={pracovnik} onChange={(e) => setPracovnik(e.target.value)} placeholder="Jméno pracovníka" />
+        <TextInput value={pracovnik} onChange={(e) => setPracovnik(e.target.value)} />
       </Field>
       <Field label="Co se dělalo">
-        <TextArea value={popis} onChange={(e) => setPopis(e.target.value)} placeholder="Popis provedené práce…" />
+        <TextArea value={popis} onChange={(e) => setPopis(e.target.value)} />
       </Field>
 
       {error && <div style={{ fontSize: 13, color: C.rust, marginBottom: 8 }}>{error}</div>}
