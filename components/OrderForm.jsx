@@ -13,6 +13,8 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
       zakaznik: "",
       zakaznikIdentifikace: "",
       ico: "",
+      telefon: "",
+      email: "",
       popis: "",
       stav: "nova",
       cena: "",
@@ -60,7 +62,14 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
   }, [f.ico, f.zakaznik, organizace]);
 
   const vybratZKatalogu = (o) => {
-    setF((prev) => ({ ...prev, ico: o.ico, zakaznik: o.nazev, zakaznikIdentifikace: o.dic ? `${o.adresa}\nDIČ: ${o.dic}` : o.adresa }));
+    setF((prev) => ({
+      ...prev,
+      ico: o.ico,
+      zakaznik: o.nazev,
+      zakaznikIdentifikace: o.dic ? `${o.adresa}\nDIČ: ${o.dic}` : o.adresa,
+      telefon: o.telefon || prev.telefon,
+      email: o.email || prev.email,
+    }));
     setShowSuggest(false);
   };
 
@@ -169,6 +178,14 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
           style={{ minHeight: 44 }}
         />
       </Field>
+      <div className="field-row">
+        <Field label="Telefon (nepovinné)">
+          <TextInput type="tel" value={f.telefon || ""} onChange={(e) => set("telefon", e.target.value)} />
+        </Field>
+        <Field label="E-mail (nepovinné)">
+          <TextInput type="email" value={f.email || ""} onChange={(e) => set("email", e.target.value)} />
+        </Field>
+      </div>
       <Field label="Popis zakázky">
         <TextArea value={f.popis} onChange={(e) => set("popis", e.target.value)} />
       </Field>
@@ -230,6 +247,11 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
             try {
               const zaUlozeni = f.cislo ? f : { ...f, cislo: await ziskatCisloZeSeru() };
               await onSave(zaUlozeni);
+              // I bez ARES appka uloží telefon/e-mail do katalogu organizací, ať se
+              // příště nabídnou znovu — jen když má zakázka vyplněné IČO.
+              if (f.ico && (f.telefon || f.email) && onSaveOrganizace) {
+                onSaveOrganizace({ ico: f.ico, telefon: f.telefon || "", email: f.email || "" });
+              }
             } catch (e) {
               setError("Uložení se nepovedlo, zkus to prosím znovu.");
               setSaving(false);

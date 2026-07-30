@@ -264,7 +264,9 @@ export default function HomePage() {
   const saveOrganizace = async (org) => {
     const nextHistory = upsertOrganizaceHistory(organizace, org);
     setOrganizace(nextHistory);
-    const { error } = await supabase.from("organizace").upsert({ ico: org.ico, nazev: org.nazev, adresa: org.adresa, dic: org.dic });
+    const { error } = await supabase
+      .from("organizace")
+      .upsert({ ico: org.ico, nazev: org.nazev, adresa: org.adresa, dic: org.dic, telefon: org.telefon, email: org.email });
     if (error) console.error("Uložení organizace se nepovedlo:", error);
   };
 

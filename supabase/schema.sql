@@ -22,6 +22,8 @@ create table if not exists orders (
   "materialObjednanoDatum" date,
   "zakaznikIdentifikace" text,
   ico text,
+  telefon text,
+  email text,
   protokol jsonb,
   fotky jsonb not null default '[]'::jsonb,
   naklady jsonb not null default '[]'::jsonb,
@@ -33,6 +35,8 @@ alter table orders add column if not exists "materialObjednano" boolean default 
 alter table orders add column if not exists "materialObjednanoDatum" date;
 alter table orders add column if not exists "zakaznikIdentifikace" text;
 alter table orders add column if not exists ico text;
+alter table orders add column if not exists telefon text;
+alter table orders add column if not exists email text;
 alter table orders add column if not exists protokol jsonb;
 alter table orders add column if not exists fotky jsonb not null default '[]'::jsonb;
 alter table orders add column if not exists naklady jsonb not null default '[]'::jsonb;
@@ -236,8 +240,12 @@ create table if not exists organizace (
   nazev text,
   adresa text,
   dic text,
+  telefon text,
+  email text,
   aktualizovano timestamptz default now()
 );
+alter table organizace add column if not exists telefon text;
+alter table organizace add column if not exists email text;
 alter table organizace enable row level security;
 drop policy if exists "authenticated full access organizace" on organizace;
 create policy "authenticated full access organizace" on organizace

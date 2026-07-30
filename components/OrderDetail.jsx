@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown } from "lucide-react";
+import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { C, FONTS, STATUSES, computeKalkulaceCelkem, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney, fmtDate, isOverdue } from "@/lib/theme";
 import { Button, SectionLabel, StampBadge, Modal, Field, TextInput, AutoCompleteTextInput, Select, iconBtnStyle } from "./ui";
@@ -38,6 +38,23 @@ export default function OrderDetail({ order, nastaveni, mojeRole, onSave, onDele
         <div>
           <div style={{ fontSize: 20, fontWeight: 600 }}>{order.zakaznik}</div>
           <div style={{ color: C.inkSoft, fontSize: 14 }}>{order.popis}</div>
+          {(order.telefon || order.email) && (
+            <div style={{ display: "flex", gap: 14, marginTop: 6 }}>
+              {order.telefon && (
+                <a
+                  href={`tel:${order.telefon.replace(/\s+/g, "")}`}
+                  style={{ display: "flex", alignItems: "center", gap: 5, color: C.steel, textDecoration: "none", fontSize: 13, fontFamily: FONTS.mono }}
+                >
+                  <Phone size={15} /> {order.telefon}
+                </a>
+              )}
+              {order.email && (
+                <a href={`mailto:${order.email}`} style={{ display: "flex", alignItems: "center", gap: 5, color: C.steel, textDecoration: "none", fontSize: 13 }}>
+                  <Mail size={15} /> {order.email}
+                </a>
+              )}
+            </div>
+          )}
         </div>
         <StampBadge status={order.stav} />
       </div>
