@@ -409,6 +409,7 @@ export default function OrderDetail({ order, nastaveni, mojeRole, onSave, onDele
         {tab === "kalkulace" && (
           <div>
             <SectionLabel>Kalkulace zakázky</SectionLabel>
+            <div style={{ fontSize: 11, color: C.inkSoft, marginTop: -4, marginBottom: 8 }}>Ceny položek a materiálu níže jsou bez DPH.</div>
             {polozkyKalkulace.length > 0 ? (
               (() => {
                 const celkem = computeKalkulaceCelkem(polozkyKalkulace, nastaveni);
@@ -421,7 +422,7 @@ export default function OrderDetail({ order, nastaveni, mojeRole, onSave, onDele
                             {polozka.nazev || "Položka"}
                             {Number(polozka.pocetKs) > 1 ? ` (${polozka.pocetKs}×)` : ""}
                           </span>
-                          <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(vysledek.finalniCena)}</span>
+                          <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(vysledek.cenaBezDph)}</span>
                         </div>
                         {(polozka.materialy || []).map((m, i) => {
                           const pocetKs = Math.max(1, Number(polozka.pocetKs) || 1);

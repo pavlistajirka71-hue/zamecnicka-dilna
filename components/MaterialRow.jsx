@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { C, FONTS, MATERIAL_UNITS, fmtMoney } from "@/lib/theme";
-import { TextInput, Select, MiniLabel, iconBtnStyle } from "./ui";
+import { TextInput, AutoCompleteTextInput, Select, MiniLabel, iconBtnStyle } from "./ui";
 
 export default function MaterialRow({ item, history, onChange, onRemove }) {
   const [showSuggest, setShowSuggest] = useState(false);
@@ -11,6 +11,16 @@ export default function MaterialRow({ item, history, onChange, onRemove }) {
     if (!q) return [];
     return history.filter((h) => h.nazev.toLowerCase().includes(q)).slice(0, 6);
   }, [item.nazev, history]);
+
+  // Všichni dodavatelé, co se kdy u jakéhokoliv materiálu uložili — dodavatel se tak
+  // dá doplnit i u úplně nového materiálu, ne jen když se shoduje i jeho název.
+  const dodavateleNavrhy = useMemo(() => {
+    const unikatni = new Set();
+    (history || []).forEach((h) => {
+      if (h.dodavatel && h.dodavatel.trim()) unikatni.add(h.dodavatel.trim());
+    });
+    return Array.from(unikatni);
+  }, [history]);
 
   const pick = (h) => {
     onChange({ ...item, nazev: h.nazev, dodavatel: h.dodavatel || "", cena: h.cena, jednotka: h.jednotka || "kg", vaha: h.vaha, plocha: h.plocha });
@@ -81,9 +91,10 @@ export default function MaterialRow({ item, history, onChange, onRemove }) {
       </div>
 
       <MiniLabel>Dodavatel (nepovinné)</MiniLabel>
-      <TextInput
+      <AutoCompleteTextInput
         value={item.dodavatel || ""}
         onChange={(e) => onChange({ ...item, dodavatel: e.target.value })}
+        navrhy={dodavateleNavrhy}
         style={{ marginBottom: 6 }}
       />
 
