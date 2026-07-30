@@ -490,7 +490,11 @@ export default function HomePage() {
     const vsechnyMaterialy = polozky.flatMap((p) => p.materialy || []);
     const nextHistory = upsertMaterialHistory(materialHistory, vsechnyMaterialy);
     setMaterialHistory(nextHistory);
-    await supabase.from("material_history").upsert(nextHistory);
+    const { error: chybaKatalogu } = await supabase.from("material_history").upsert(nextHistory);
+    if (chybaKatalogu) {
+      console.error("Uložení katalogu materiálů se nepovedlo:", chybaKatalogu);
+      setGlobalError("Zakázka se uložila, ale katalog materiálů (pro příští našeptávání) se uložit nepovedlo. Zkus to prosím znovu.");
+    }
     setKalkulaceOrder(null);
     if (detailOrder && detailOrder.id === order.id) setDetailOrder(data);
   };

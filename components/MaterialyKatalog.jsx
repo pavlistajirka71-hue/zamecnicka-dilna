@@ -27,13 +27,14 @@ function parseCSV(text) {
 
   return lines.slice(1).map((line) => {
     const cols = line.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, ""));
+    const cislo = (i) => (i > -1 && cols[i] ? Number(cols[i].replace(",", ".")) || 0 : 0);
     return {
       nazev: cols[idx.nazev] || "",
       dodavatel: idx.dodavatel > -1 ? cols[idx.dodavatel] || "" : "",
-      cena: idx.cena > -1 ? Number(cols[idx.cena].replace(",", ".")) || 0 : 0,
-      jednotka: idx.jednotka > -1 ? cols[idx.jednotka] || "kg" : "kg",
-      vaha: idx.vaha > -1 ? Number(cols[idx.vaha].replace(",", ".")) || 0 : 0,
-      plocha: idx.plocha > -1 ? Number(cols[idx.plocha].replace(",", ".")) || 0 : 0,
+      cena: cislo(idx.cena),
+      jednotka: (idx.jednotka > -1 && cols[idx.jednotka]) || "kg",
+      vaha: cislo(idx.vaha),
+      plocha: cislo(idx.plocha),
     };
   });
 }
@@ -41,6 +42,7 @@ function parseCSV(text) {
 export default function MaterialyKatalog({ materialHistory, onChange, onClose }) {
   const [editing, setEditing] = useState(null); // material object being edited, or "new"
   const [importError, setImportError] = useState("");
+  const [rowError, setRowError] = useState("");
   const [importing, setImporting] = useState(false);
   const fileRef = useRef(null);
 
@@ -54,19 +56,33 @@ export default function MaterialyKatalog({ materialHistory, onChange, onClose })
       plocha: Number(item.plocha) || 0,
     };
     if (!clean.nazev) return;
+    setRowError("");
     const renamed = originalNazev && originalNazev.toLowerCase() !== clean.nazev.toLowerCase();
     if (renamed) {
       // "nazev" is the primary key — upserting under a new name would leave the old row behind.
-      await supabase.from("material_history").delete().eq("nazev", originalNazev);
+      const { error: delErr } = await supabase.from("material_history").delete().eq("nazev", originalNazev);
+      if (delErr) {
+        setRowError("Uložení se nepovedlo, zkus to znovu.");
+        return;
+      }
     }
-    await supabase.from("material_history").upsert(clean);
+    const { error } = await supabase.from("material_history").upsert(clean);
+    if (error) {
+      setRowError("Uložení se nepovedlo, zkus to znovu.");
+      return;
+    }
     const next = [...materialHistory.filter((m) => m.nazev.toLowerCase() !== clean.nazev.toLowerCase() && m.nazev !== originalNazev), clean];
     onChange(next);
     setEditing(null);
   };
 
   const deleteItem = async (nazev) => {
-    await supabase.from("material_history").delete().eq("nazev", nazev);
+    setRowError("");
+    const { error } = await supabase.from("material_history").delete().eq("nazev", nazev);
+    if (error) {
+      setRowError("Smazání se nepovedlo, zkus to znovu.");
+      return;
+    }
     onChange(materialHistory.filter((m) => m.nazev !== nazev));
   };
 
@@ -112,6 +128,7 @@ export default function MaterialyKatalog({ materialHistory, onChange, onClose })
       </div>
 
       {importError && <div style={{ color: C.danger, fontSize: 13, marginBottom: 10 }}>{importError}</div>}
+      {rowError && <div style={{ color: C.danger, fontSize: 13, marginBottom: 10 }}>{rowError}</div>}
 
       {editing && (
         <MaterialEditForm
