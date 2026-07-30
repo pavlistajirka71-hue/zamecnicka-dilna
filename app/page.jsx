@@ -48,6 +48,7 @@ import WorkLogFlow from "@/components/WorkLogFlow";
 import ZapsatNakladFlow from "@/components/ZapsatNakladFlow";
 import KalkulaceForm from "@/components/KalkulaceForm";
 import Kalendar from "@/components/Kalendar";
+import VykazPrace from "@/components/VykazPrace";
 import UzivateleForm from "@/components/UzivateleForm";
 import NastaveniForm from "@/components/NastaveniForm";
 import QuoteView from "@/components/QuoteView";
@@ -672,6 +673,7 @@ export default function HomePage() {
           { key: "prehled", label: "Přehled", icon: LayoutDashboard },
           { key: "zakazky", label: "Zakázky", icon: ClipboardList },
           { key: "kalendar", label: "Kalendář", icon: CalendarDays },
+          { key: "vykaz", label: "Výkaz práce", icon: Timer },
         ].map((t) => {
           const Icon = t.icon;
           const active = tab === t.key;
@@ -915,6 +917,7 @@ export default function HomePage() {
         )}
 
         {tab === "kalendar" && <Kalendar orders={orders} onOpen={setDetailOrder} />}
+        {tab === "vykaz" && <VykazPrace orders={orders} onOpenOrder={setDetailOrder} />}
       </div>
 
       {showOrderForm && (

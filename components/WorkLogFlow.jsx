@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { C, FONTS, uid, todayISO, UZAVRENE_STAVY } from "@/lib/theme";
 import { supabase } from "@/lib/supabaseClient";
-import { Field, TextInput, TextArea, Button } from "./ui";
+import { Field, TextInput, AutoCompleteTextArea, Button } from "./ui";
 import OrderPicker from "./OrderPicker";
 
 export default function WorkLogFlow({ orders, onSubmit, onClose }) {
@@ -21,6 +21,17 @@ export default function WorkLogFlow({ orders, onSubmit, onClose }) {
       if (data?.session?.user?.email) setPracovnik((prev) => prev || data.session.user.email);
     });
   }, []);
+
+  // Návrhy pro "Co se dělalo" — jen z historie TÉHLE zakázky (činnosti se v rámci
+  // jedné zakázky často opakují), ne napříč celou appkou.
+  const navrhyPopisu = useMemo(() => {
+    if (!order) return [];
+    const unikatni = new Set();
+    (order.prace || []).forEach((p) => {
+      if (p.popis && p.popis.trim()) unikatni.add(p.popis.trim());
+    });
+    return Array.from(unikatni);
+  }, [order]);
 
   if (!order) {
     return (
@@ -91,8 +102,13 @@ export default function WorkLogFlow({ orders, onSubmit, onClose }) {
         <TextInput value={pracovnik} onChange={(e) => setPracovnik(e.target.value)} />
       </Field>
       <Field label="Co se dělalo">
-        <TextArea value={popis} onChange={(e) => setPopis(e.target.value)} />
+        <AutoCompleteTextArea value={popis} onChange={(e) => setPopis(e.target.value)} navrhy={navrhyPopisu} />
       </Field>
+      {navrhyPopisu.length > 0 && (
+        <div style={{ fontSize: 11, color: C.inkSoft, marginTop: -8, marginBottom: 12 }}>
+          Našeptává z dřívějších zápisů u téhle zakázky — piš dál, ať doplněný text přepíšeš, nebo ho nech tak.
+        </div>
+      )}
 
       {error && <div style={{ fontSize: 13, color: C.rust, marginBottom: 8 }}>{error}</div>}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>

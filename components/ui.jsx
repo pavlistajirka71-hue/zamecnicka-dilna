@@ -102,6 +102,78 @@ export function TextInput(props) {
 export function TextArea(props) {
   return <textarea {...props} style={{ ...inputStyle, minHeight: 70, resize: "vertical", ...(props.style || {}) }} />;
 }
+
+// TextArea s "excelovým" doplňováním — když napsané písmena odpovídají začátku
+// nějakého dřívějšího záznamu, zbytek se rovnou doplní a označí (vybere), takže
+// další psaní ho přepíše. Backspace/Delete doplňování na tenhle stisk vypne, ať
+// jde normálně mazat.
+export function AutoCompleteTextArea({ value, onChange, navrhy, ...rest }) {
+  const ref = useRef(null);
+  const mazani = useRef(false);
+
+  const handleKeyDown = (e) => {
+    mazani.current = e.key === "Backspace" || e.key === "Delete";
+    if (rest.onKeyDown) rest.onKeyDown(e);
+  };
+
+  const handleChange = (e) => {
+    const zadano = e.target.value;
+    if (mazani.current || !zadano || !navrhy || navrhy.length === 0) {
+      onChange(e);
+      return;
+    }
+    const shoda = navrhy.find((n) => n.toLowerCase().startsWith(zadano.toLowerCase()) && n.length > zadano.length);
+    if (!shoda) {
+      onChange(e);
+      return;
+    }
+    onChange({ target: { value: shoda } });
+    requestAnimationFrame(() => {
+      if (ref.current) ref.current.setSelectionRange(zadano.length, shoda.length);
+    });
+  };
+
+  return (
+    <textarea
+      {...rest}
+      ref={ref}
+      value={value}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      style={{ ...inputStyle, minHeight: 70, resize: "vertical", ...(rest.style || {}) }}
+    />
+  );
+}
+// Jednořádková varianta stejného doplňování — pro místa, kde se hodí spíš input než textarea.
+export function AutoCompleteTextInput({ value, onChange, navrhy, ...rest }) {
+  const ref = useRef(null);
+  const mazani = useRef(false);
+
+  const handleKeyDown = (e) => {
+    mazani.current = e.key === "Backspace" || e.key === "Delete";
+    if (rest.onKeyDown) rest.onKeyDown(e);
+  };
+
+  const handleChange = (e) => {
+    const zadano = e.target.value;
+    if (mazani.current || !zadano || !navrhy || navrhy.length === 0) {
+      onChange(e);
+      return;
+    }
+    const shoda = navrhy.find((n) => n.toLowerCase().startsWith(zadano.toLowerCase()) && n.length > zadano.length);
+    if (!shoda) {
+      onChange(e);
+      return;
+    }
+    onChange({ target: { value: shoda } });
+    requestAnimationFrame(() => {
+      if (ref.current) ref.current.setSelectionRange(zadano.length, shoda.length);
+    });
+  };
+
+  return <input {...rest} ref={ref} value={value} onChange={handleChange} onKeyDown={handleKeyDown} style={{ ...inputStyle, ...(rest.style || {}) }} />;
+}
+
 export function Select(props) {
   return <select {...props} style={{ ...inputStyle, ...(props.style || {}) }} />;
 }

@@ -1,9 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { C, FONTS, STATUSES, computeKalkulaceCelkem, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney, fmtDate, isOverdue } from "@/lib/theme";
-import { Button, SectionLabel, StampBadge, Modal, Field, TextInput, Select, iconBtnStyle } from "./ui";
+import { Button, SectionLabel, StampBadge, Modal, Field, TextInput, AutoCompleteTextInput, Select, iconBtnStyle } from "./ui";
 import ReceiptThumbnail from "./ReceiptThumbnail";
 import PhotoThumbnail from "./PhotoThumbnail";
 
@@ -24,6 +24,13 @@ export default function OrderDetail({ order, nastaveni, mojeRole, onSave, onDele
   const nakladyVysledek = computeNakladyZakazky(order, nastaveni);
   const maMaterial = polozkyKalkulace.some((p) => (p.materialy || []).length > 0);
   const jsemSA = mojeRole === "sa";
+  const navrhyPopisuPrace = useMemo(() => {
+    const unikatni = new Set();
+    (order.prace || []).forEach((p) => {
+      if (p.popis && p.popis.trim()) unikatni.add(p.popis.trim());
+    });
+    return Array.from(unikatni);
+  }, [order.prace]);
 
   return (
     <div>
@@ -163,7 +170,11 @@ export default function OrderDetail({ order, nastaveni, mojeRole, onSave, onDele
                         </Field>
                       </div>
                       <Field label="Popis">
-                        <TextInput value={praceForm.popis} onChange={(e) => setPraceForm((f) => ({ ...f, popis: e.target.value }))} />
+                        <AutoCompleteTextInput
+                          value={praceForm.popis}
+                          onChange={(e) => setPraceForm((f) => ({ ...f, popis: e.target.value }))}
+                          navrhy={navrhyPopisuPrace}
+                        />
                       </Field>
                       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
                         <button
