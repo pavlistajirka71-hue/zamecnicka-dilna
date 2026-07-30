@@ -13,6 +13,11 @@ export async function POST(request) {
     return NextResponse.json({ error: "Neplatné přihlášení." }, { status: 401 });
   }
 
-  await odpojitDrive();
+  try {
+    await odpojitDrive();
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "Odpojení se nepovedlo, zkus to znovu." }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

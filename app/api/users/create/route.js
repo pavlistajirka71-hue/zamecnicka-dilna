@@ -25,7 +25,14 @@ export async function POST(request) {
     return NextResponse.json({ error: error.message || "Založení uživatele se nepovedlo." }, { status: 500 });
   }
 
-  await supabaseAdmin.from("uzivatele_role").upsert({ user_id: data.user.id, role: zvolenaRole });
+  const { error: roleError } = await supabaseAdmin.from("uzivatele_role").upsert({ user_id: data.user.id, role: zvolenaRole });
+  if (roleError) {
+    console.error("Nastavení role nového uživatele se nepovedlo:", roleError);
+    return NextResponse.json(
+      { error: "Účet byl založen, ale nastavení role se nepovedlo. Nastav ji ručně v seznamu uživatelů." },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({ uzivatel: { id: data.user.id, email: data.user.email, created_at: data.user.created_at, role: zvolenaRole } });
 }
