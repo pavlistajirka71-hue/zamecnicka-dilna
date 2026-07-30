@@ -260,6 +260,31 @@ export default function HomePage() {
     router.replace("/login");
   };
 
+  // Automatické odhlášení po 1 hodině nečinnosti (appka samotná, nezávisle na
+  // Supabase — appka udrží přihlášení donekonečna sama od sebe, tohle je vlastní
+  // bezpečnostní pojistka appky, např. pro sdílený tablet v dílně).
+  useEffect(() => {
+    if (!session) return;
+    const LIMIT_NECINNOSTI_MS = 60 * 60 * 1000; // 1 hodina
+    const lastActivity = { current: Date.now() };
+    const oznamitAktivitu = () => {
+      lastActivity.current = Date.now();
+    };
+    const udalosti = ["mousedown", "keydown", "touchstart", "scroll", "wheel"];
+    udalosti.forEach((u) => window.addEventListener(u, oznamitAktivitu, { passive: true }));
+
+    const interval = setInterval(() => {
+      if (Date.now() - lastActivity.current > LIMIT_NECINNOSTI_MS) {
+        signOut();
+      }
+    }, 60 * 1000); // kontrola jednou za minutu stačí, nemusí to být přesné na sekundu
+
+    return () => {
+      udalosti.forEach((u) => window.removeEventListener(u, oznamitAktivitu));
+      clearInterval(interval);
+    };
+  }, [session?.user?.id]);
+
   // ---- persistence helpers ----
   const saveOrganizace = async (org) => {
     const nextHistory = upsertOrganizaceHistory(organizace, org);
