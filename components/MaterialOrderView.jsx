@@ -10,13 +10,14 @@ function sestavitPoptavku(polozky) {
   const bySupplier = new Map();
 
   polozky.forEach((p) => {
+    const pocetKs = Math.max(1, Number(p.pocetKs) || 1);
     (p.materialy || []).forEach((m) => {
       if (!m.nazev) return;
       const dodavatel = m.dodavatel && m.dodavatel.trim() ? m.dodavatel.trim() : "Bez uvedeného dodavatele";
       const key = `${m.nazev.trim().toLowerCase()}|${m.jednotka || ""}`;
       if (!bySupplier.has(dodavatel)) bySupplier.set(dodavatel, new Map());
       const items = bySupplier.get(dodavatel);
-      const mnozstvi = Number(m.mnozstvi) || 0;
+      const mnozstvi = (Number(m.mnozstvi) || 0) * pocetKs;
       if (!items.has(key)) {
         items.set(key, { nazev: m.nazev, jednotka: m.jednotka || "", mnozstvi: 0, zPolozek: [] });
       }

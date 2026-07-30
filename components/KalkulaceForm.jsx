@@ -19,6 +19,10 @@ function PolozkaForm({ polozka, nastaveni, materialHistory, onChange }) {
 
   return (
     <div>
+      <Field label="Počet kusů (násobí celou položku — materiál, práci, dopravu…)">
+        <TextInput type="number" min="1" step="1" value={polozka.pocetKs} onChange={(e) => onChange({ ...polozka, pocetKs: e.target.value })} style={{ maxWidth: 120 }} />
+      </Field>
+
       <SectionLabel>Materiál</SectionLabel>
       {materialy.map((m, idx) => (
         <MaterialRow key={m.id} item={m} history={materialHistory} onChange={(v) => updateMaterial(idx, v)} onRemove={() => removeMaterial(idx)} />
@@ -37,6 +41,19 @@ function PolozkaForm({ polozka, nastaveni, materialHistory, onChange }) {
         </Field>
       </div>
 
+      <SectionLabel>Doprava a příprava</SectionLabel>
+      <div className="field-row">
+        <Field label="Doprava (Kč)">
+          <TextInput type="number" value={polozka.doprava} onChange={(e) => onChange({ ...polozka, doprava: e.target.value })} />
+        </Field>
+        <Field label="Přípravné práce (Kč)">
+          <TextInput type="number" value={polozka.pripravnePrace} onChange={(e) => onChange({ ...polozka, pripravnePrace: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Spojovací materiál (Kč)">
+        <TextInput type="number" value={polozka.spojovaciMaterial} onChange={(e) => onChange({ ...polozka, spojovaciMaterial: e.target.value })} style={{ maxWidth: 200 }} />
+      </Field>
+
       <SectionLabel>Kooperace</SectionLabel>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
@@ -45,7 +62,7 @@ function PolozkaForm({ polozka, nastaveni, materialHistory, onChange }) {
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
           <input type="checkbox" checked={polozka.lakovaniAktivni} onChange={(e) => onChange({ ...polozka, lakovaniAktivni: e.target.checked })} />
-          Lakování — {vysledek.plochaSum} m² × {fmtMoney(nastaveni.cenaLakovani)} = {fmtMoney(vysledek.lakovaniSum)}
+          Lakování — {vysledek.plochaProLakovani.toFixed(2)} m² (plocha + 5 % na ztráty) × {fmtMoney(nastaveni.cenaLakovani)} = {fmtMoney(vysledek.lakovaniSum)}
         </label>
       </div>
 
@@ -133,7 +150,10 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
                 onChange={(e) => updatePolozka(p.id, { ...p, nazev: e.target.value })}
                 style={{ flex: 1, background: C.surface }}
               />
-              <span style={{ fontFamily: FONTS.mono, fontSize: 13, color: C.inkSoft, whiteSpace: "nowrap" }}>{fmtMoney(v.finalniCena)}</span>
+              <span style={{ fontFamily: FONTS.mono, fontSize: 13, color: C.inkSoft, whiteSpace: "nowrap" }}>
+                {Number(p.pocetKs) > 1 ? `${p.pocetKs}× · ` : ""}
+                {fmtMoney(v.finalniCena)}
+              </span>
               <button type="button" onClick={() => setOpenId(open ? null : p.id)} style={iconBtnStyle}>
                 {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </button>

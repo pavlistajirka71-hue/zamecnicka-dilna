@@ -246,16 +246,23 @@ export default function OrderDetail({ order, nastaveni, mojeRole, onSave, onDele
                     (p) =>
                       (p.materialy || []).length > 0 && (
                         <div key={p.id} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: `1px dashed ${C.line}` }}>
-                          <div style={{ fontWeight: 600, marginBottom: 2 }}>{p.nazev || "Položka"}</div>
-                          {p.materialy.map((m, i) => (
-                            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "1px 0", color: C.inkSoft }}>
-                              <span style={{ fontFamily: FONTS.body }}>
-                                {m.nazev || "—"}
-                                {m.dodavatel ? ` (${m.dodavatel})` : ""} · {m.mnozstvi || 0} {m.jednotka || ""}
-                              </span>
-                              <span style={{ fontFamily: FONTS.mono }}>{fmtMoney((Number(m.cena) || 0) * (Number(m.mnozstvi) || 0))}</span>
-                            </div>
-                          ))}
+                          <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                            {p.nazev || "Položka"}
+                            {Number(p.pocetKs) > 1 ? ` (${p.pocetKs}×)` : ""}
+                          </div>
+                          {p.materialy.map((m, i) => {
+                            const pocetKs = Math.max(1, Number(p.pocetKs) || 1);
+                            const mnozstviCelkem = (Number(m.mnozstvi) || 0) * pocetKs;
+                            return (
+                              <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "1px 0", color: C.inkSoft }}>
+                                <span style={{ fontFamily: FONTS.body }}>
+                                  {m.nazev || "—"}
+                                  {m.dodavatel ? ` (${m.dodavatel})` : ""} · {mnozstviCelkem} {m.jednotka || ""}
+                                </span>
+                                <span style={{ fontFamily: FONTS.mono }}>{fmtMoney((Number(m.cena) || 0) * mnozstviCelkem)}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       )
                   )}
@@ -410,18 +417,25 @@ export default function OrderDetail({ order, nastaveni, mojeRole, onSave, onDele
                     {celkem.items.map(({ polozka, vysledek }) => (
                       <div key={polozka.id} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: `1px dashed ${C.line}` }}>
                         <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, marginBottom: 2 }}>
-                          <span>{polozka.nazev || "Položka"}</span>
+                          <span>
+                            {polozka.nazev || "Položka"}
+                            {Number(polozka.pocetKs) > 1 ? ` (${polozka.pocetKs}×)` : ""}
+                          </span>
                           <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(vysledek.finalniCena)}</span>
                         </div>
-                        {(polozka.materialy || []).map((m, i) => (
-                          <div key={i} style={{ display: "flex", justifyContent: "space-between", fontFamily: FONTS.mono, fontSize: 12, padding: "1px 0", color: C.inkSoft }}>
-                            <span style={{ fontFamily: FONTS.body }}>
-                              {m.nazev || "—"}
-                              {m.dodavatel ? ` (${m.dodavatel})` : ""} · {m.mnozstvi || 0} {m.jednotka || ""}
-                            </span>
-                            <span>{fmtMoney((Number(m.cena) || 0) * (Number(m.mnozstvi) || 0))}</span>
-                          </div>
-                        ))}
+                        {(polozka.materialy || []).map((m, i) => {
+                          const pocetKs = Math.max(1, Number(polozka.pocetKs) || 1);
+                          const mnozstviCelkem = (Number(m.mnozstvi) || 0) * pocetKs;
+                          return (
+                            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontFamily: FONTS.mono, fontSize: 12, padding: "1px 0", color: C.inkSoft }}>
+                              <span style={{ fontFamily: FONTS.body }}>
+                                {m.nazev || "—"}
+                                {m.dodavatel ? ` (${m.dodavatel})` : ""} · {mnozstviCelkem} {m.jednotka || ""}
+                              </span>
+                              <span>{fmtMoney((Number(m.cena) || 0) * mnozstviCelkem)}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     ))}
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontWeight: 600 }}>
