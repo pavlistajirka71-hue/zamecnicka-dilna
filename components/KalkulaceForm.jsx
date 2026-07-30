@@ -107,8 +107,8 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
   const polozkaRefs = useRef({});
 
   const celkem = useMemo(() => computeKalkulaceCelkem(polozky, nastaveni), [polozky, nastaveni]);
-  const planDilna = useMemo(() => polozky.reduce((s, p) => s + (Number(p.praceDilnaHodiny) || 0), 0), [polozky]);
-  const planMontaz = useMemo(() => polozky.reduce((s, p) => s + (Number(p.praceMontazHodiny) || 0), 0), [polozky]);
+  const planDilna = useMemo(() => polozky.reduce((s, p) => s + (Number(p.praceDilnaHodiny) || 0) * Math.max(1, Number(p.pocetKs) || 1), 0), [polozky]);
+  const planMontaz = useMemo(() => polozky.reduce((s, p) => s + (Number(p.praceMontazHodiny) || 0) * Math.max(1, Number(p.pocetKs) || 1), 0), [polozky]);
 
   const updatePolozka = (id, next) => setPolozky((prev) => prev.map((p) => (p.id === id ? next : p)));
 

@@ -471,8 +471,8 @@ export default function HomePage() {
   };
 
   const saveKalkulace = async (order, polozky, celkem) => {
-    const planCasDilna = polozky.reduce((s, p) => s + (Number(p.praceDilnaHodiny) || 0), 0);
-    const planCasMontaz = polozky.reduce((s, p) => s + (Number(p.praceMontazHodiny) || 0), 0);
+    const planCasDilna = polozky.reduce((s, p) => s + (Number(p.praceDilnaHodiny) || 0) * Math.max(1, Number(p.pocetKs) || 1), 0);
+    const planCasMontaz = polozky.reduce((s, p) => s + (Number(p.praceMontazHodiny) || 0) * Math.max(1, Number(p.pocetKs) || 1), 0);
     const { data, error } = await supabase
       .from("orders")
       .update({ kalkulace: polozky, cena: celkem.finalniCena, planCasDilna, planCasMontaz })
