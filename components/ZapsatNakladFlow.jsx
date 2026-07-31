@@ -115,10 +115,10 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
         </div>
       )}
 
-      <Field label="Popis nákladu">
+      <Field label="Popis nákladu (povinné)">
         <TextInput value={popis} onChange={(e) => setPopis(e.target.value)} />
       </Field>
-      <Field label="Cena celkem (Kč, bez DPH)">
+      <Field label="Cena celkem (Kč, bez DPH — povinné)">
         <TextInput type="number" value={castka} onChange={(e) => setCastka(e.target.value)} />
       </Field>
 

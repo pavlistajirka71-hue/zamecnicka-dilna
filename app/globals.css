@@ -11,6 +11,18 @@ body {
   background: #edeae2;
   color: #21231f;
   font-family: "IBM Plex Sans", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Appka na iPhonu (přidaná na plochu) běží přes celou obrazovku, i pod
+   výřez/dynamic island a nad spodní domovský indikátor — bez tohohle by tam
+   obsah appky mohl zaniknout nebo se s nimi překrývat. Horní okraj se řeší
+   přímo v hlavičce appky (viz app/page.jsx), ať se roztáhne do výřezu ve svojí
+   vlastní barvě, ne v barvě pozadí appky. */
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 ::placeholder {
@@ -29,10 +41,28 @@ textarea:focus-visible {
   outline-offset: 1px;
 }
 
+/* iOS Safari kreslí u type="date"/"time" vlastní zaoblený "čip" kolem textu, který
+   se vizuálně bije s naším vlastním rámečkem (vypadá to jako zdvojený/rozhozený
+   box). Tohle mu tu vlastní kresbu vypne, ať se řídí jen naším stylem. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 42px;
+}
+
 @media print {
   .no-print {
     display: none !important;
   }
+}
+
+/* Horní lišta se zavíracím/tiskovým tlačítkem u plnoobrazovkových náhledů
+   (nabídka, poptávka materiálu, protokol k tisku) — na iPhonu by jinak mohla
+   sedět pod výřezem/dynamic islandem. */
+.no-print {
+  padding-top: calc(16px + env(safe-area-inset-top)) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

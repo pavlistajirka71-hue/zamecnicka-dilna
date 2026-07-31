@@ -307,10 +307,25 @@ export default function HomePage() {
 
     const predchoziZakazka = orders.find((o) => o.id === order.id);
 
+    // Appka rovnou (bez čekání na server) ukáže novou hodnotu — hlavně u rychlé změny
+    // stavu to na mobilu s pomalejším připojením jinak působilo, že appka "vázne".
+    // Zápis na server běží na pozadí; kdyby se nepovedl, appka se vrátí na předchozí
+    // stav a ukáže chybu. (U úplně nové zakázky se optimisticky nic nedělá — není
+    // co lokálně sloučit, dokud appka nedostane skutečné id z databáze.)
+    if (predchoziZakazka) {
+      const optimisticky = { ...predchoziZakazka, ...cistaZakazka };
+      setOrders((prev) => prev.map((o) => (o.id === optimisticky.id ? optimisticky : o)));
+      setDetailOrder((prev) => (prev && prev.id === optimisticky.id ? optimisticky : prev));
+    }
+
     const { data, error } = await supabase.from("orders").upsert(cistaZakazka).select().single();
     if (error) {
       console.error(error);
       setGlobalError("Uložení zakázky se nepovedlo. Zkontroluj připojení a zkus to znovu.");
+      if (predchoziZakazka) {
+        setOrders((prev) => prev.map((o) => (o.id === predchoziZakazka.id ? predchoziZakazka : o)));
+        setDetailOrder((prev) => (prev && prev.id === predchoziZakazka.id ? predchoziZakazka : prev));
+      }
       throw error;
     }
     setOrders((prev) => {
@@ -579,7 +594,7 @@ export default function HomePage() {
 
   if (session === undefined || loading) {
     return (
-      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONTS.display, color: C.inkSoft, background: C.paper }}>
+      <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONTS.display, color: C.inkSoft, background: C.paper }}>
         Načítám dílnu…
       </div>
     );
@@ -588,7 +603,18 @@ export default function HomePage() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.paper, fontFamily: FONTS.body, color: C.ink }}>
-      <div style={{ background: C.steelDark, color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `4px solid ${C.rust}` }}>
+      <div
+        style={{
+          background: C.steelDark,
+          color: "#fff",
+          padding: "14px 20px",
+          paddingTop: "calc(14px + env(safe-area-inset-top))",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: `4px solid ${C.rust}`,
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Wrench size={22} color={C.rust} />
           <span style={{ fontFamily: FONTS.display, fontSize: 20, letterSpacing: "0.04em", textTransform: "uppercase" }}>Dílna — Zakázky</span>

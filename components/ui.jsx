@@ -178,7 +178,7 @@ export function Select(props) {
   return <select {...props} style={{ ...inputStyle, ...(props.style || {}) }} />;
 }
 
-export function Button({ variant = "primary", children, style, ...rest }) {
+export function Button({ variant = "primary", children, style, disabled, ...rest }) {
   const base = {
     fontFamily: FONTS.display,
     letterSpacing: "0.04em",
@@ -187,11 +187,12 @@ export function Button({ variant = "primary", children, style, ...rest }) {
     borderRadius: 6,
     padding: "9px 16px",
     border: "none",
-    cursor: "pointer",
+    cursor: disabled ? "not-allowed" : "pointer",
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
     transition: "opacity 0.15s ease",
+    opacity: disabled ? 0.45 : 1,
   };
   const variants = {
     primary: { background: C.steel, color: "#fff" },
@@ -203,6 +204,7 @@ export function Button({ variant = "primary", children, style, ...rest }) {
   return (
     <button
       {...rest}
+      disabled={disabled}
       style={{ ...base, ...variants[variant], ...style }}
       onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
       onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
@@ -224,6 +226,8 @@ export function Modal({ title, onClose, children, width = 560, zIndex = 50 }) {
         alignItems: "flex-start",
         justifyContent: "center",
         padding: "5vh 16px",
+        paddingTop: "calc(5vh + env(safe-area-inset-top))",
+        paddingBottom: "calc(5vh + env(safe-area-inset-bottom))",
         zIndex,
         overflowY: "auto",
       }}

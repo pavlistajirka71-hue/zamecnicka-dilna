@@ -143,6 +143,18 @@ Appka sama o sobě e-maily neposílá (přidávat do appky vlastní odesílání
 4. V nastavení upozornění (Alert Contacts) přidej svůj e-mail
 5. Hotovo — pokud appka přestane odpovídat nebo `/api/health` vrátí chybu, přijde ti e-mail
 
+### Hloubková kontrola — zachytí i "tiché" změny u třetích stran
+
+`/api/health` výše ověří jen "appka běží a je vidět do databáze". Appka má ještě druhou, důkladnější adresu — **`/api/health/deep`** — která si navíc **skutečně vyzkouší**:
+- vyhledání v ARES (a ověří, že odpověď má očekávaný tvar, ne jen že něco vrátila)
+- vygenerování PDF s českou diakritikou
+
+Tohle odchytí i situace, kdy třetí strana appku formálně "neshodí", ale tiše si změní chování (přesně to, co se nám stalo s PDF knihovnou na Vercelu). Je to pomalejší kontrola, nemá smysl ji spouštět každých pár minut — doporučuju přidat jako **druhý, samostatný monitor**:
+
+1. UptimeRobot → **Add New Monitor** → HTTP(s) → `https://tvoje-appka.vercel.app/api/health/deep`
+2. Interval nastav na **jednou denně** (stačí, je to těžší kontrola)
+3. Stejný e-mail na upozornění jako u prvního monitoru
+
 ## Fotky a soubory na Google Drive místo Supabase Storage
 
 Appka umí ukládat fotky (účtenky, fotodokumentace práce, podpisy z protokolů) a PDF archivy na **Google Drive**, do jedné sdílené složky. V databázi zůstává jen odkaz + náhled, ne samotný soubor.
