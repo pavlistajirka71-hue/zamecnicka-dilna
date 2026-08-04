@@ -4,13 +4,18 @@ import { Users, ArrowRightLeft, Trash2, Plus } from "lucide-react";
 import { Field, TextInput, Select, Button, SectionLabel, Modal } from "./ui";
 import UzivateleForm from "./UzivateleForm";
 
-export default function NastaveniForm({ initial, onSave, onMigrovatUctenky, onClose }) {
+export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUctenky, onClose }) {
   const [f, setF] = useState(initial);
   const [showUzivatele, setShowUzivatele] = useState(false);
   const [migruji, setMigruji] = useState(false);
   const [migraceVysledek, setMigraceVysledek] = useState(null);
   const [novePracovnikJmeno, setNovePracovnikJmeno] = useState("");
   const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
+
+  const prepnoutVybranehoUzivatele = (id) => {
+    const aktualni = f.vybraniUzivatele || [];
+    set("vybraniUzivatele", aktualni.includes(id) ? aktualni.filter((x) => x !== id) : [...aktualni, id]);
+  };
 
   const pridatPracovnika = () => {
     const jmeno = novePracovnikJmeno.trim();
@@ -100,6 +105,32 @@ export default function NastaveniForm({ initial, onSave, onMigrovatUctenky, onCl
         <input type="checkbox" checked={f.nabizetPracovniky} onChange={(e) => set("nabizetPracovniky", e.target.checked)} />
         Nabízet jména při zápisu práce
       </label>
+
+      {uzivatele && uzivatele.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: "#5B5A52", marginBottom: 6 }}>Kteří uživatelé appky se mají nabízet (kromě brigádníků níže):</div>
+          <div style={{ border: "1px solid #D9D4C7", borderRadius: 6, overflow: "hidden" }}>
+            {uzivatele.map((u, i) => (
+              <label
+                key={u.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 10px",
+                  borderTop: i > 0 ? "1px solid #D9D4C7" : "none",
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                <input type="checkbox" checked={(f.vybraniUzivatele || []).includes(u.id)} onChange={() => prepnoutVybranehoUzivatele(u.id)} />
+                {u.email}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
       {(f.pracovnici || []).length > 0 && (
         <div style={{ marginBottom: 10 }}>
           {f.pracovnici.map((jmeno) => (

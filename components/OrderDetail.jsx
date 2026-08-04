@@ -43,7 +43,7 @@ export default function OrderDetail({
   onGeneratePdf,
   generatingPdf,
   onOpenOrder,
-  uzivateleEmaily,
+  uzivatele,
   onAddPodzakazka,
   onClose,
 }) {
@@ -250,9 +250,9 @@ export default function OrderDetail({
                           <TextInputSNabidkou
                             value={praceForm.pracovnik}
                             onChange={(e) => setPraceForm((f) => ({ ...f, pracovnik: e.target.value }))}
-                            navrhy={nabidkaPracovniku(nastaveni, uzivateleEmaily)}
+                            navrhy={nabidkaPracovniku(nastaveni, uzivatele)}
                           />
-                          {nastaveni?.nabizetPracovniky && nabidkaPracovniku(nastaveni, uzivateleEmaily).length === 0 && (
+                          {nastaveni?.nabizetPracovniky && nabidkaPracovniku(nastaveni, uzivatele).length === 0 && (
                             <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 4 }}>Zatím žádní pracovníci — přidej je v Nastavení.</div>
                           )}
                         </Field>

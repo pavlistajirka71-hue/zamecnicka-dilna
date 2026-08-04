@@ -73,7 +73,7 @@ export default function HomePage() {
   const [orders, setOrders] = useState([]);
   const [nastaveni, setNastaveni] = useState(DEFAULT_NASTAVENI);
   const [materialHistory, setMaterialHistory] = useState([]);
-  const [uzivateleEmaily, setUzivateleEmaily] = useState([]);
+  const [uzivatele, setUzivatele] = useState([]);
   const [organizace, setOrganizace] = useState([]);
 
   const [tab, setTab] = useState("prehled");
@@ -230,7 +230,7 @@ export default function HomePage() {
         const token = session.access_token;
         const res = await fetch("/api/users/list", { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
-        if (res.ok && data.uzivatele) setUzivateleEmaily(data.uzivatele.map((u) => u.email).filter(Boolean));
+        if (res.ok && data.uzivatele) setUzivatele(data.uzivatele.filter((u) => u.email));
       } catch (e) {
         // ponechá se prázdný seznam — appka pořád nabídne aspoň ručně zadané pracovníky
       }
@@ -1027,7 +1027,7 @@ export default function HomePage() {
 
       {showWorkModal && (
         <Modal title="Zapsat práci" onClose={() => setShowWorkModal(false)}>
-          <WorkLogFlow orders={orders} nastaveni={nastaveni} uzivateleEmaily={uzivateleEmaily} onSubmit={addWorkEntry} onClose={() => setShowWorkModal(false)} />
+          <WorkLogFlow orders={orders} nastaveni={nastaveni} uzivatele={uzivatele} onSubmit={addWorkEntry} onClose={() => setShowWorkModal(false)} />
         </Modal>
       )}
 
@@ -1039,7 +1039,7 @@ export default function HomePage() {
 
       {showNastaveni && (
         <Modal title="Nastavení" onClose={() => setShowNastaveni(false)} width={460}>
-          <NastaveniForm initial={nastaveni} onSave={saveNastaveni} onMigrovatUctenky={migrovatUctenky} onClose={() => setShowNastaveni(false)} />
+          <NastaveniForm initial={nastaveni} uzivatele={uzivatele} onSave={saveNastaveni} onMigrovatUctenky={migrovatUctenky} onClose={() => setShowNastaveni(false)} />
         </Modal>
       )}
 
@@ -1142,7 +1142,7 @@ export default function HomePage() {
             onGeneratePdf={() => generatePdf(detailOrder)}
             generatingPdf={generatingPdfId === detailOrder?.id}
             onOpenOrder={(o) => setDetailOrder(o)}
-            uzivateleEmaily={uzivateleEmaily}
+            uzivatele={uzivatele}
             onAddPodzakazka={(rodic) => {
               setNadrazenaZakazkaProNovou(rodic);
               setEditingOrder(null);
