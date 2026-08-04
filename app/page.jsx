@@ -1013,7 +1013,7 @@ export default function HomePage() {
 
       {showWorkModal && (
         <Modal title="Zapsat práci" onClose={() => setShowWorkModal(false)}>
-          <WorkLogFlow orders={orders} onSubmit={addWorkEntry} onClose={() => setShowWorkModal(false)} />
+          <WorkLogFlow orders={orders} nastaveni={nastaveni} onSubmit={addWorkEntry} onClose={() => setShowWorkModal(false)} />
         </Modal>
       )}
 

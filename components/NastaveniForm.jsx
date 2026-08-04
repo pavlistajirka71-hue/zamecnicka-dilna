@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Users, ArrowRightLeft } from "lucide-react";
+import { Users, ArrowRightLeft, Trash2, Plus } from "lucide-react";
 import { Field, TextInput, Select, Button, SectionLabel, Modal } from "./ui";
 import UzivateleForm from "./UzivateleForm";
 
@@ -9,7 +9,23 @@ export default function NastaveniForm({ initial, onSave, onMigrovatUctenky, onCl
   const [showUzivatele, setShowUzivatele] = useState(false);
   const [migruji, setMigruji] = useState(false);
   const [migraceVysledek, setMigraceVysledek] = useState(null);
+  const [novePracovnikJmeno, setNovePracovnikJmeno] = useState("");
   const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
+
+  const pridatPracovnika = () => {
+    const jmeno = novePracovnikJmeno.trim();
+    if (!jmeno) return;
+    if ((f.pracovnici || []).some((p) => p.toLowerCase() === jmeno.toLowerCase())) {
+      setNovePracovnikJmeno("");
+      return;
+    }
+    set("pracovnici", [...(f.pracovnici || []), jmeno]);
+    setNovePracovnikJmeno("");
+  };
+
+  const odebratPracovnika = (jmeno) => {
+    set("pracovnici", (f.pracovnici || []).filter((p) => p !== jmeno));
+  };
 
   const spustitMigraci = async () => {
     setMigruji(true);
@@ -73,6 +89,43 @@ export default function NastaveniForm({ initial, onSave, onMigrovatUctenky, onCl
       <div style={{ marginBottom: 16 }}>
         <Button variant="ghost" type="button" onClick={() => setShowUzivatele(true)}>
           <Users size={14} /> Spravovat uživatele
+        </Button>
+      </div>
+
+      <SectionLabel>Pracovníci (brigádníci)</SectionLabel>
+      <div style={{ fontSize: 12, color: "#5B5A52", marginBottom: 8 }}>
+        Jména se nabízí při zápisu práce — pro pracovníky, kteří nemají vlastní přihlášení do appky.
+      </div>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 10 }}>
+        <input type="checkbox" checked={f.nabizetPracovniky} onChange={(e) => set("nabizetPracovniky", e.target.checked)} />
+        Nabízet jména při zápisu práce
+      </label>
+      {(f.pracovnici || []).length > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          {f.pracovnici.map((jmeno) => (
+            <div key={jmeno} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", border: "1px solid #D9D4C7", borderRadius: 6, marginBottom: 6, fontSize: 13 }}>
+              <span>{jmeno}</span>
+              <button type="button" onClick={() => odebratPracovnika(jmeno)} style={{ background: "none", border: "none", color: "#B33A3A", cursor: "pointer", padding: 4 }}>
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <TextInput
+          value={novePracovnikJmeno}
+          onChange={(e) => setNovePracovnikJmeno(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              pridatPracovnika();
+            }
+          }}
+          style={{ flex: 1 }}
+        />
+        <Button variant="ghost" type="button" onClick={pridatPracovnika} disabled={!novePracovnikJmeno.trim()}>
+          <Plus size={14} /> Přidat
         </Button>
       </div>
 

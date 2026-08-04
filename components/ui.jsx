@@ -1,5 +1,5 @@
 "use client";
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import { X } from "lucide-react";
 import { C, FONTS, statusInfo } from "@/lib/theme";
 
@@ -172,6 +172,27 @@ export function AutoCompleteTextInput({ value, onChange, navrhy, ...rest }) {
   };
 
   return <input {...rest} ref={ref} value={value} onChange={handleChange} onKeyDown={handleKeyDown} style={{ ...inputStyle, ...(rest.style || {}) }} />;
+}
+
+// Textové pole s "nabídkou" — nativní rozbalovací seznam možností (na mobilu se
+// zobrazí jako obyčejná nabídka k výběru), ale pořád jde napsat cokoliv jiného,
+// není to uzamčené jen na položky ze seznamu. Když je "navrhy" prázdné, chová se
+// jako běžné textové pole bez nabídky.
+export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
+  const id = useId();
+  const maNabidku = navrhy && navrhy.length > 0;
+  return (
+    <>
+      <input {...rest} value={value} onChange={onChange} list={maNabidku ? id : undefined} style={{ ...inputStyle, ...(rest.style || {}) }} />
+      {maNabidku && (
+        <datalist id={id}>
+          {navrhy.map((n) => (
+            <option key={n} value={n} />
+          ))}
+        </datalist>
+      )}
+    </>
+  );
 }
 
 export function Select(props) {

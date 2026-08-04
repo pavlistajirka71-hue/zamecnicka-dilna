@@ -111,6 +111,16 @@ Fotka účtenky (pokud je přiložená) se zobrazí přímo u daného nákladu v
 
 **Starší, dřív samostatně vyfocené účtenky** se dají jedním tlačítkem přesunout do stejného systému — **Nastavení → Přesunout staré účtenky do nákladů**. Je to bezpečné spustit i vícekrát, appka přesouvá jen to, co ještě nebylo přesunuté.
 
+## Kalkulace jen pro roli Správce
+
+Záložka "Kalkulace" se v detailu zakázky **vůbec nezobrazí** uživatelům s rolí "Uživatel" — ani k nahlédnutí, ne jen k úpravě. Vidí ji jen role "Správce (SA)".
+
+## Pracovníci (brigádníci) a nabídka jmen při zápisu práce
+
+V **Nastavení → Pracovníci** jde zadat jména lidí, kteří appku sami nepoužívají (brigádníci bez vlastního přihlášení) — appka je pak nabídne při zápisu práce (pole "Kdo pracoval") jako rozklikávací nabídku, podobně jako běžný výběr v telefonu. Pole se dá pořád vyplnit i jinak, než je v nabídce.
+
+Appka defaultně navíc předvyplní jméno podle toho, kým jsi do appky přihlášený (beze změny oproti dřívějšku) — nabídka pracovníků je jen doplněk, který jde kdykoliv **vypnout** zaškrtávátkem "Nabízet jména při zápisu práce", pokud o ni nestojíš.
+
 ## Podzakázky
 
 Velký projekt jde rozdělit na víc menších, samostatně sledovaných zakázek. V detailu zakázky přibyla záložka **"Podzakázky"** (jen u zakázek, které samy nejsou podzakázkou):

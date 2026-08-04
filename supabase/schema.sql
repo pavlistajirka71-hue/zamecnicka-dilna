@@ -55,12 +55,16 @@ create table if not exists nastaveni (
   "firmaNazev" text,
   "firmaAdresa" text,
   "firmaIco" text,
-  "firmaDic" text
+  "firmaDic" text,
+  pracovnici jsonb not null default '[]'::jsonb,
+  "nabizetPracovniky" boolean not null default true
 );
 insert into nastaveni (id) values (1) on conflict (id) do nothing;
 -- Pokud tabulka nastaveni už existuje ze starší verze appky bez těchto sloupců:
 alter table nastaveni add column if not exists "firmaNazev" text;
 alter table nastaveni add column if not exists "firmaAdresa" text;
+alter table nastaveni add column if not exists pracovnici jsonb not null default '[]'::jsonb;
+alter table nastaveni add column if not exists "nabizetPracovniky" boolean not null default true;
 alter table nastaveni add column if not exists "firmaIco" text;
 alter table nastaveni add column if not exists "firmaDic" text;
 

@@ -3,10 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { C, FONTS, uid, todayISO, UZAVRENE_STAVY } from "@/lib/theme";
 import { supabase } from "@/lib/supabaseClient";
-import { Field, TextInput, AutoCompleteTextArea, Button } from "./ui";
+import { Field, TextInput, AutoCompleteTextArea, TextInputSNabidkou, Button } from "./ui";
 import OrderPicker from "./OrderPicker";
 
-export default function WorkLogFlow({ orders, onSubmit, onClose }) {
+export default function WorkLogFlow({ orders, nastaveni, onSubmit, onClose }) {
   const [order, setOrder] = useState(null);
   const [datum, setDatum] = useState(todayISO());
   const [typ, setTyp] = useState("dilna");
@@ -99,7 +99,7 @@ export default function WorkLogFlow({ orders, onSubmit, onClose }) {
         </Field>
       </div>
       <Field label="Kdo pracoval">
-        <TextInput value={pracovnik} onChange={(e) => setPracovnik(e.target.value)} />
+        <TextInputSNabidkou value={pracovnik} onChange={(e) => setPracovnik(e.target.value)} navrhy={nastaveni?.nabizetPracovniky ? nastaveni.pracovnici : []} />
       </Field>
       <Field label="Co se dělalo">
         <AutoCompleteTextArea value={popis} onChange={(e) => setPopis(e.target.value)} navrhy={navrhyPopisu} />

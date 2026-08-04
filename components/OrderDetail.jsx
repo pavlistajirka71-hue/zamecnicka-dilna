@@ -14,7 +14,7 @@ import {
   fmtDate,
   isOverdue,
 } from "@/lib/theme";
-import { Button, SectionLabel, StampBadge, Modal, Field, TextInput, AutoCompleteTextInput, Select, iconBtnStyle } from "./ui";
+import { Button, SectionLabel, StampBadge, Modal, Field, TextInput, AutoCompleteTextInput, TextInputSNabidkou, Select, iconBtnStyle } from "./ui";
 import ReceiptThumbnail from "./ReceiptThumbnail";
 import PhotoThumbnail from "./PhotoThumbnail";
 
@@ -23,7 +23,6 @@ const ZAKLADNI_ZALOZKY = [
   { key: "material", label: "Materiál" },
   { key: "dokumenty", label: "Dokumenty" },
   { key: "naklady", label: "Vyhodnocení" },
-  { key: "kalkulace", label: "Kalkulace" },
 ];
 
 export default function OrderDetail({
@@ -47,17 +46,23 @@ export default function OrderDetail({
   onClose,
 }) {
   const [viewPhoto, setViewPhoto] = useState(null);
+  const jsemSA = mojeRole === "sa";
   const jeHlavniZakazka = !order.nadrazenaZakazkaId;
   const podzakazky = useMemo(() => (orders || []).filter((o) => o.nadrazenaZakazkaId === order.id), [orders, order.id]);
   const nadrazenaZakazka = useMemo(() => (orders || []).find((o) => o.id === order.nadrazenaZakazkaId), [orders, order.nadrazenaZakazkaId]);
-  const ZALOZKY = jeHlavniZakazka ? [...ZAKLADNI_ZALOZKY, { key: "podzakazky", label: `Podzakázky${podzakazky.length ? ` (${podzakazky.length})` : ""}` }] : ZAKLADNI_ZALOZKY;
+  // Kalkulaci (i jen k nahlédnutí) vidí jen správce — pro roli Uživatel se ta záložka
+  // vůbec nezobrazí.
+  const ZALOZKY = [
+    ...ZAKLADNI_ZALOZKY,
+    ...(jsemSA ? [{ key: "kalkulace", label: "Kalkulace" }] : []),
+    ...(jeHlavniZakazka ? [{ key: "podzakazky", label: `Podzakázky${podzakazky.length ? ` (${podzakazky.length})` : ""}` }] : []),
+  ];
   const [tab, setTab] = useState("prace");
   const [editujiciPrace, setEditujiciPrace] = useState(null);
   const [praceForm, setPraceForm] = useState({ datum: "", typ: "dilna", hodiny: "", pracovnik: "", popis: "" });
   const polozkyKalkulace = normalizovatKalkulaci(order.kalkulace);
   const nakladyVysledek = computeNakladyZakazky(order, nastaveni);
   const maMaterial = polozkyKalkulace.some((p) => (p.materialy || []).length > 0);
-  const jsemSA = mojeRole === "sa";
   const navrhyPopisuPrace = useMemo(() => {
     const unikatni = new Set();
     (order.prace || []).forEach((p) => {
@@ -240,7 +245,11 @@ export default function OrderDetail({
                           <TextInput type="number" step="0.5" value={praceForm.hodiny} onChange={(e) => setPraceForm((f) => ({ ...f, hodiny: e.target.value }))} />
                         </Field>
                         <Field label="Pracovník">
-                          <TextInput value={praceForm.pracovnik} onChange={(e) => setPraceForm((f) => ({ ...f, pracovnik: e.target.value }))} />
+                          <TextInputSNabidkou
+                            value={praceForm.pracovnik}
+                            onChange={(e) => setPraceForm((f) => ({ ...f, pracovnik: e.target.value }))}
+                            navrhy={nastaveni?.nabizetPracovniky ? nastaveni.pracovnici : []}
+                          />
                         </Field>
                       </div>
                       <Field label="Popis">
@@ -480,7 +489,7 @@ export default function OrderDetail({
           </div>
         )}
 
-        {tab === "kalkulace" && (
+        {tab === "kalkulace" && jsemSA && (
           <div>
             <SectionLabel>Kalkulace zakázky</SectionLabel>
             <div style={{ fontSize: 11, color: C.inkSoft, marginTop: -4, marginBottom: 8 }}>Ceny položek a materiálu níže jsou bez DPH.</div>

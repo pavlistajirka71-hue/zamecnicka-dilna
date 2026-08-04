@@ -53,7 +53,7 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
   };
 
   const save = async () => {
-    if (vybrane.length === 0 || !popis.trim() || !castka) return;
+    if (vybrane.length === 0 || !castka) return;
     setSaving(true);
     setError("");
     try {
@@ -67,7 +67,7 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
       await onSubmit(
         rozpocet.map(({ order, castka: dil }) => ({
           order,
-          naklad: { id: uid(), popis: popis.trim(), castka: dil, fotoPath },
+          naklad: { id: uid(), popis: popis.trim() || "Náklad", castka: dil, fotoPath },
         }))
       );
     } catch (err) {
@@ -115,7 +115,7 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
         </div>
       )}
 
-      <Field label="Popis nákladu (povinné)">
+      <Field label="Popis nákladu (nepovinné)">
         <TextInput value={popis} onChange={(e) => setPopis(e.target.value)} />
       </Field>
       <Field label="Cena celkem (Kč, bez DPH — povinné)">
