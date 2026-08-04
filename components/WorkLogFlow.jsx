@@ -101,6 +101,11 @@ export default function WorkLogFlow({ orders, nastaveni, onSubmit, onClose }) {
       <Field label="Kdo pracoval">
         <TextInputSNabidkou value={pracovnik} onChange={(e) => setPracovnik(e.target.value)} navrhy={nastaveni?.nabizetPracovniky ? nastaveni.pracovnici : []} />
       </Field>
+      {nastaveni?.nabizetPracovniky && (!nastaveni.pracovnici || nastaveni.pracovnici.length === 0) && (
+        <div style={{ fontSize: 11, color: C.inkSoft, marginTop: -8, marginBottom: 12 }}>
+          Zatím tu nejsou žádní pracovníci k výběru — přidej je v Nastavení → Pracovníci.
+        </div>
+      )}
       <Field label="Co se dělalo">
         <AutoCompleteTextArea value={popis} onChange={(e) => setPopis(e.target.value)} navrhy={navrhyPopisu} />
       </Field>

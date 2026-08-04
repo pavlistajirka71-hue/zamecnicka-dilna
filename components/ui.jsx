@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
-import { X } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
 import { C, FONTS, statusInfo } from "@/lib/theme";
 
 export const inputStyle = {
@@ -197,8 +197,14 @@ export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
         onChange={onChange}
         onFocus={() => setOtevreno(true)}
         onBlur={() => setTimeout(() => setOtevreno(false), 150)}
-        style={{ ...inputStyle, ...(rest.style || {}) }}
+        style={{ ...inputStyle, paddingRight: maNabidku ? 36 : inputStyle.padding, ...(rest.style || {}) }}
       />
+      {maNabidku && (
+        <ChevronDown
+          size={18}
+          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: C.inkSoft, pointerEvents: "none" }}
+        />
+      )}
       {maNabidku && otevreno && filtrovane.length > 0 && (
         <div
           style={{

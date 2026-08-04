@@ -250,6 +250,9 @@ export default function OrderDetail({
                             onChange={(e) => setPraceForm((f) => ({ ...f, pracovnik: e.target.value }))}
                             navrhy={nastaveni?.nabizetPracovniky ? nastaveni.pracovnici : []}
                           />
+                          {nastaveni?.nabizetPracovniky && (!nastaveni.pracovnici || nastaveni.pracovnici.length === 0) && (
+                            <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 4 }}>Zatím žádní pracovníci — přidej je v Nastavení.</div>
+                          )}
                         </Field>
                       </div>
                       <Field label="Popis">
