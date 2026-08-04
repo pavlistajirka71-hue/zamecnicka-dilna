@@ -189,6 +189,12 @@ export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
   const maNabidku = navrhy && navrhy.length > 0;
   const zadano = (value || "").toLowerCase();
   const filtrovane = maNabidku ? (prochazetVse ? navrhy : navrhy.filter((n) => !zadano || n.toLowerCase().includes(zadano))) : [];
+  // Skutečně VIDITELNÝ stav nabídky — ne jen surový příznak "otevreno" (ten se
+  // nastaví i při focusu pole, i když se kvůli filtru nic nezobrazí). Tlačítko se
+  // musí řídit podle tohohle, jinak by se mu mohlo stát, že "zavírá" neviditelnou
+  // nabídku (a druhým kliknutím ji tak nejde otevřít), nebo naopak nejde zavřít
+  // (protože furt jen násilím otevírá).
+  const jeViditelne = maNabidku && otevreno && filtrovane.length > 0;
 
   return (
     <div style={{ position: "relative" }}>
@@ -206,12 +212,15 @@ export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
       {maNabidku && (
         <button
           type="button"
-          title="Vybrat ze seznamu"
+          title={jeViditelne ? "Zavřít nabídku" : "Vybrat ze seznamu"}
           onMouseDown={(e) => {
             e.preventDefault(); // ať pole neztratí fokus a nabídka se hned nezavře
-            setProchazetVse(true);
-            setOtevreno(true); // vždycky NÁSILÍM otevřít — přepínání by mohlo tajně
-            // otevřenou (ale kvůli filtru neviditelnou) nabídku naopak zavřít
+            if (jeViditelne) {
+              setOtevreno(false); // nabídka je vidět -> tlačítko ji zavře
+            } else {
+              setProchazetVse(true); // nabídka není vidět (i kdyby byla "otevreno" v pozadí) -> ukázat celý seznam
+              setOtevreno(true);
+            }
           }}
           style={{
             position: "absolute",
@@ -231,7 +240,7 @@ export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
           <ChevronDown size={18} />
         </button>
       )}
-      {maNabidku && otevreno && filtrovane.length > 0 && (
+      {jeViditelne && (
         <div
           style={{
             position: "absolute",
