@@ -117,7 +117,7 @@ Záložka "Kalkulace" se v detailu zakázky **vůbec nezobrazí** uživatelům s
 
 ## Pracovníci (brigádníci) a nabídka jmen při zápisu práce
 
-V **Nastavení → Pracovníci** jde zadat jména lidí, kteří appku sami nepoužívají (brigádníci bez vlastního přihlášení) — appka je pak nabídne při zápisu práce (pole "Kdo pracoval") jako rozklikávací nabídku, podobně jako běžný výběr v telefonu. Pole se dá pořád vyplnit i jinak, než je v nabídce.
+V **Nastavení → Pracovníci** jde zadat jména lidí, kteří appku sami nepoužívají (brigádníci bez vlastního přihlášení) — appka je pak nabídne při zápisu práce (pole "Kdo pracoval") jako rozklikávací nabídku, podobně jako běžný výběr v telefonu. Nabídka navíc automaticky obsahuje i e-maily všech uživatelů appky (bez nutnosti je zadávat ručně) — appka je sama sloučí dohromady a odstraní duplicity. Pole se dá pořád vyplnit i jinak, než je v nabídce.
 
 Appka defaultně navíc předvyplní jméno podle toho, kým jsi do appky přihlášený (beze změny oproti dřívějšku) — nabídka pracovníků je jen doplněk, který jde kdykoliv **vypnout** zaškrtávátkem "Nabízet jména při zápisu práce", pokud o ni nestojíš.
 

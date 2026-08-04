@@ -73,6 +73,7 @@ export default function HomePage() {
   const [orders, setOrders] = useState([]);
   const [nastaveni, setNastaveni] = useState(DEFAULT_NASTAVENI);
   const [materialHistory, setMaterialHistory] = useState([]);
+  const [uzivateleEmaily, setUzivateleEmaily] = useState([]);
   const [organizace, setOrganizace] = useState([]);
 
   const [tab, setTab] = useState("prehled");
@@ -219,6 +220,19 @@ export default function HomePage() {
         if (res.ok && data.role) setMojeRole(data.role);
       } catch (e) {
         // ponechá se bezpečný výchozí stav "user"
+      }
+    })();
+
+    // Seznam přihlašovacích e-mailů — appka je nabídne při zápisu práce spolu s
+    // ručně zadanými brigádníky. Taky se zjišťuje samostatně, ať to nezablokuje nic jiného.
+    (async () => {
+      try {
+        const token = session.access_token;
+        const res = await fetch("/api/users/list", { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        if (res.ok && data.uzivatele) setUzivateleEmaily(data.uzivatele.map((u) => u.email).filter(Boolean));
+      } catch (e) {
+        // ponechá se prázdný seznam — appka pořád nabídne aspoň ručně zadané pracovníky
       }
     })();
   }, [session?.user?.id]);
@@ -1013,7 +1027,7 @@ export default function HomePage() {
 
       {showWorkModal && (
         <Modal title="Zapsat práci" onClose={() => setShowWorkModal(false)}>
-          <WorkLogFlow orders={orders} nastaveni={nastaveni} onSubmit={addWorkEntry} onClose={() => setShowWorkModal(false)} />
+          <WorkLogFlow orders={orders} nastaveni={nastaveni} uzivateleEmaily={uzivateleEmaily} onSubmit={addWorkEntry} onClose={() => setShowWorkModal(false)} />
         </Modal>
       )}
 
@@ -1128,6 +1142,7 @@ export default function HomePage() {
             onGeneratePdf={() => generatePdf(detailOrder)}
             generatingPdf={generatingPdfId === detailOrder?.id}
             onOpenOrder={(o) => setDetailOrder(o)}
+            uzivateleEmaily={uzivateleEmaily}
             onAddPodzakazka={(rodic) => {
               setNadrazenaZakazkaProNovou(rodic);
               setEditingOrder(null);

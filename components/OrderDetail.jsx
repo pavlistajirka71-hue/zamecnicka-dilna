@@ -10,6 +10,7 @@ import {
   computeNakladyZakazky,
   normalizovatKalkulaci,
   souhrnPodzakazek,
+  nabidkaPracovniku,
   fmtMoney,
   fmtDate,
   isOverdue,
@@ -42,6 +43,7 @@ export default function OrderDetail({
   onGeneratePdf,
   generatingPdf,
   onOpenOrder,
+  uzivateleEmaily,
   onAddPodzakazka,
   onClose,
 }) {
@@ -248,9 +250,9 @@ export default function OrderDetail({
                           <TextInputSNabidkou
                             value={praceForm.pracovnik}
                             onChange={(e) => setPraceForm((f) => ({ ...f, pracovnik: e.target.value }))}
-                            navrhy={nastaveni?.nabizetPracovniky ? nastaveni.pracovnici : []}
+                            navrhy={nabidkaPracovniku(nastaveni, uzivateleEmaily)}
                           />
-                          {nastaveni?.nabizetPracovniky && (!nastaveni.pracovnici || nastaveni.pracovnici.length === 0) && (
+                          {nastaveni?.nabizetPracovniky && nabidkaPracovniku(nastaveni, uzivateleEmaily).length === 0 && (
                             <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 4 }}>Zatím žádní pracovníci — přidej je v Nastavení.</div>
                           )}
                         </Field>
