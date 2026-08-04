@@ -185,25 +185,50 @@ export function AutoCompleteTextInput({ value, onChange, navrhy, ...rest }) {
 // běžné textové pole bez nabídky.
 export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
   const [otevreno, setOtevreno] = useState(false);
+  const [prochazetVse, setProchazetVse] = useState(false); // true = otevřeno tlačítkem, ignoruje se filtr podle napsaného textu
   const maNabidku = navrhy && navrhy.length > 0;
   const zadano = (value || "").toLowerCase();
-  const filtrovane = maNabidku ? navrhy.filter((n) => !zadano || n.toLowerCase().includes(zadano)) : [];
+  const filtrovane = maNabidku ? (prochazetVse ? navrhy : navrhy.filter((n) => !zadano || n.toLowerCase().includes(zadano))) : [];
 
   return (
     <div style={{ position: "relative" }}>
       <input
         {...rest}
         value={value}
-        onChange={onChange}
+        onChange={(e) => {
+          setProchazetVse(false);
+          onChange(e);
+        }}
         onFocus={() => setOtevreno(true)}
         onBlur={() => setTimeout(() => setOtevreno(false), 150)}
         style={{ ...inputStyle, paddingRight: maNabidku ? 36 : inputStyle.padding, ...(rest.style || {}) }}
       />
       {maNabidku && (
-        <ChevronDown
-          size={18}
-          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: C.inkSoft, pointerEvents: "none" }}
-        />
+        <button
+          type="button"
+          title="Vybrat ze seznamu"
+          onMouseDown={(e) => {
+            e.preventDefault(); // ať pole neztratí fokus a nabídka se hned nezavře
+            setProchazetVse(true);
+            setOtevreno((prev) => !prev);
+          }}
+          style={{
+            position: "absolute",
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: 36,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: C.inkSoft,
+          }}
+        >
+          <ChevronDown size={18} />
+        </button>
       )}
       {maNabidku && otevreno && filtrovane.length > 0 && (
         <div
@@ -228,6 +253,7 @@ export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
               type="button"
               onMouseDown={() => {
                 onChange({ target: { value: n } });
+                setProchazetVse(false);
                 setOtevreno(false);
               }}
               style={{
