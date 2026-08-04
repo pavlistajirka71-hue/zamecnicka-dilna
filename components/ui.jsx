@@ -207,7 +207,7 @@ export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
         }}
         onFocus={() => setOtevreno(true)}
         onBlur={() => setTimeout(() => setOtevreno(false), 150)}
-        style={{ ...inputStyle, paddingRight: maNabidku ? 36 : inputStyle.padding, ...(rest.style || {}) }}
+        style={{ ...inputStyle, position: "relative", zIndex: 21, paddingRight: maNabidku ? 36 : inputStyle.padding, ...(rest.style || {}) }}
       />
       {maNabidku && (
         <button
@@ -228,6 +228,7 @@ export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
             top: 0,
             bottom: 0,
             width: 36,
+            zIndex: 21,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -241,38 +242,44 @@ export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
         </button>
       )}
       {jeViditelne && (
-        <div
-          style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            right: 0,
-            zIndex: 20,
-            background: C.surface,
-            border: `1px solid ${C.line}`,
-            borderRadius: 6,
-            marginTop: 2,
-            boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
-            maxHeight: 200,
-            overflowY: "auto",
-          }}
-        >
-          {filtrovane.map((n, i) => (
-            <button
-              key={n}
-              type="button"
-              onMouseDown={() => {
-                onChange({ target: { value: n } });
-                setProchazetVse(false);
-                setOtevreno(false);
-              }}
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                padding: "9px 12px",
-                background: "none",
-                border: "none",
+        <>
+          {/* Neviditelná vrstva přes celou obrazovku — klepnutí kamkoliv mimo
+              nabídku ji spolehlivě zavře, nezávisí to na chování focus/blur,
+              které se na různých telefonech chovalo nespolehlivě. */}
+          <div onMouseDown={() => setOtevreno(false)} style={{ position: "fixed", inset: 0, zIndex: 19 }} />
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              zIndex: 20,
+              background: C.surface,
+              border: `1px solid ${C.line}`,
+              borderRadius: 6,
+              marginTop: 2,
+              boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
+              maxHeight: 200,
+              overflowY: "auto",
+            }}
+          >
+            {filtrovane.map((n, i) => (
+              <button
+                key={n}
+                type="button"
+                onMouseDown={(e) => {
+                  e.stopPropagation(); // ať to nezachytí i backdrop pod tím a nezavře to dřív, než appka stihne vybrat
+                  onChange({ target: { value: n } });
+                  setProchazetVse(false);
+                  setOtevreno(false);
+                }}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "9px 12px",
+                  background: "none",
+                  border: "none",
                 borderTop: i > 0 ? `1px solid ${C.line}` : "none",
                 cursor: "pointer",
                 fontSize: 15,
@@ -282,7 +289,8 @@ export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
               {n}
             </button>
           ))}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
