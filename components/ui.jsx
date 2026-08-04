@@ -210,7 +210,8 @@ export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
           onMouseDown={(e) => {
             e.preventDefault(); // ať pole neztratí fokus a nabídka se hned nezavře
             setProchazetVse(true);
-            setOtevreno((prev) => !prev);
+            setOtevreno(true); // vždycky NÁSILÍM otevřít — přepínání by mohlo tajně
+            // otevřenou (ale kvůli filtru neviditelnou) nabídku naopak zavřít
           }}
           style={{
             position: "absolute",
