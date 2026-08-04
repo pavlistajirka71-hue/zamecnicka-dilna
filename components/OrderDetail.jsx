@@ -1,13 +1,24 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail } from "lucide-react";
+import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail, ArrowUpRight, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { C, FONTS, STATUSES, computeKalkulaceCelkem, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney, fmtDate, isOverdue } from "@/lib/theme";
+import {
+  C,
+  FONTS,
+  STATUSES,
+  computeKalkulaceCelkem,
+  computeNakladyZakazky,
+  normalizovatKalkulaci,
+  souhrnPodzakazek,
+  fmtMoney,
+  fmtDate,
+  isOverdue,
+} from "@/lib/theme";
 import { Button, SectionLabel, StampBadge, Modal, Field, TextInput, AutoCompleteTextInput, Select, iconBtnStyle } from "./ui";
 import ReceiptThumbnail from "./ReceiptThumbnail";
 import PhotoThumbnail from "./PhotoThumbnail";
 
-const ZALOZKY = [
+const ZAKLADNI_ZALOZKY = [
   { key: "prace", label: "Práce" },
   { key: "material", label: "Materiál" },
   { key: "dokumenty", label: "Dokumenty" },
@@ -15,8 +26,31 @@ const ZALOZKY = [
   { key: "kalkulace", label: "Kalkulace" },
 ];
 
-export default function OrderDetail({ order, nastaveni, mojeRole, onSave, onDelete, onEdit, onOpenKalkulace, onOpenPoptavka, onOpenProtokol, onOpenFotka, onOpenNaklady, onEditPrace, onGeneratePdf, generatingPdf, onClose }) {
+export default function OrderDetail({
+  order,
+  orders,
+  nastaveni,
+  mojeRole,
+  onSave,
+  onDelete,
+  onEdit,
+  onOpenKalkulace,
+  onOpenPoptavka,
+  onOpenProtokol,
+  onOpenFotka,
+  onOpenNaklady,
+  onEditPrace,
+  onGeneratePdf,
+  generatingPdf,
+  onOpenOrder,
+  onAddPodzakazka,
+  onClose,
+}) {
   const [viewPhoto, setViewPhoto] = useState(null);
+  const jeHlavniZakazka = !order.nadrazenaZakazkaId;
+  const podzakazky = useMemo(() => (orders || []).filter((o) => o.nadrazenaZakazkaId === order.id), [orders, order.id]);
+  const nadrazenaZakazka = useMemo(() => (orders || []).find((o) => o.id === order.nadrazenaZakazkaId), [orders, order.nadrazenaZakazkaId]);
+  const ZALOZKY = jeHlavniZakazka ? [...ZAKLADNI_ZALOZKY, { key: "podzakazky", label: `Podzakázky${podzakazky.length ? ` (${podzakazky.length})` : ""}` }] : ZAKLADNI_ZALOZKY;
   const [tab, setTab] = useState("prace");
   const [editujiciPrace, setEditujiciPrace] = useState(null);
   const [praceForm, setPraceForm] = useState({ datum: "", typ: "dilna", hodiny: "", pracovnik: "", popis: "" });
@@ -34,6 +68,29 @@ export default function OrderDetail({ order, nastaveni, mojeRole, onSave, onDele
 
   return (
     <div>
+      {nadrazenaZakazka && (
+        <button
+          onClick={() => onOpenOrder(nadrazenaZakazka)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            background: C.paper,
+            border: `1px solid ${C.line}`,
+            borderRadius: 6,
+            padding: "8px 12px",
+            marginBottom: 14,
+            fontSize: 13,
+            color: C.steel,
+            cursor: "pointer",
+            width: "100%",
+            textAlign: "left",
+          }}
+        >
+          <ArrowUpRight size={15} /> Patří pod hlavní zakázku <strong>{nadrazenaZakazka.cislo}</strong> — {nadrazenaZakazka.zakaznik}
+        </button>
+      )}
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
         <div>
           <div style={{ fontSize: 20, fontWeight: 600 }}>{order.zakaznik}</div>
@@ -481,6 +538,78 @@ export default function OrderDetail({ order, nastaveni, mojeRole, onSave, onDele
             ) : (
               <div style={{ fontSize: 12, color: C.inkSoft, marginTop: 8 }}>Úpravu kalkulace smí jen správce.</div>
             )}
+          </div>
+        )}
+
+        {tab === "podzakazky" && (
+          <div>
+            <SectionLabel>Podzakázky</SectionLabel>
+            {podzakazky.length > 0 &&
+              (() => {
+                const souhrn = souhrnPodzakazek(podzakazky);
+                return (
+                  <div style={{ background: C.paper, borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
+                      <span>Celková cena ({souhrn.pocet}×)</span>
+                      <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(souhrn.cenaCelkem)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
+                      <span>Odpracováno</span>
+                      <span style={{ fontFamily: FONTS.mono }}>
+                        dílna {souhrn.dilnaHodiny} h · montáž {souhrn.montazHodiny} h
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
+                      <span>Podle stavu</span>
+                      <span style={{ fontFamily: FONTS.mono, fontSize: 12 }}>
+                        {STATUSES.filter((s) => souhrn.podleStavu[s.key]).map((s) => `${s.label} ${souhrn.podleStavu[s.key]}`).join(" · ")}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+            {podzakazky.length === 0 ? (
+              <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 10 }}>Zatím žádné podzakázky.</div>
+            ) : (
+              <div style={{ marginBottom: 10 }}>
+                {podzakazky.map((p) => {
+                  const s = STATUSES.find((x) => x.key === p.stav);
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => onOpenOrder(p)}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        width: "100%",
+                        background: C.surface,
+                        border: `1px solid ${C.line}`,
+                        borderRadius: 8,
+                        padding: "10px 12px",
+                        marginBottom: 6,
+                        cursor: "pointer",
+                        textAlign: "left",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontFamily: FONTS.mono, fontSize: 11, color: C.inkSoft }}>{p.cislo}</div>
+                        <div style={{ fontSize: 13 }}>{p.popis || "—"}</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontFamily: FONTS.mono, fontSize: 13 }}>{fmtMoney(p.cena)}</div>
+                        <div style={{ fontSize: 11, fontFamily: FONTS.display, textTransform: "uppercase", color: s ? s.color : C.inkSoft }}>{s ? s.label : p.stav}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <Button variant="ghost" onClick={() => onAddPodzakazka(order)}>
+              <Plus size={14} /> Přidat podzakázku
+            </Button>
           </div>
         )}
       </div>

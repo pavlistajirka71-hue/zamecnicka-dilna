@@ -82,6 +82,7 @@ export default function HomePage() {
 
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
+  const [nadrazenaZakazkaProNovou, setNadrazenaZakazkaProNovou] = useState(null);
   const [detailOrder, setDetailOrder] = useState(null);
   const [showWorkModal, setShowWorkModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -882,6 +883,7 @@ export default function HomePage() {
                 variant="rust"
                 onClick={() => {
                   setEditingOrder(null);
+                  setNadrazenaZakazkaProNovou(null);
                   setShowOrderForm(true);
                 }}
               >
@@ -952,6 +954,9 @@ export default function HomePage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
                         <span style={{ fontFamily: FONTS.mono, fontSize: 13, color: C.inkSoft }}>{o.cislo}</span>
+                        {o.nadrazenaZakazkaId && (
+                          <span style={{ fontSize: 11, color: C.steel, fontFamily: FONTS.display, textTransform: "uppercase" }}>↳ podzakázka</span>
+                        )}
                         <StampBadge status={o.stav} small />
                         {isOverdue(o) && <span style={{ fontSize: 11, color: C.rust, fontFamily: FONTS.display }}>PO TERMÍNU</span>}
                       </div>
@@ -979,7 +984,18 @@ export default function HomePage() {
 
       {showOrderForm && (
         <Modal title={editingOrder ? "Upravit zakázku" : "Nová zakázka"} onClose={() => setShowOrderForm(false)}>
-          <OrderForm initial={editingOrder} orders={orders} organizace={organizace} onSaveOrganizace={saveOrganizace} onSave={saveOrder} onClose={() => setShowOrderForm(false)} />
+          <OrderForm
+            initial={editingOrder}
+            orders={orders}
+            organizace={organizace}
+            nadrazenaZakazka={nadrazenaZakazkaProNovou}
+            onSaveOrganizace={saveOrganizace}
+            onSave={saveOrder}
+            onClose={() => {
+              setShowOrderForm(false);
+              setNadrazenaZakazkaProNovou(null);
+            }}
+          />
         </Modal>
       )}
 
@@ -1092,12 +1108,14 @@ export default function HomePage() {
         <Modal title={`Zakázka ${detailOrder.cislo}`} onClose={() => setDetailOrder(null)} width={600}>
           <OrderDetail
             order={detailOrder}
+            orders={orders}
             nastaveni={nastaveni}
             mojeRole={mojeRole}
             onSave={saveOrder}
             onDelete={deleteOrder}
             onEdit={() => {
               setEditingOrder(detailOrder);
+              setNadrazenaZakazkaProNovou(null);
               setShowOrderForm(true);
               setDetailOrder(null);
             }}
@@ -1109,6 +1127,13 @@ export default function HomePage() {
             onEditPrace={editPrace}
             onGeneratePdf={() => generatePdf(detailOrder)}
             generatingPdf={generatingPdfId === detailOrder?.id}
+            onOpenOrder={(o) => setDetailOrder(o)}
+            onAddPodzakazka={(rodic) => {
+              setNadrazenaZakazkaProNovou(rodic);
+              setEditingOrder(null);
+              setDetailOrder(null);
+              setShowOrderForm(true);
+            }}
             onClose={() => setDetailOrder(null)}
           />
         </Modal>

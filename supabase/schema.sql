@@ -24,6 +24,7 @@ create table if not exists orders (
   ico text,
   telefon text,
   email text,
+  "nadrazenaZakazkaId" text,
   protokol jsonb,
   fotky jsonb not null default '[]'::jsonb,
   naklady jsonb not null default '[]'::jsonb,
@@ -37,6 +38,7 @@ alter table orders add column if not exists "zakaznikIdentifikace" text;
 alter table orders add column if not exists ico text;
 alter table orders add column if not exists telefon text;
 alter table orders add column if not exists email text;
+alter table orders add column if not exists "nadrazenaZakazkaId" text;
 alter table orders add column if not exists protokol jsonb;
 alter table orders add column if not exists fotky jsonb not null default '[]'::jsonb;
 alter table orders add column if not exists naklady jsonb not null default '[]'::jsonb;

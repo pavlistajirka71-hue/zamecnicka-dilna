@@ -111,6 +111,15 @@ Fotka účtenky (pokud je přiložená) se zobrazí přímo u daného nákladu v
 
 **Starší, dřív samostatně vyfocené účtenky** se dají jedním tlačítkem přesunout do stejného systému — **Nastavení → Přesunout staré účtenky do nákladů**. Je to bezpečné spustit i vícekrát, appka přesouvá jen to, co ještě nebylo přesunuté.
 
+## Podzakázky
+
+Velký projekt jde rozdělit na víc menších, samostatně sledovaných zakázek. V detailu zakázky přibyla záložka **"Podzakázky"** (jen u zakázek, které samy nejsou podzakázkou):
+
+- Tlačítko **"Přidat podzakázku"** — appka předvyplní zákazníka po hlavní zakázce a přidělí poddíslo (`Z-2026-0008-1`, `-2`, ...)
+- Podzakázka je jinak úplně normální zakázka — vlastní stav, kalkulace, práce, náklady, protokol, objeví se i v běžném seznamu zakázek (označená "↳ podzakázka"), kalendáři i výkazu práce
+- Na hlavní zakázce appka ukáže **souhrn** přes všechny podzakázky (celková cena, odpracované hodiny, kolik je hotovo/rozpracováno)
+- V detailu podzakázky je nahoře odkaz zpátky na hlavní zakázku
+
 ## Role — Správce (SA) a Uživatel
 
 Appka rozlišuje dvě role:

@@ -1,20 +1,20 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { C, FONTS, STATUSES, uid, todayISO, nextOrderNumber } from "@/lib/theme";
+import { C, FONTS, STATUSES, uid, todayISO, nextOrderNumber, dalsiCisloPodzakazky } from "@/lib/theme";
 import { supabase } from "@/lib/supabaseClient";
 import { Field, TextInput, TextArea, Select, Button, SectionLabel } from "./ui";
 
-export default function OrderForm({ initial, orders, organizace, onSaveOrganizace, onSave, onClose }) {
+export default function OrderForm({ initial, orders, organizace, nadrazenaZakazka, onSaveOrganizace, onSave, onClose }) {
   const [f, setF] = useState(
     initial || {
       id: uid(),
       cislo: "", // přidělí se bezpečně na serveru až při uložení, ne tady
-      zakaznik: "",
-      zakaznikIdentifikace: "",
-      ico: "",
-      telefon: "",
-      email: "",
+      zakaznik: nadrazenaZakazka?.zakaznik || "",
+      zakaznikIdentifikace: nadrazenaZakazka?.zakaznikIdentifikace || "",
+      ico: nadrazenaZakazka?.ico || "",
+      telefon: nadrazenaZakazka?.telefon || "",
+      email: nadrazenaZakazka?.email || "",
       popis: "",
       stav: "nova",
       cena: "",
@@ -26,6 +26,7 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
       uctenky: [],
       planCasDilna: "",
       planCasMontaz: "",
+      nadrazenaZakazkaId: nadrazenaZakazka?.id || null,
     }
   );
   const [saving, setSaving] = useState(false);
@@ -38,8 +39,13 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
 
   // Číslo zakázky se u nové zakázky získává atomicky ze serveru (databázová funkce),
   // ne spočítáním "nejvyšší dosavadní +1" v prohlížeči — to by při současném založení
-  // dvou zakázek různými lidmi mohlo dvěma zakázkám přidělit stejné číslo.
+  // dvou zakázek různými lidmi mohlo dvěma zakázkám přidělit stejné číslo. U podzakázky
+  // se místo toho odvozuje poddíslo hlavní zakázky (riziko souběhu je tu výrazně nižší).
   const ziskatCisloZeSeru = async () => {
+    if (nadrazenaZakazka) {
+      const existujiciPodzakazky = orders.filter((o) => o.nadrazenaZakazkaId === nadrazenaZakazka.id);
+      return dalsiCisloPodzakazky(nadrazenaZakazka.cislo, existujiciPodzakazky);
+    }
     const rok = new Date().getFullYear();
     try {
       const { data, error } = await supabase.rpc("ziskat_dalsi_cislo_zakazky", { p_rok: rok });
@@ -99,6 +105,11 @@ export default function OrderForm({ initial, orders, organizace, onSaveOrganizac
 
   return (
     <div>
+      {nadrazenaZakazka && (
+        <div style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 6, padding: "8px 12px", marginBottom: 14, fontSize: 13 }}>
+          Podzakázka k <strong>{nadrazenaZakazka.cislo}</strong> — {nadrazenaZakazka.zakaznik}
+        </div>
+      )}
       <div className="field-row">
         <Field label="Číslo zakázky">
           <TextInput value={f.cislo || "Přidělí se při uložení"} readOnly style={{ fontFamily: FONTS.mono, background: C.paper, color: f.cislo ? C.ink : C.inkSoft }} />
