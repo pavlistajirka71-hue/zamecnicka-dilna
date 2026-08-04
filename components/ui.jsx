@@ -1,5 +1,5 @@
 "use client";
-import { useId, useRef } from "react";
+import { useRef, useState } from "react";
 import { X } from "lucide-react";
 import { C, FONTS, statusInfo } from "@/lib/theme";
 
@@ -178,20 +178,71 @@ export function AutoCompleteTextInput({ value, onChange, navrhy, ...rest }) {
 // zobrazí jako obyčejná nabídka k výběru), ale pořád jde napsat cokoliv jiného,
 // není to uzamčené jen na položky ze seznamu. Když je "navrhy" prázdné, chová se
 // jako běžné textové pole bez nabídky.
+// Textové pole s "nabídkou" — VLASTNÍ rozbalovací seznam postavený v Reactu (ne
+// nativní <datalist>, ten má na iOS Safari dlouhodobě nespolehlivou podporu —
+// appka na to narazila naživo). Pořád jde napsat cokoliv jiného, není to
+// uzamčené jen na položky ze seznamu. Když je "navrhy" prázdné, chová se jako
+// běžné textové pole bez nabídky.
 export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
-  const id = useId();
+  const [otevreno, setOtevreno] = useState(false);
   const maNabidku = navrhy && navrhy.length > 0;
+  const zadano = (value || "").toLowerCase();
+  const filtrovane = maNabidku ? navrhy.filter((n) => !zadano || n.toLowerCase().includes(zadano)) : [];
+
   return (
-    <>
-      <input {...rest} value={value} onChange={onChange} list={maNabidku ? id : undefined} style={{ ...inputStyle, ...(rest.style || {}) }} />
-      {maNabidku && (
-        <datalist id={id}>
-          {navrhy.map((n) => (
-            <option key={n} value={n} />
+    <div style={{ position: "relative" }}>
+      <input
+        {...rest}
+        value={value}
+        onChange={onChange}
+        onFocus={() => setOtevreno(true)}
+        onBlur={() => setTimeout(() => setOtevreno(false), 150)}
+        style={{ ...inputStyle, ...(rest.style || {}) }}
+      />
+      {maNabidku && otevreno && filtrovane.length > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            background: C.surface,
+            border: `1px solid ${C.line}`,
+            borderRadius: 6,
+            marginTop: 2,
+            boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
+            maxHeight: 200,
+            overflowY: "auto",
+          }}
+        >
+          {filtrovane.map((n, i) => (
+            <button
+              key={n}
+              type="button"
+              onMouseDown={() => {
+                onChange({ target: { value: n } });
+                setOtevreno(false);
+              }}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                padding: "9px 12px",
+                background: "none",
+                border: "none",
+                borderTop: i > 0 ? `1px solid ${C.line}` : "none",
+                cursor: "pointer",
+                fontSize: 15,
+                color: C.ink,
+              }}
+            >
+              {n}
+            </button>
           ))}
-        </datalist>
+        </div>
       )}
-    </>
+    </div>
   );
 }
 
