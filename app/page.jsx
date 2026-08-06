@@ -46,6 +46,7 @@ import OrderForm from "@/components/OrderForm";
 import OrderPicker from "@/components/OrderPicker";
 import WorkLogFlow from "@/components/WorkLogFlow";
 import ZapsatNakladFlow from "@/components/ZapsatNakladFlow";
+import ImportFakturFlow from "@/components/ImportFakturFlow";
 import KalkulaceForm from "@/components/KalkulaceForm";
 import Kalendar from "@/components/Kalendar";
 import VykazPrace from "@/components/VykazPrace";
@@ -84,9 +85,11 @@ export default function HomePage() {
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [nadrazenaZakazkaProNovou, setNadrazenaZakazkaProNovou] = useState(null);
+  const [duplikatZakazky, setDuplikatZakazky] = useState(null);
   const [detailOrder, setDetailOrder] = useState(null);
   const [showWorkModal, setShowWorkModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [showImportFaktur, setShowImportFaktur] = useState(false);
   const [showDetailPicker, setShowDetailPicker] = useState(false);
   const [showNastaveni, setShowNastaveni] = useState(false);
   const [showMaterialy, setShowMaterialy] = useState(false);
@@ -417,6 +420,36 @@ export default function HomePage() {
     } catch (error) {
       console.error(error);
       setGlobalError("Náklad se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
+      throw error;
+    }
+  };
+
+  // Import faktur přijatých (CSV z ABRA Flexi) — na rozdíl od zapsatNaklady se tu
+  // MŮŽE stát, že víc faktur patří ke stejné zakázce (dvě faktury na stejné číslo).
+  // Appka proto zápisy nejdřív SESKUPÍ podle zakázky, ať dvě souběžné aktualizace
+  // téhož řádku jedna druhou nepřepíší (klasické riziko souběhu).
+  const importovatFaktury = async (polozky) => {
+    try {
+      const podleZakazky = new Map();
+      polozky.forEach(({ order, naklad }) => {
+        if (!podleZakazky.has(order.id)) podleZakazky.set(order.id, { order, naklady: [] });
+        podleZakazky.get(order.id).naklady.push(naklad);
+      });
+      const vysledky = await Promise.all(
+        Array.from(podleZakazky.values()).map(({ order, naklady }) => {
+          const noveNaklady = [...naklady, ...(order.naklady || [])];
+          return supabase.from("orders").update({ naklady: noveNaklady }).eq("id", order.id).select().single();
+        })
+      );
+      const chyba = vysledky.find((v) => v.error);
+      if (chyba) throw chyba.error;
+      setOrders((prev) => {
+        const mapa = new Map(vysledky.map((v) => [v.data.id, v.data]));
+        return prev.map((o) => mapa.get(o.id) || o);
+      });
+    } catch (error) {
+      console.error(error);
+      setGlobalError("Import faktur se nepovedl. Zkontroluj připojení a zkus to znovu.");
       throw error;
     }
   };
@@ -898,6 +931,7 @@ export default function HomePage() {
                 onClick={() => {
                   setEditingOrder(null);
                   setNadrazenaZakazkaProNovou(null);
+                  setDuplikatZakazky(null);
                   setShowOrderForm(true);
                 }}
               >
@@ -997,17 +1031,19 @@ export default function HomePage() {
       </div>
 
       {showOrderForm && (
-        <Modal title={editingOrder ? "Upravit zakázku" : "Nová zakázka"} onClose={() => setShowOrderForm(false)}>
+        <Modal title={editingOrder ? "Upravit zakázku" : duplikatZakazky ? "Duplikovat zakázku" : "Nová zakázka"} onClose={() => setShowOrderForm(false)}>
           <OrderForm
             initial={editingOrder}
             orders={orders}
             organizace={organizace}
             nadrazenaZakazka={nadrazenaZakazkaProNovou}
+            duplikatZakazky={duplikatZakazky}
             onSaveOrganizace={saveOrganizace}
             onSave={saveOrder}
             onClose={() => {
               setShowOrderForm(false);
               setNadrazenaZakazkaProNovou(null);
+              setDuplikatZakazky(null);
             }}
           />
         </Modal>
@@ -1037,9 +1073,22 @@ export default function HomePage() {
         </Modal>
       )}
 
+      {showImportFaktur && (
+        <Modal title="Import faktur přijatých (Flexi)" onClose={() => setShowImportFaktur(false)}>
+          <ImportFakturFlow orders={orders} onImportovat={importovatFaktury} onClose={() => setShowImportFaktur(false)} />
+        </Modal>
+      )}
+
       {showNastaveni && (
         <Modal title="Nastavení" onClose={() => setShowNastaveni(false)} width={460}>
-          <NastaveniForm initial={nastaveni} uzivatele={uzivatele} onSave={saveNastaveni} onMigrovatUctenky={migrovatUctenky} onClose={() => setShowNastaveni(false)} />
+          <NastaveniForm
+            initial={nastaveni}
+            uzivatele={uzivatele}
+            onSave={saveNastaveni}
+            onMigrovatUctenky={migrovatUctenky}
+            onOpenImportFaktur={() => setShowImportFaktur(true)}
+            onClose={() => setShowNastaveni(false)}
+          />
         </Modal>
       )}
 
@@ -1130,6 +1179,14 @@ export default function HomePage() {
             onEdit={() => {
               setEditingOrder(detailOrder);
               setNadrazenaZakazkaProNovou(null);
+              setDuplikatZakazky(null);
+              setShowOrderForm(true);
+              setDetailOrder(null);
+            }}
+            onDuplikovat={(order) => {
+              setEditingOrder(null);
+              setNadrazenaZakazkaProNovou(null);
+              setDuplikatZakazky(order);
               setShowOrderForm(true);
               setDetailOrder(null);
             }}
@@ -1146,6 +1203,7 @@ export default function HomePage() {
             onAddPodzakazka={(rodic) => {
               setNadrazenaZakazkaProNovou(rodic);
               setEditingOrder(null);
+              setDuplikatZakazky(null);
               setDetailOrder(null);
               setShowOrderForm(true);
             }}

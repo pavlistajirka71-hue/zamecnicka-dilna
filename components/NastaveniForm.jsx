@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
-import { Users, ArrowRightLeft, Trash2, Plus } from "lucide-react";
+import { Users, ArrowRightLeft, Trash2, Plus, Upload } from "lucide-react";
 import { Field, TextInput, Select, Button, SectionLabel, Modal } from "./ui";
 import UzivateleForm from "./UzivateleForm";
 
-export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUctenky, onClose }) {
+export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUctenky, onOpenImportFaktur, onClose }) {
   const [f, setF] = useState(initial);
   const [showUzivatele, setShowUzivatele] = useState(false);
   const [migruji, setMigruji] = useState(false);
@@ -157,6 +157,17 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
         />
         <Button variant="ghost" type="button" onClick={pridatPracovnika} disabled={!novePracovnikJmeno.trim()}>
           <Plus size={14} /> Přidat
+        </Button>
+      </div>
+
+      <SectionLabel>Faktury přijaté (ABRA Flexi)</SectionLabel>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: "#5B5A52", marginBottom: 8 }}>
+          Nahraj CSV export faktur přijatých z Flexi — appka je podle čísla zakázky (kdekoliv v řádku, třeba ve variabilním symbolu) sama přiřadí
+          do nákladů.
+        </div>
+        <Button variant="ghost" type="button" onClick={onOpenImportFaktur}>
+          <Upload size={14} /> Importovat faktury z Flexi
         </Button>
       </div>
 

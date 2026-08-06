@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail, ArrowUpRight, Plus } from "lucide-react";
+import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail, ArrowUpRight, Plus, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
   C,
@@ -45,6 +45,7 @@ export default function OrderDetail({
   onOpenOrder,
   uzivatele,
   onAddPodzakazka,
+  onDuplikovat,
   onClose,
 }) {
   const [viewPhoto, setViewPhoto] = useState(null);
@@ -669,9 +670,14 @@ export default function OrderDetail({
         ) : (
           <span />
         )}
-        <Button variant="primary" onClick={onEdit}>
-          <Pencil size={14} /> Upravit
-        </Button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button variant="ghost" onClick={() => onDuplikovat(order)}>
+            <Copy size={14} /> Duplikovat
+          </Button>
+          <Button variant="primary" onClick={onEdit}>
+            <Pencil size={14} /> Upravit
+          </Button>
+        </div>
       </div>
 
       {viewPhoto && (

@@ -121,6 +121,22 @@ V **Nastavení → Pracovníci** jde zadat jména lidí, kteří appku sami nepo
 
 Appka defaultně navíc předvyplní jméno podle toho, kým jsi do appky přihlášený (beze změny oproti dřívějšku) — nabídka pracovníků je jen doplněk, který jde kdykoliv **vypnout** zaškrtávátkem "Nabízet jména při zápisu práce", pokud o ni nestojíš.
 
+## Duplikace zakázky
+
+V detailu zakázky je tlačítko **"Duplikovat"** — vytvoří novou zakázku se zákazníkem, popisem a celou kalkulací (materiál, hodiny práce), ale bez historie (stav, termín, poznámka, práce, náklady, fotky, protokol se nepřenáší — je to čistý start). Hodí se na opakovaně podobné zakázky.
+
+## Import faktur přijatých z ABRA Flexi
+
+V appce ABRA Flexi si exportuj seznam faktur přijatých (**položkově**, ne jen hlavičky) do CSV nebo XLSX — appka umí přečíst oba formáty. V appce **Nastavení → Importovat faktury z Flexi** ten soubor nahraj.
+
+**Jak appka pozná, ke které zakázce faktura patří:** ve Flexi má faktura (nebo její položka) svoje vlastní pole **"Zakázka"** — appka ho hledá jako první. Aby appka věděla, o kterou zakázku appky jde, potřebuje ve Flexi nastavit **kód zakázky ve tvaru čísla appky**, např. `Z-2026-0008` (nebo přímo `Z-2026-0008 - Gloser`, appka si to číslo v textu sama najde). Bez týhle jednorázové úpravy ve Flexi appka nic nenajde — jen appce potvrdí, že žádnou zakázku nespárovala, nic nespadne.
+
+Protože appka zpracovává **každý řádek souboru samostatně** (ne celou fakturu najednou), faktura s položkami na víc zakázek se automaticky správně rozhodí — žádné ruční dělení není potřeba.
+
+**Cena:** appka pozná cenu "za jednotku" (typicky sloupec "Cena za MJ") a sama ji vynásobí množstvím, ať do nákladů nezapíše jen cenu za 1 kus. Appka se snaží najít částku bez DPH — pokud si tím není jistá, v náhledu před importem to výrazně (oranžově) upozorní, ať to zkontroluješ ručně.
+
+Appka před importem vždycky ukáže náhled — co se spárovalo a kam, a co se nepovedlo spárovat. Nespárované je potřeba zapsat ručně přes "Zapsat náklady/účtenky".
+
 ## Podzakázky
 
 Velký projekt jde rozdělit na víc menších, samostatně sledovaných zakázek. V detailu zakázky přibyla záložka **"Podzakázky"** (jen u zakázek, které samy nejsou podzakázkou):

@@ -5,9 +5,49 @@ import { C, FONTS, STATUSES, uid, todayISO, nextOrderNumber, dalsiCisloPodzakazk
 import { supabase } from "@/lib/supabaseClient";
 import { Field, TextInput, TextArea, Select, Button, SectionLabel } from "./ui";
 
-export default function OrderForm({ initial, orders, organizace, nadrazenaZakazka, onSaveOrganizace, onSave, onClose }) {
-  const [f, setF] = useState(
-    initial || {
+export default function OrderForm({ initial, orders, organizace, nadrazenaZakazka, duplikatZakazky, onSaveOrganizace, onSave, onClose }) {
+  const [f, setF] = useState(() => {
+    if (initial) return initial;
+    if (duplikatZakazky) {
+      // Duplikace: přenese se zákazník, popis a kalkulace (s novými id, ať jsou
+      // nezávislé na originálu) — ale ne stav, termín, práce, náklady, fotky,
+      // protokol ani archivy. Ty patří ke KONKRÉTNÍMU průběhu té staré zakázky,
+      // ne k šabloně, kterou appka duplikuje.
+      const d = duplikatZakazky;
+      const novaKalkulace = (d.kalkulace || []).map((p) => ({
+        ...p,
+        id: uid(),
+        materialy: (p.materialy || []).map((m) => ({ ...m, id: uid() })),
+      }));
+      const planCasDilna = novaKalkulace.reduce((s, p) => s + (Number(p.praceDilnaHodiny) || 0) * Math.max(1, Number(p.pocetKs) || 1), 0);
+      const planCasMontaz = novaKalkulace.reduce((s, p) => s + (Number(p.praceMontazHodiny) || 0) * Math.max(1, Number(p.pocetKs) || 1), 0);
+      return {
+        id: uid(),
+        cislo: "",
+        zakaznik: d.zakaznik || "",
+        zakaznikIdentifikace: d.zakaznikIdentifikace || "",
+        ico: d.ico || "",
+        telefon: d.telefon || "",
+        email: d.email || "",
+        popis: d.popis || "",
+        stav: "nova",
+        cena: "",
+        termin: "",
+        vytvoreno: todayISO(),
+        poznamka: "",
+        cisloFaktury: "",
+        prace: [],
+        uctenky: [],
+        naklady: [],
+        fotky: [],
+        archivy: [],
+        kalkulace: novaKalkulace,
+        planCasDilna: planCasDilna || "",
+        planCasMontaz: planCasMontaz || "",
+        nadrazenaZakazkaId: null,
+      };
+    }
+    return {
       id: uid(),
       cislo: "", // přidělí se bezpečně na serveru až při uložení, ne tady
       zakaznik: nadrazenaZakazka?.zakaznik || "",
@@ -27,8 +67,8 @@ export default function OrderForm({ initial, orders, organizace, nadrazenaZakazk
       planCasDilna: "",
       planCasMontaz: "",
       nadrazenaZakazkaId: nadrazenaZakazka?.id || null,
-    }
-  );
+    };
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [hledamAres, setHledamAres] = useState(false);
@@ -108,6 +148,11 @@ export default function OrderForm({ initial, orders, organizace, nadrazenaZakazk
       {nadrazenaZakazka && (
         <div style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 6, padding: "8px 12px", marginBottom: 14, fontSize: 13 }}>
           Podzakázka k <strong>{nadrazenaZakazka.cislo}</strong> — {nadrazenaZakazka.zakaznik}
+        </div>
+      )}
+      {duplikatZakazky && (
+        <div style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 6, padding: "8px 12px", marginBottom: 14, fontSize: 13 }}>
+          Kopie zakázky <strong>{duplikatZakazky.cislo}</strong> — kalkulace se přenesla, uprav zákazníka a popis podle potřeby.
         </div>
       )}
       <div className="field-row">
