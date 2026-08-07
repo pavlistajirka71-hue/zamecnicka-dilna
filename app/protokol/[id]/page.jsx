@@ -116,7 +116,7 @@ function PublicProtokolPageInner() {
             ) : (
               <div style={{ marginTop: 16, borderTop: `2px dashed ${C.line}`, paddingTop: 16 }}>
                 <div style={{ fontFamily: FONTS.display, textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 13, color: C.inkSoft, marginBottom: 8 }}>
-                  Podpis objednatele
+                  Podpis přebírajícího{protokol.jmenoPrebirajiciho ? ` — ${protokol.jmenoPrebirajiciho}` : ""}
                 </div>
                 <SignaturePad onChange={setSignatureBlob} />
                 {submitError && <div style={{ color: C.rust, fontSize: 13, marginTop: 8 }}>{submitError}</div>}

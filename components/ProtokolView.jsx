@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Copy, Check, Printer, CheckCircle2 } from "lucide-react";
+import { Copy, Check, Printer, CheckCircle2, RefreshCw } from "lucide-react";
 import { nahratFotku } from "@/lib/uploadClient";
-import { C, FONTS, novyProtokol, fmtDate } from "@/lib/theme";
+import { C, FONTS, novyProtokol, fmtDate, todayISO } from "@/lib/theme";
 import { Field, TextInput, TextArea, Button, SectionLabel } from "./ui";
 import ProtokolContent from "./ProtokolContent";
 import SignaturePad from "./SignaturePad";
@@ -34,6 +34,39 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
   }, [order.protokol?.stav]);
 
   const set = (k, v) => setProtokol((prev) => ({ ...prev, [k]: v }));
+
+  // Adresa/IČO/DIČ zhotovitele se do protokolu "vyfotí" v okamžiku, kdy vzniká —
+  // pokud se pak v Nastavení opraví (třeba zjistíš, že tam byla špatná fakturační
+  // adresa), NEPROMÍTNE se to automaticky do už rozjetého protokolu. Dokud není
+  // podepsaný, appka nabídne ruční obnovu podle aktuálního Nastavení.
+  const zNastaveniAktualni = {
+    nazev: nastaveni.firmaNazev || "",
+    adresa: nastaveni.firmaAdresa || "",
+    ico: nastaveni.firmaIco || "",
+    dic: nastaveni.firmaDic || "",
+  };
+  const jeZhotovitelZastaraly = JSON.stringify(protokol.zhotovitel || {}) !== JSON.stringify(zNastaveniAktualni);
+
+  const obnovitUdajeZhotovitele = async () => {
+    if (jePodepsano) {
+      const potvrzeno = window.confirm(
+        "Tohle je už PODEPSANÝ protokol. Oprava údajů zhotovitele se do dokumentu zapíše viditelně (s datem opravy), ať je jasné, že k ní došlo až po podpisu. Pokračovat?"
+      );
+      if (!potvrzeno) return;
+      const next = { ...protokol, zhotovitel: zNastaveniAktualni, opravaZhotoviteleDatum: todayISO() };
+      setSaving(true);
+      setError("");
+      try {
+        await onSave(order, next);
+        setProtokol(next);
+      } catch (e) {
+        setError("Oprava se nepovedla uložit, zkus to znovu.");
+      }
+      setSaving(false);
+      return;
+    }
+    set("zhotovitel", zNastaveniAktualni);
+  };
 
   const saveDetails = async () => {
     setSaving(true);
@@ -80,12 +113,35 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
         <ProtokolContent protokol={protokol} />
       </div>
 
+      {jeZhotovitelZastaraly && (
+        <div style={{ background: "#FBF3E0", border: `1px solid ${C.brass}`, borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13 }}>
+          Údaje o zhotoviteli v tomhle protokolu se liší od aktuálního Nastavení (asi se odtud vytvořil dřív, než jsi tam něco opravil).
+          {jePodepsano && " Protokol je už podepsaný — oprava se do dokumentu zapíše viditelně, ne potichu."}
+          <div style={{ marginTop: 8 }}>
+            <Button variant="ghost" onClick={obnovitUdajeZhotovitele} disabled={saving}>
+              <RefreshCw size={14} /> {saving ? "Ukládám…" : "Obnovit údaje zhotovitele z Nastavení"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {!jePodepsano && (
         <>
           <SectionLabel>Údaje protokolu</SectionLabel>
           <div className="field-row">
             <Field label="Datum předání">
               <TextInput type="date" value={protokol.datumPredani} onChange={(e) => set("datumPredani", e.target.value)} />
+            </Field>
+            <Field label="Místo předání (nepovinné)">
+              <TextInput value={protokol.mistoPredani} onChange={(e) => set("mistoPredani", e.target.value)} />
+            </Field>
+          </div>
+          <div className="field-row">
+            <Field label="Jméno přebírající osoby">
+              <TextInput value={protokol.jmenoPrebirajiciho} onChange={(e) => set("jmenoPrebirajiciho", e.target.value)} />
+            </Field>
+            <Field label="Záruční doba (měsíců, nepovinné)">
+              <TextInput type="number" value={protokol.zarucniDobaMesicu} onChange={(e) => set("zarucniDobaMesicu", e.target.value)} />
             </Field>
           </div>
           <Field label="Výhrady / poznámky (nepovinné — necháš prázdné, pokud je dílo bez vad)">
@@ -95,7 +151,7 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
             {saving ? "Ukládám…" : "Uložit údaje protokolu"}
           </Button>
 
-          <SectionLabel>Podpis objednatele</SectionLabel>
+          <SectionLabel>Podpis přebírajícího</SectionLabel>
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
             <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: 14 }}>
               <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 10 }}>Na místě — zákazník podepíše přímo na tomto zařízení</div>

@@ -79,7 +79,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
       <Field label="Název firmy">
         <TextInput value={f.firmaNazev} onChange={(e) => set("firmaNazev", e.target.value)} />
       </Field>
-      <Field label="Adresa">
+      <Field label="Fakturační adresa">
         <TextInput value={f.firmaAdresa} onChange={(e) => set("firmaAdresa", e.target.value)} />
       </Field>
       <div className="field-row">
