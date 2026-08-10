@@ -80,12 +80,16 @@ export default function VykazPrace({ orders, onOpenOrder }) {
       {/* Sumace celkových hodin */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
         <div style={{ background: C.surface, border: `1px solid ${C.line}`, borderRadius: 8, padding: 14, textAlign: "center" }}>
-          <div style={{ fontFamily: FONTS.display, fontSize: 11, color: C.inkSoft, textTransform: "uppercase", letterSpacing: "0.04em" }}>Dílna celkem</div>
-          <div style={{ fontFamily: FONTS.mono, fontSize: 22 }}>{dilnaCelkem} h</div>
+          <div style={{ fontFamily: FONTS.display, fontSize: 12, color: C.inkSoft, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>
+            Dílna celkem
+          </div>
+          <div style={{ fontFamily: FONTS.mono, fontSize: 36, fontWeight: 700, color: C.steel, lineHeight: 1 }}>{dilnaCelkem} h</div>
         </div>
         <div style={{ background: C.surface, border: `1px solid ${C.line}`, borderRadius: 8, padding: 14, textAlign: "center" }}>
-          <div style={{ fontFamily: FONTS.display, fontSize: 11, color: C.inkSoft, textTransform: "uppercase", letterSpacing: "0.04em" }}>Montáž celkem</div>
-          <div style={{ fontFamily: FONTS.mono, fontSize: 22 }}>{montazCelkem} h</div>
+          <div style={{ fontFamily: FONTS.display, fontSize: 12, color: C.inkSoft, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>
+            Montáž celkem
+          </div>
+          <div style={{ fontFamily: FONTS.mono, fontSize: 36, fontWeight: 700, color: C.brass, lineHeight: 1 }}>{montazCelkem} h</div>
         </div>
       </div>
 
@@ -110,8 +114,8 @@ export default function VykazPrace({ orders, onOpenOrder }) {
                   <div style={{ fontSize: 10, color: C.inkSoft, fontFamily: FONTS.display, textTransform: "uppercase" }}>{DNY_TYDNE[i]}</div>
                   <div
                     style={{
-                      width: 30,
-                      height: 30,
+                      width: 32,
+                      height: 32,
                       borderRadius: "50%",
                       margin: "3px auto",
                       display: "flex",
@@ -121,14 +125,21 @@ export default function VykazPrace({ orders, onOpenOrder }) {
                       border: jeDnes && !jeVybrany ? `1.5px solid ${C.steel}` : "none",
                       color: jeVybrany ? "#fff" : C.ink,
                       fontFamily: FONTS.display,
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: 600,
                     }}
                   >
                     {cislo}
                   </div>
-                  <div style={{ fontFamily: FONTS.mono, fontSize: 9, color: jeVybrany ? C.steel : C.inkSoft, fontWeight: jeVybrany ? 700 : 400 }}>
-                    {hodiny > 0 ? `${hodiny}h` : "0h"}
+                  <div
+                    style={{
+                      fontFamily: FONTS.mono,
+                      fontSize: hodiny > 0 ? 12 : 10,
+                      color: jeVybrany ? C.steel : hodiny > 0 ? C.rust : C.line,
+                      fontWeight: hodiny > 0 ? 700 : 400,
+                    }}
+                  >
+                    {hodiny > 0 ? `${hodiny}h` : "–"}
                   </div>
                 </button>
               );
@@ -174,7 +185,7 @@ export default function VykazPrace({ orders, onOpenOrder }) {
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{g.order.zakaznik}</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontFamily: FONTS.mono, fontSize: 16, color: C.steel, fontWeight: 600 }}>{g.celkem} h</div>
+                  <div style={{ fontFamily: FONTS.mono, fontSize: 20, fontWeight: 700, color: C.steel }}>{g.celkem} h</div>
                   <div style={{ fontSize: 11, color: C.inkSoft }}>
                     {rozbaleno ? "▴ sbalit" : `Dílna ${g.dilna}h · Montáž ${g.montaz}h`}
                   </div>
@@ -229,9 +240,9 @@ export default function VykazPrace({ orders, onOpenOrder }) {
       )}
 
       {/* Souhrn dole */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, padding: "12px 14px", background: C.surface, border: `1px solid ${C.line}`, borderRadius: 8 }}>
-        <span style={{ fontSize: 13 }}>Tento měsíc celkem</span>
-        <span style={{ fontFamily: FONTS.mono, fontSize: 15, fontWeight: 600 }}>{dilnaCelkem + montazCelkem} h</span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, padding: "14px 16px", background: C.surface, border: `1px solid ${C.line}`, borderRadius: 8 }}>
+        <span style={{ fontFamily: FONTS.display, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.03em" }}>Tento měsíc celkem</span>
+        <span style={{ fontFamily: FONTS.mono, fontSize: 24, fontWeight: 700, color: C.ink }}>{dilnaCelkem + montazCelkem} h</span>
       </div>
     </div>
   );
