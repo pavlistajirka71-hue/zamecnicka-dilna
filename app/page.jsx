@@ -1135,7 +1135,7 @@ export default function HomePage() {
         </Modal>
       )}
 
-      {quoteData && <QuoteView order={quoteData.order} polozky={quoteData.polozky} celkem={quoteData.celkem} onClose={() => setQuoteData(null)} />}
+      {quoteData && <QuoteView order={quoteData.order} polozky={quoteData.polozky} celkem={quoteData.celkem} nastaveni={nastaveni} onClose={() => setQuoteData(null)} />}
 
       {poptavkaOrder && <MaterialOrderView order={poptavkaOrder} onClose={() => setPoptavkaOrder(null)} />}
 

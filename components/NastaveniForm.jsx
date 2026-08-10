@@ -75,7 +75,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
       </Field>
       <div style={{ fontSize: 12, color: "#5B5A52", marginTop: 4, marginBottom: 16 }}>DPH je pevně 21 % (aktuální česká sazba).</div>
 
-      <SectionLabel>Firma (zhotovitel na předávacím protokolu)</SectionLabel>
+      <SectionLabel>Firma (zhotovitel na protokolu a nabídce)</SectionLabel>
       <Field label="Název firmy">
         <TextInput value={f.firmaNazev} onChange={(e) => set("firmaNazev", e.target.value)} />
       </Field>
@@ -90,6 +90,9 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
           <TextInput value={f.firmaDic} onChange={(e) => set("firmaDic", e.target.value)} />
         </Field>
       </div>
+      <Field label="E-mail (nepovinné, zobrazí se na nabídce)">
+        <TextInput type="email" value={f.firmaEmail} onChange={(e) => set("firmaEmail", e.target.value)} />
+      </Field>
       <SectionLabel>Uživatelé</SectionLabel>
       <div style={{ marginBottom: 16 }}>
         <Button variant="ghost" type="button" onClick={() => setShowUzivatele(true)}>

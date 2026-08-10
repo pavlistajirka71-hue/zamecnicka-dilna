@@ -19,9 +19,14 @@ function PolozkaForm({ polozka, nastaveni, materialHistory, onChange }) {
 
   return (
     <div>
-      <Field label="Počet kusů (násobí celou položku — materiál, práci, dopravu…)">
-        <TextInput type="number" min="1" step="1" value={polozka.pocetKs} onChange={(e) => onChange({ ...polozka, pocetKs: e.target.value })} style={{ maxWidth: 120 }} />
-      </Field>
+      <div className="field-row">
+        <Field label="Počet kusů (násobí celou položku — materiál, práci, dopravu…)">
+          <TextInput type="number" min="1" step="1" value={polozka.pocetKs} onChange={(e) => onChange({ ...polozka, pocetKs: e.target.value })} />
+        </Field>
+        <Field label="Jednotka (na nabídce, např. ks/bm/m²)">
+          <TextInput value={polozka.jednotka || "ks"} onChange={(e) => onChange({ ...polozka, jednotka: e.target.value })} style={{ maxWidth: 120 }} />
+        </Field>
+      </div>
 
       <SectionLabel>Materiál</SectionLabel>
       {materialy.map((m, idx) => (

@@ -56,6 +56,7 @@ create table if not exists nastaveni (
   "firmaAdresa" text,
   "firmaIco" text,
   "firmaDic" text,
+  "firmaEmail" text,
   pracovnici jsonb not null default '[]'::jsonb,
   "nabizetPracovniky" boolean not null default true,
   "vybraniUzivatele" jsonb not null default '[]'::jsonb
@@ -69,6 +70,7 @@ alter table nastaveni add column if not exists "nabizetPracovniky" boolean not n
 alter table nastaveni add column if not exists "vybraniUzivatele" jsonb not null default '[]'::jsonb;
 alter table nastaveni add column if not exists "firmaIco" text;
 alter table nastaveni add column if not exists "firmaDic" text;
+alter table nastaveni add column if not exists "firmaEmail" text;
 
 -- 3) Historie / katalog materiálů (pro našeptávač v kalkulaci a správu v appce)
 create table if not exists material_history (
