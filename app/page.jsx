@@ -560,12 +560,12 @@ export default function HomePage() {
     return data;
   };
 
-  const saveKalkulace = async (order, polozky, celkem) => {
+  const saveKalkulace = async (order, polozky, celkem, sazbaDph) => {
     const planCasDilna = polozky.reduce((s, p) => s + (Number(p.praceDilnaHodiny) || 0) * Math.max(1, Number(p.pocetKs) || 1), 0);
     const planCasMontaz = polozky.reduce((s, p) => s + (Number(p.praceMontazHodiny) || 0) * Math.max(1, Number(p.pocetKs) || 1), 0);
     const { data, error } = await supabase
       .from("orders")
-      .update({ kalkulace: polozky, cena: celkem.finalniCena, planCasDilna, planCasMontaz })
+      .update({ kalkulace: polozky, cena: celkem.finalniCena, planCasDilna, planCasMontaz, sazbaDph })
       .eq("id", order.id)
       .select()
       .single();
@@ -593,7 +593,7 @@ export default function HomePage() {
     const rows = relevant.map((o) => {
       const polozky = normalizovatKalkulaci(o.kalkulace);
       const cenaBezDph = polozky.length ? computeKalkulaceCelkem(polozky, nastaveni).cenaBezDph : Number(o.cena) || 0;
-      const dph = cenaBezDph * DPH_SAZBA;
+      const dph = cenaBezDph * (o.sazbaDph ?? DPH_SAZBA);
       return [o.cislo, o.vytvoreno, o.zakaznik, (o.popis || "").replace(/[\n\r;]+/g, " "), cenaBezDph.toFixed(2), dph.toFixed(2), (cenaBezDph + dph).toFixed(2), o.cisloFaktury || ""];
     });
     const csv = [header, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n");
@@ -1128,9 +1128,9 @@ export default function HomePage() {
             order={kalkulaceOrder}
             nastaveni={nastaveni}
             materialHistory={materialHistory}
-            onSave={(polozky, celkem) => saveKalkulace(kalkulaceOrder, polozky, celkem)}
+            onSave={(polozky, celkem, sazbaDph) => saveKalkulace(kalkulaceOrder, polozky, celkem, sazbaDph)}
             onClose={() => setKalkulaceOrder(null)}
-            onPrint={(polozky, celkem) => setQuoteData({ order: kalkulaceOrder, polozky, celkem })}
+            onPrint={(polozky, celkem, sazbaDph) => setQuoteData({ order: { ...kalkulaceOrder, sazbaDph }, polozky, celkem })}
           />
         </Modal>
       )}

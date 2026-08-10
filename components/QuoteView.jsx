@@ -16,7 +16,7 @@ const SAZBY_DPH = [
 
 // celkem = computeKalkulaceCelkem(...) výstup, obsahuje celkem.items = [{ polozka, vysledek }, ...]
 export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }) {
-  const [sazbaDph, setSazbaDph] = useState(0.21);
+  const [sazbaDph, setSazbaDph] = useState(order.sazbaDph ?? 0.21);
   const items = celkem.items || [];
   const cenaSDphNabidka = celkem.cenaBezDph * (1 + sazbaDph);
   const n = nastaveni || {};

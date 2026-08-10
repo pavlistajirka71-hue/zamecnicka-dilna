@@ -11,6 +11,7 @@ import {
   normalizovatKalkulaci,
   souhrnPodzakazek,
   nabidkaPracovniku,
+  DPH_SAZBA,
   fmtMoney,
   fmtDate,
   isOverdue,
@@ -501,7 +502,7 @@ export default function OrderDetail({
             <div style={{ fontSize: 11, color: C.inkSoft, marginTop: -4, marginBottom: 8 }}>Ceny položek a materiálu níže jsou bez DPH.</div>
             {polozkyKalkulace.length > 0 ? (
               (() => {
-                const celkem = computeKalkulaceCelkem(polozkyKalkulace, nastaveni);
+                const celkem = computeKalkulaceCelkem(polozkyKalkulace, nastaveni, order.sazbaDph ?? DPH_SAZBA);
                 return (
                   <div style={{ background: C.paper, borderRadius: 8, padding: "10px 12px", fontSize: 13 }}>
                     {celkem.items.map(({ polozka, vysledek }) => (
@@ -529,7 +530,7 @@ export default function OrderDetail({
                       </div>
                     ))}
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontWeight: 600 }}>
-                      <span>Cena celkem bez DPH / s DPH</span>
+                      <span>Cena celkem bez DPH / s DPH ({Math.round((order.sazbaDph ?? DPH_SAZBA) * 100)} %)</span>
                       <span style={{ fontFamily: FONTS.mono }}>
                         {fmtMoney(celkem.cenaBezDph)} / {fmtMoney(celkem.cenaSDph)}
                       </span>

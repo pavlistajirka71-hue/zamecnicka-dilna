@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Printer, Trash2, ChevronDown, ChevronUp } from "lucide-react";
-import { C, FONTS, uid, novaPolozkaKalkulace, normalizovatKalkulaci, computeKalkulace, computeKalkulaceCelkem, fmtMoney } from "@/lib/theme";
-import { Field, TextInput, Button, SectionLabel, iconBtnStyle } from "./ui";
+import { C, FONTS, uid, novaPolozkaKalkulace, normalizovatKalkulaci, computeKalkulace, computeKalkulaceCelkem, fmtMoney, DPH_SAZBA } from "@/lib/theme";
+import { Field, TextInput, Select, Button, SectionLabel, iconBtnStyle } from "./ui";
 import MaterialRow from "./MaterialRow";
 
-function PolozkaForm({ polozka, nastaveni, materialHistory, onChange }) {
-  const vysledek = useMemo(() => computeKalkulace(polozka, nastaveni), [polozka, nastaveni]);
+function PolozkaForm({ polozka, nastaveni, materialHistory, sazbaDph, onChange }) {
+  const vysledek = useMemo(() => computeKalkulace(polozka, nastaveni, sazbaDph), [polozka, nastaveni, sazbaDph]);
   const materialy = polozka.materialy || [];
 
   const addMaterial = () =>
@@ -78,7 +78,7 @@ function PolozkaForm({ polozka, nastaveni, materialHistory, onChange }) {
         </Field>
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 12, flex: 1 }}>
           <input type="checkbox" checked={polozka.sDph} onChange={(e) => onChange({ ...polozka, sDph: e.target.checked })} />
-          Zobrazit a použít cenu s DPH (21 %)
+          Zobrazit a použít cenu s DPH ({Math.round(sazbaDph * 100)} %)
         </label>
       </div>
 
@@ -107,11 +107,12 @@ function PolozkaForm({ polozka, nastaveni, materialHistory, onChange }) {
 export default function KalkulaceForm({ order, nastaveni, materialHistory, onSave, onClose, onPrint }) {
   const initial = normalizovatKalkulaci(order.kalkulace);
   const [polozky, setPolozky] = useState(initial.length ? initial : [novaPolozkaKalkulace("Položka 1")]);
+  const [sazbaDph, setSazbaDph] = useState(order.sazbaDph ?? DPH_SAZBA);
   const [openId, setOpenId] = useState(initial.length ? initial[0].id : null);
   const [saving, setSaving] = useState(false);
   const polozkaRefs = useRef({});
 
-  const celkem = useMemo(() => computeKalkulaceCelkem(polozky, nastaveni), [polozky, nastaveni]);
+  const celkem = useMemo(() => computeKalkulaceCelkem(polozky, nastaveni, sazbaDph), [polozky, nastaveni, sazbaDph]);
   const planDilna = useMemo(() => polozky.reduce((s, p) => s + (Number(p.praceDilnaHodiny) || 0) * Math.max(1, Number(p.pocetKs) || 1), 0), [polozky]);
   const planMontaz = useMemo(() => polozky.reduce((s, p) => s + (Number(p.praceMontazHodiny) || 0) * Math.max(1, Number(p.pocetKs) || 1), 0), [polozky]);
 
@@ -139,7 +140,7 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
   return (
     <div>
       {polozky.map((p, idx) => {
-        const v = computeKalkulace(p, nastaveni);
+        const v = computeKalkulace(p, nastaveni, sazbaDph);
         const open = openId === p.id;
         return (
           <div
@@ -170,7 +171,7 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
             </div>
             {open && (
               <div style={{ padding: 12, borderTop: `1px solid ${C.line}` }}>
-                <PolozkaForm polozka={p} nastaveni={nastaveni} materialHistory={materialHistory} onChange={(next) => updatePolozka(p.id, next)} />
+                <PolozkaForm polozka={p} nastaveni={nastaveni} materialHistory={materialHistory} sazbaDph={sazbaDph} onChange={(next) => updatePolozka(p.id, next)} />
               </div>
             )}
           </div>
@@ -180,6 +181,15 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
       <Button variant="ghost" type="button" onClick={addPolozka} style={{ marginBottom: 16 }}>
         <Plus size={14} /> Přidat položku (např. Branka)
       </Button>
+
+      <Field label="Sazba DPH pro celou zakázku">
+        <Select value={sazbaDph} onChange={(e) => setSazbaDph(Number(e.target.value))} style={{ maxWidth: 220 }}>
+          <option value={0.21}>21 %</option>
+          <option value={0.15}>15 %</option>
+          <option value={0.12}>12 % (snížená — stavební práce na bydlení)</option>
+          <option value={0}>Bez DPH (neplátce)</option>
+        </Select>
+      </Field>
 
       <SectionLabel>Celkem za zakázku ({polozky.length} {polozky.length === 1 ? "položka" : polozky.length < 5 ? "položky" : "položek"})</SectionLabel>
       <div style={{ background: C.paper, borderRadius: 8, padding: 14, marginBottom: 8, border: `1px solid ${C.line}` }}>
@@ -192,7 +202,7 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
           <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(celkem.cenaBezDph)}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "3px 0" }}>
-          <span>Cena s DPH (21 %)</span>
+          <span>Cena s DPH ({Math.round(sazbaDph * 100)} %)</span>
           <span style={{ fontFamily: FONTS.mono }}>{fmtMoney(celkem.cenaSDph)}</span>
         </div>
         <div style={{ borderTop: `1px dashed ${C.line}`, marginTop: 6, paddingTop: 6 }}>
@@ -210,7 +220,7 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-        <Button variant="ghost" type="button" onClick={() => onPrint(polozky, celkem)}>
+        <Button variant="ghost" type="button" onClick={() => onPrint(polozky, celkem, sazbaDph)}>
           <Printer size={14} /> Tisk nabídky
         </Button>
         <div style={{ display: "flex", gap: 8 }}>
@@ -224,7 +234,7 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
             onClick={async () => {
               setSaving(true);
               try {
-                await onSave(polozky, celkem);
+                await onSave(polozky, celkem, sazbaDph);
               } finally {
                 setSaving(false);
               }
