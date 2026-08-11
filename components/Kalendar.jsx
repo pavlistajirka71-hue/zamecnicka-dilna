@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { C, FONTS, statusInfo, todayISO } from "@/lib/theme";
+import { C, FONTS, statusInfo, todayISO, hodinyPodleDne } from "@/lib/theme";
 import { Button } from "./ui";
 
 const DNY_TYDNE = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
@@ -55,6 +55,8 @@ export default function Kalendar({ orders, onOpen }) {
     return mapa;
   }, [orders]);
 
+  const hodinyDne = useMemo(() => hodinyPodleDne(orders), [orders]);
+
   const jit = (delta) => {
     let novyMesic = mesicIndex + delta;
     let novyRok = rok;
@@ -107,6 +109,7 @@ export default function Kalendar({ orders, onOpen }) {
           const jeDnes = dateStr === dnes;
           const zobrazene = zakazkyDne.slice(0, 3);
           const zbyva = zakazkyDne.length - zobrazene.length;
+          const hodiny = hodinyDne.get(dateStr);
           return (
             <div
               key={dateStr}
@@ -122,6 +125,20 @@ export default function Kalendar({ orders, onOpen }) {
               <div style={{ fontSize: 11, fontFamily: FONTS.mono, color: jeDnes ? C.steel : C.inkSoft, fontWeight: jeDnes ? 700 : 400, marginBottom: 3 }}>
                 {den}
               </div>
+              {hodiny && (hodiny.dilna > 0 || hodiny.montaz > 0) && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginBottom: 3 }}>
+                  {hodiny.dilna > 0 && (
+                    <span style={{ fontSize: 10, fontFamily: FONTS.mono, fontWeight: 700, color: "#fff", background: C.steel, borderRadius: 3, padding: "1px 4px" }}>
+                      D {hodiny.dilna}h
+                    </span>
+                  )}
+                  {hodiny.montaz > 0 && (
+                    <span style={{ fontSize: 10, fontFamily: FONTS.mono, fontWeight: 700, color: "#fff", background: C.brass, borderRadius: 3, padding: "1px 4px" }}>
+                      M {hodiny.montaz}h
+                    </span>
+                  )}
+                </div>
+              )}
               <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 {zobrazene.map((o) => {
                   const s = statusInfo(o.stav);
@@ -160,7 +177,9 @@ export default function Kalendar({ orders, onOpen }) {
         })}
       </div>
 
-      <div style={{ marginTop: 14, fontSize: 11, color: C.inkSoft }}>Zobrazují se jen rozpracované zakázky s vyplněným termínem.</div>
+      <div style={{ marginTop: 14, fontSize: 11, color: C.inkSoft }}>
+        Barevné štítky = rozpracované zakázky s vyplněným termínem. Číselné štítky (D/M) = odpracované hodiny dílna/montáž ten den, podle výkazu práce.
+      </div>
     </div>
   );
 }
