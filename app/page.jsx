@@ -48,7 +48,6 @@ import ImportFakturFlow from "@/components/ImportFakturFlow";
 import KalkulaceForm from "@/components/KalkulaceForm";
 import Kalendar from "@/components/Kalendar";
 import VykazPrace from "@/components/VykazPrace";
-import PrehledPanel from "@/components/PrehledPanel";
 import UzivateleForm from "@/components/UzivateleForm";
 import NastaveniForm from "@/components/NastaveniForm";
 import QuoteView from "@/components/QuoteView";
@@ -77,7 +76,6 @@ export default function HomePage() {
   const [organizace, setOrganizace] = useState([]);
 
   const [tab, setTab] = useState("prehled");
-  const [prehledPodzalozka, setPrehledPodzalozka] = useState("fronta");
   const [search, setSearch] = useState("");
   const [filterStav, setFilterStav] = useState("vse");
   const [zakazkyView, setZakazkyView] = useState("seznam");
@@ -801,47 +799,6 @@ export default function HomePage() {
       <div style={{ padding: 20, maxWidth: 1100, margin: "0 auto" }}>
         {tab === "prehled" && (
           <div>
-            <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
-              <button
-                onClick={() => setPrehledPodzalozka("fronta")}
-                style={{
-                  padding: "8px 14px",
-                  borderRadius: 6,
-                  border: `1px solid ${prehledPodzalozka === "fronta" ? C.steel : C.line}`,
-                  background: prehledPodzalozka === "fronta" ? C.steel : C.surface,
-                  color: prehledPodzalozka === "fronta" ? "#fff" : C.ink,
-                  fontFamily: FONTS.display,
-                  textTransform: "uppercase",
-                  fontSize: 12,
-                  letterSpacing: "0.03em",
-                  cursor: "pointer",
-                }}
-              >
-                Fronta práce
-              </button>
-              <button
-                onClick={() => setPrehledPodzalozka("finance")}
-                style={{
-                  padding: "8px 14px",
-                  borderRadius: 6,
-                  border: `1px solid ${prehledPodzalozka === "finance" ? C.steel : C.line}`,
-                  background: prehledPodzalozka === "finance" ? C.steel : C.surface,
-                  color: prehledPodzalozka === "finance" ? "#fff" : C.ink,
-                  fontFamily: FONTS.display,
-                  textTransform: "uppercase",
-                  fontSize: 12,
-                  letterSpacing: "0.03em",
-                  cursor: "pointer",
-                }}
-              >
-                Peníze a vytíženost
-              </button>
-            </div>
-
-            {prehledPodzalozka === "finance" ? (
-              <PrehledPanel orders={orders} nastaveni={nastaveni} onOpenOrder={(o) => setDetailOrder(o)} />
-            ) : (
-              <>
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontFamily: FONTS.display, letterSpacing: "0.12em", textTransform: "uppercase", fontSize: 12, color: C.inkSoft, marginBottom: 8 }}>
                 Co se má dělat — podle termínu zhotovení
@@ -935,8 +892,6 @@ export default function HomePage() {
               </div>
             ) : (
               <div style={{ color: C.inkSoft, fontSize: 14, textAlign: "center", padding: 30 }}>Žádné termíny nejsou po lhůtě. Dílna jede hladce.</div>
-            )}
-              </>
             )}
           </div>
         )}
