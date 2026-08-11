@@ -59,6 +59,8 @@ create table if not exists nastaveni (
   "firmaIco" text,
   "firmaDic" text,
   "firmaEmail" text,
+  "firmaLogoPath" text,
+  "podminkyNabidky" text,
   pracovnici jsonb not null default '[]'::jsonb,
   "nabizetPracovniky" boolean not null default true,
   "vybraniUzivatele" jsonb not null default '[]'::jsonb
@@ -73,6 +75,8 @@ alter table nastaveni add column if not exists "vybraniUzivatele" jsonb not null
 alter table nastaveni add column if not exists "firmaIco" text;
 alter table nastaveni add column if not exists "firmaDic" text;
 alter table nastaveni add column if not exists "firmaEmail" text;
+alter table nastaveni add column if not exists "firmaLogoPath" text;
+alter table nastaveni add column if not exists "podminkyNabidky" text;
 
 -- 3) Historie / katalog materiálů (pro našeptávač v kalkulaci a správu v appce)
 create table if not exists material_history (
@@ -216,6 +220,23 @@ create policy "authenticated upload fotky" on storage.objects
 drop policy if exists "authenticated delete fotky" on storage.objects;
 create policy "authenticated delete fotky" on storage.objects
   for delete using (bucket_id = 'fotky' and auth.role() = 'authenticated');
+
+-- ---- Úložiště na logo firmy (na nabídce) ----
+insert into storage.buckets (id, name, public)
+values ('logo', 'logo', false)
+on conflict (id) do nothing;
+
+drop policy if exists "authenticated read logo" on storage.objects;
+create policy "authenticated read logo" on storage.objects
+  for select using (bucket_id = 'logo' and auth.role() = 'authenticated');
+
+drop policy if exists "authenticated upload logo" on storage.objects;
+create policy "authenticated upload logo" on storage.objects
+  for insert with check (bucket_id = 'logo' and auth.role() = 'authenticated');
+
+drop policy if exists "authenticated delete logo" on storage.objects;
+create policy "authenticated delete logo" on storage.objects
+  for delete using (bucket_id = 'logo' and auth.role() = 'authenticated');
 
 -- 6) Bezpečné (atomické) číslování zakázek — počítadlo na serveru, ať se dvěma lidem
 -- založivším zakázku ve stejnou chvíli nikdy nepřidělí stejné číslo (běžné riziko,

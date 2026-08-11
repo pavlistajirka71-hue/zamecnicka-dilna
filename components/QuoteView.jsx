@@ -3,6 +3,7 @@ import { useState } from "react";
 import { X, Printer } from "lucide-react";
 import { C, FONTS, fmtMoney, fmtDate, todayISO } from "@/lib/theme";
 import { Button, Select } from "./ui";
+import { useSignedUrl } from "./PhotoThumbnail";
 
 // Nabídka se tiskne s vybranou sazbou DPH nezávisle na tom, s jakou appka počítá
 // interně kalkulaci/marži (u stavebních prací na bydlení jde občas použít snížená
@@ -20,6 +21,7 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
   const items = celkem.items || [];
   const cenaSDphNabidka = celkem.cenaBezDph * (1 + sazbaDph);
   const n = nastaveni || {};
+  const logoUrl = useSignedUrl("logo", n.firmaLogoPath);
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "#fff", zIndex: 100, overflowY: "auto" }}>
@@ -59,8 +61,11 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
             marginBottom: 32,
           }}
         >
-          <div style={{ fontFamily: FONTS.display, fontSize: 22, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.02em", color: C.steelDark }}>
-            {n.firmaNazev || "Cenová nabídka"}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {logoUrl && <img src={logoUrl} alt="Logo" style={{ height: 40, maxWidth: 140, objectFit: "contain" }} />}
+            <div style={{ fontFamily: FONTS.display, fontSize: 22, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.02em", color: C.steelDark }}>
+              {n.firmaNazev || "Cenová nabídka"}
+            </div>
           </div>
           <div style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft }}>{fmtDate(todayISO())}</div>
         </div>
@@ -160,7 +165,11 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
           </div>
         </div>
 
-        <div style={{ marginTop: 32, fontSize: 12, color: C.inkSoft }}>Nabídka je informativní a platí 30 dní od vystavení.</div>
+        {n.podminkyNabidky && (
+          <div style={{ marginTop: 32, fontSize: 12, color: C.inkSoft, whiteSpace: "pre-line", borderTop: `1px solid ${C.line}`, paddingTop: 14 }}>
+            {n.podminkyNabidky}
+          </div>
+        )}
 
         {/* Patička */}
         <div style={{ marginTop: 60, paddingTop: 14, borderTop: `1px solid ${C.line}`, fontSize: 11, color: C.inkSoft }}>

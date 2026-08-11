@@ -23,7 +23,7 @@ export async function POST(request) {
 
   try {
     const bytes = Buffer.from(base64Data, "base64");
-    const bucket = kind === "protokoly" ? "protokoly" : kind === "fotky" ? "fotky" : "uctenky";
+    const bucket = kind === "protokoly" ? "protokoly" : kind === "fotky" ? "fotky" : kind === "logo" ? "logo" : "uctenky";
     const path = await nahratFotkuNaServeru(bytes, filename, mediaType, bucket, slozkaZakazky);
     return NextResponse.json({ url: path });
   } catch (err) {

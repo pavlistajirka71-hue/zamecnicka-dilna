@@ -71,16 +71,10 @@ function PolozkaForm({ polozka, nastaveni, materialHistory, sazbaDph, onChange }
         </label>
       </div>
 
-      <SectionLabel>Přirážka a DPH</SectionLabel>
-      <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
-        <Field label="Přirážka (%)">
-          <TextInput type="number" value={polozka.prirazkaPct} onChange={(e) => onChange({ ...polozka, prirazkaPct: e.target.value })} />
-        </Field>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 12, flex: 1 }}>
-          <input type="checkbox" checked={polozka.sDph} onChange={(e) => onChange({ ...polozka, sDph: e.target.checked })} />
-          Zobrazit a použít cenu s DPH ({Math.round(sazbaDph * 100)} %)
-        </label>
-      </div>
+      <SectionLabel>Přirážka</SectionLabel>
+      <Field label="Přirážka (%)">
+        <TextInput type="number" value={polozka.prirazkaPct} onChange={(e) => onChange({ ...polozka, prirazkaPct: e.target.value })} style={{ maxWidth: 160 }} />
+      </Field>
 
       <div style={{ background: C.paper, borderRadius: 8, padding: 12, border: `1px solid ${C.line}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "2px 0" }}>

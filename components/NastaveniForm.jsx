@@ -1,7 +1,9 @@
 "use client";
 import { useState } from "react";
-import { Users, ArrowRightLeft, Trash2, Plus, Upload } from "lucide-react";
-import { Field, TextInput, Select, Button, SectionLabel, Modal } from "./ui";
+import { Users, ArrowRightLeft, Trash2, Plus, Upload, X } from "lucide-react";
+import { Field, TextInput, TextArea, Select, Button, SectionLabel, Modal } from "./ui";
+import { useSignedUrl } from "./PhotoThumbnail";
+import { nahratFotku } from "@/lib/uploadClient";
 import UzivateleForm from "./UzivateleForm";
 
 export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUctenky, onOpenImportFaktur, onClose }) {
@@ -10,7 +12,26 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
   const [migruji, setMigruji] = useState(false);
   const [migraceVysledek, setMigraceVysledek] = useState(null);
   const [novePracovnikJmeno, setNovePracovnikJmeno] = useState("");
+  const [nahravamLogo, setNahravamLogo] = useState(false);
+  const [chybaLoga, setChybaLoga] = useState("");
+  const logoUrl = useSignedUrl("logo", f.firmaLogoPath);
   const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
+
+  const nahratLogo = async (e) => {
+    const soubor = e.target.files && e.target.files[0];
+    if (!soubor) return;
+    setChybaLoga("");
+    setNahravamLogo(true);
+    try {
+      const path = await nahratFotku(soubor, `logo-${soubor.name}`, "logo");
+      set("firmaLogoPath", path);
+    } catch (err) {
+      console.error(err);
+      setChybaLoga("Nahrání loga se nepovedlo, zkus to znovu.");
+    }
+    setNahravamLogo(false);
+    e.target.value = "";
+  };
 
   const prepnoutVybranehoUzivatele = (id) => {
     const aktualni = f.vybraniUzivatele || [];
@@ -93,6 +114,34 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
       <Field label="E-mail (nepovinné, zobrazí se na nabídce)">
         <TextInput type="email" value={f.firmaEmail} onChange={(e) => set("firmaEmail", e.target.value)} />
       </Field>
+
+      <Field label="Logo firmy (zobrazí se na nabídce)">
+        {f.firmaLogoPath ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {logoUrl && <img src={logoUrl} alt="Logo firmy" style={{ height: 48, maxWidth: 160, objectFit: "contain", background: "#fff", border: "1px solid #D9D4C7", borderRadius: 6, padding: 4 }} />}
+            <button
+              type="button"
+              onClick={() => set("firmaLogoPath", "")}
+              style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: "#B33A3A", cursor: "pointer", fontSize: 12, padding: 4 }}
+            >
+              <X size={14} /> Odebrat
+            </button>
+          </div>
+        ) : (
+          <label style={{ display: "inline-block" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#34506B", cursor: "pointer", border: "1px solid #D9D4C7", borderRadius: 6, padding: "8px 12px" }}>
+              <Upload size={14} /> {nahravamLogo ? "Nahrávám…" : "Nahrát logo"}
+            </span>
+            <input type="file" accept="image/*" onChange={nahratLogo} disabled={nahravamLogo} style={{ display: "none" }} />
+          </label>
+        )}
+        {chybaLoga && <div style={{ color: "#B33A3A", fontSize: 12, marginTop: 6 }}>{chybaLoga}</div>}
+      </Field>
+
+      <Field label="Podmínky na nabídce (platba, termín, záruka…)">
+        <TextArea value={f.podminkyNabidky} onChange={(e) => set("podminkyNabidky", e.target.value)} rows={6} />
+      </Field>
+
       <SectionLabel>Uživatelé</SectionLabel>
       <div style={{ marginBottom: 16 }}>
         <Button variant="ghost" type="button" onClick={() => setShowUzivatele(true)}>
