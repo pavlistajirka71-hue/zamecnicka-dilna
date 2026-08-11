@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Printer, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { C, FONTS, uid, novaPolozkaKalkulace, normalizovatKalkulaci, computeKalkulace, computeKalkulaceCelkem, fmtMoney, DPH_SAZBA } from "@/lib/theme";
 import { Field, TextInput, Select, Button, SectionLabel, iconBtnStyle } from "./ui";
 import MaterialRow from "./MaterialRow";
@@ -98,7 +98,7 @@ function PolozkaForm({ polozka, nastaveni, materialHistory, sazbaDph, onChange }
   );
 }
 
-export default function KalkulaceForm({ order, nastaveni, materialHistory, onSave, onClose, onPrint }) {
+export default function KalkulaceForm({ order, nastaveni, materialHistory, onSave, onClose }) {
   const initial = normalizovatKalkulaci(order.kalkulace);
   const [polozky, setPolozky] = useState(initial.length ? initial : [novaPolozkaKalkulace("Položka 1")]);
   const [sazbaDph, setSazbaDph] = useState(order.sazbaDph ?? DPH_SAZBA);
@@ -213,30 +213,25 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
         Uložením se do zakázky propíše plánovaný čas: <strong>dílna {planDilna} h · montáž {planMontaz} h</strong> (součet ze všech položek).
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-        <Button variant="ghost" type="button" onClick={() => onPrint(polozky, celkem, sazbaDph)}>
-          <Printer size={14} /> Tisk nabídky
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+        <Button variant="ghost" onClick={onClose} type="button">
+          Zrušit
         </Button>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button variant="ghost" onClick={onClose} type="button">
-            Zrušit
-          </Button>
-          <Button
-            variant="primary"
-            type="button"
-            disabled={saving}
-            onClick={async () => {
-              setSaving(true);
-              try {
-                await onSave(polozky, celkem, sazbaDph);
-              } finally {
-                setSaving(false);
-              }
-            }}
-          >
-            {saving ? "Ukládám…" : "Uložit kalkulaci"}
-          </Button>
-        </div>
+        <Button
+          variant="primary"
+          type="button"
+          disabled={saving}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await onSave(polozky, celkem, sazbaDph);
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          {saving ? "Ukládám…" : "Uložit kalkulaci"}
+        </Button>
       </div>
     </div>
   );

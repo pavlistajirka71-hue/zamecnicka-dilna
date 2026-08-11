@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail, ArrowUpRight, Plus, Copy } from "lucide-react";
+import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail, ArrowUpRight, Plus, Copy, Printer } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
   C,
@@ -36,6 +36,7 @@ export default function OrderDetail({
   onDelete,
   onEdit,
   onOpenKalkulace,
+  onOpenNabidka,
   onOpenPoptavka,
   onOpenProtokol,
   onOpenFotka,
@@ -548,9 +549,16 @@ export default function OrderDetail({
               <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 8 }}>Kalkulace zatím není vytvořená.</div>
             )}
             {jsemSA ? (
-              <Button variant="ghost" style={{ marginTop: 8 }} onClick={onOpenKalkulace}>
-                <Calculator size={14} /> {polozkyKalkulace.length > 0 ? "Upravit kalkulaci" : "Vytvořit kalkulaci"}
-              </Button>
+              <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                <Button variant="ghost" onClick={onOpenKalkulace}>
+                  <Calculator size={14} /> {polozkyKalkulace.length > 0 ? "Upravit kalkulaci" : "Vytvořit kalkulaci"}
+                </Button>
+                {polozkyKalkulace.length > 0 && (
+                  <Button variant="ghost" onClick={onOpenNabidka}>
+                    <Printer size={14} /> Tisk nabídky
+                  </Button>
+                )}
+              </div>
             ) : (
               <div style={{ fontSize: 12, color: C.inkSoft, marginTop: 8 }}>Úpravu kalkulace smí jen správce.</div>
             )}

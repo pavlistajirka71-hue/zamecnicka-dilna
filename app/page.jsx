@@ -1130,7 +1130,6 @@ export default function HomePage() {
             materialHistory={materialHistory}
             onSave={(polozky, celkem, sazbaDph) => saveKalkulace(kalkulaceOrder, polozky, celkem, sazbaDph)}
             onClose={() => setKalkulaceOrder(null)}
-            onPrint={(polozky, celkem, sazbaDph) => setQuoteData({ order: { ...kalkulaceOrder, sazbaDph }, polozky, celkem })}
           />
         </Modal>
       )}
@@ -1191,6 +1190,12 @@ export default function HomePage() {
               setDetailOrder(null);
             }}
             onOpenKalkulace={() => setKalkulaceOrder(detailOrder)}
+            onOpenNabidka={() => {
+              const polozky = normalizovatKalkulaci(detailOrder.kalkulace);
+              const sazbaDph = detailOrder.sazbaDph ?? DPH_SAZBA;
+              const celkem = computeKalkulaceCelkem(polozky, nastaveni, sazbaDph);
+              setQuoteData({ order: { ...detailOrder, sazbaDph }, polozky, celkem });
+            }}
             onOpenPoptavka={() => setPoptavkaOrder(detailOrder)}
             onOpenProtokol={() => setProtokolOrder(detailOrder)}
             onOpenFotka={() => setFotkaOrder(detailOrder)}
