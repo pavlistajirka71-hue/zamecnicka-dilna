@@ -95,7 +95,7 @@ export default function Kalendar({ orders, onOpen }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 4 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 4, marginBottom: 4 }}>
         {DNY_TYDNE.map((d) => (
           <div key={d} style={{ textAlign: "center", fontSize: 11, color: C.inkSoft, fontFamily: FONTS.mono, textTransform: "uppercase", padding: "2px 0" }}>
             {d}
@@ -103,7 +103,7 @@ export default function Kalendar({ orders, onOpen }) {
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 4 }}>
         {dny.map(({ dateStr, den, vAktualnimMesici }) => {
           const zakazkyDne = zakazkyPodleDne.get(dateStr) || [];
           const jeDnes = dateStr === dnes;
