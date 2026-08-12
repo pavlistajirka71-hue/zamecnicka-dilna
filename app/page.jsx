@@ -362,6 +362,26 @@ export default function HomePage() {
     return data;
   };
 
+  // "Tichá" verze založení zakázky — na rozdíl od saveOrder NEotvírá detail
+  // zakázky ani nezavírá jiné formuláře. Používá se, když appka zakázku zakládá
+  // jako vedlejší krok uprostřed jiného úkonu (např. rychlé založení při zápisu
+  // práce) — appka tam nechce najednou přeskočit na detail nové zakázky.
+  const createOrderQuick = async (order) => {
+    const NUMERICKA_POLE = ["cena", "planCasDilna", "planCasMontaz"];
+    const DATUMOVA_POLE = ["termin"];
+    const cistaZakazka = { ...order };
+    [...NUMERICKA_POLE, ...DATUMOVA_POLE].forEach((klic) => {
+      if (cistaZakazka[klic] === "") cistaZakazka[klic] = null;
+    });
+    const { data, error } = await supabase.from("orders").insert(cistaZakazka).select().single();
+    if (error) {
+      console.error(error);
+      throw error;
+    }
+    setOrders((prev) => [data, ...prev]);
+    return data;
+  };
+
   const deleteOrder = async (id) => {
     const { error } = await supabase.from("orders").delete().eq("id", id);
     if (error) {
@@ -1045,7 +1065,7 @@ export default function HomePage() {
 
       {showWorkModal && (
         <Modal title="Zapsat práci" onClose={() => setShowWorkModal(false)}>
-          <WorkLogFlow orders={orders} nastaveni={nastaveni} uzivatele={uzivatele} onSubmit={addWorkEntry} onClose={() => setShowWorkModal(false)} />
+          <WorkLogFlow orders={orders} nastaveni={nastaveni} uzivatele={uzivatele} onSubmit={addWorkEntry} onCreateOrder={createOrderQuick} onClose={() => setShowWorkModal(false)} />
         </Modal>
       )}
 

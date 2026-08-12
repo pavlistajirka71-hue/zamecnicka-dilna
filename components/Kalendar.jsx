@@ -148,21 +148,23 @@ export default function Kalendar({ orders, onOpen }) {
                       onClick={() => onOpen(o)}
                       title={`${o.cislo} — ${o.zakaznik}`}
                       style={{
-                        display: "block",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
                         width: "100%",
                         textAlign: "left",
                         background: s.color,
                         color: "#fff",
                         border: "none",
                         borderRadius: 4,
-                        padding: "3px 6px",
+                        padding: "3px 5px",
                         cursor: "pointer",
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: 700,
-                        lineHeight: 1.35,
+                        lineHeight: 1.25,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        wordBreak: "break-word",
                         boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
                       }}
                     >
