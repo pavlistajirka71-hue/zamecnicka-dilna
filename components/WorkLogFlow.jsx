@@ -75,6 +75,7 @@ export default function WorkLogFlow({ orders, nastaveni, uzivatele, onSubmit, on
         stav: "probiha",
         cena: "",
         termin: "",
+        terminZahajeni: "",
         vytvoreno: todayISO(),
         poznamka: "Založeno rychle při zápisu práce — doplň prosím zbylé údaje.",
         cisloFaktury: "",

@@ -9,6 +9,7 @@ create table if not exists orders (
   stav text not null default 'nova',
   cena numeric default 0,
   termin date,
+  "terminZahajeni" date,
   vytvoreno date default current_date,
   reseni text,
   poznamka text,
@@ -41,6 +42,7 @@ alter table orders add column if not exists telefon text;
 alter table orders add column if not exists email text;
 alter table orders add column if not exists "nadrazenaZakazkaId" text;
 alter table orders add column if not exists "sazbaDph" numeric;
+alter table orders add column if not exists "terminZahajeni" date;
 alter table orders add column if not exists protokol jsonb;
 alter table orders add column if not exists fotky jsonb not null default '[]'::jsonb;
 alter table orders add column if not exists naklady jsonb not null default '[]'::jsonb;

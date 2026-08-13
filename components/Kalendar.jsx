@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { C, FONTS, statusInfo, todayISO, hodinyPodleDne } from "@/lib/theme";
+import { C, FONTS, statusInfo, todayISO, hodinyPodleDne, tydenniDny, planovaneHodinyPodleTydne } from "@/lib/theme";
 import { Button } from "./ui";
 
 const DNY_TYDNE = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
@@ -55,7 +55,39 @@ export default function Kalendar({ orders, onOpen }) {
     return mapa;
   }, [orders]);
 
+  // Termín zahájení výroby — appka ho drží ve vlastní mapě, ať se dá odlišit
+  // jinou barvou od termínu dokončení (obojí se v kalendáři může sejít i na
+  // stejný den u jiných zakázek).
+  const zahajeniPodleDne = useMemo(() => {
+    const mapa = new Map();
+    orders
+      .filter((o) => o.terminZahajeni && o.stav === "probiha")
+      .forEach((o) => {
+        if (!mapa.has(o.terminZahajeni)) mapa.set(o.terminZahajeni, []);
+        mapa.get(o.terminZahajeni).push(o);
+      });
+    return mapa;
+  }, [orders]);
+
   const hodinyDne = useMemo(() => hodinyPodleDne(orders), [orders]);
+  const planTydny = useMemo(() => planovaneHodinyPodleTydne(orders), [orders]);
+
+  // Následujících 8 týdnů (podle pondělí), ať appka ukáže rozumný výhled dopředu,
+  // ne úplně všechno až do nekonečna.
+  const nasledujiciTydny = useMemo(() => {
+    const prvniPondeli = tydenniDny(dnes)[0];
+    const [r, m, d] = prvniPondeli.split("-").map(Number);
+    const start = new Date(r, m - 1, d);
+    const tydny = [];
+    for (let i = 0; i < 8; i++) {
+      const dd = new Date(start);
+      dd.setDate(start.getDate() + i * 7);
+      tydny.push(`${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")}`);
+    }
+    return tydny;
+  }, [dnes]);
+
+  const nejvicHodinTydne = Math.max(1, ...nasledujiciTydny.map((t) => (planTydny.get(t)?.dilna || 0) + (planTydny.get(t)?.montaz || 0)));
 
   const jit = (delta) => {
     let novyMesic = mesicIndex + delta;
@@ -106,9 +138,12 @@ export default function Kalendar({ orders, onOpen }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 4 }}>
         {dny.map(({ dateStr, den, vAktualnimMesici }) => {
           const zakazkyDne = zakazkyPodleDne.get(dateStr) || [];
+          const zahajeniDne = zahajeniPodleDne.get(dateStr) || [];
           const jeDnes = dateStr === dnes;
           const zobrazene = zakazkyDne.slice(0, 3);
           const zbyva = zakazkyDne.length - zobrazene.length;
+          const zobrazeneZahajeni = zahajeniDne.slice(0, 3);
+          const zbyvaZahajeni = zahajeniDne.length - zobrazeneZahajeni.length;
           const hodiny = hodinyDne.get(dateStr);
           return (
             <div
@@ -140,6 +175,36 @@ export default function Kalendar({ orders, onOpen }) {
                 </div>
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                {zobrazeneZahajeni.map((o) => (
+                  <button
+                    key={`z-${o.id}`}
+                    onClick={() => onOpen(o)}
+                    title={`Zahájení výroby — ${o.cislo} — ${o.zakaznik}`}
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      width: "100%",
+                      textAlign: "left",
+                      background: C.steel,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 4,
+                      padding: "3px 5px",
+                      cursor: "pointer",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      lineHeight: 1.25,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      wordBreak: "break-word",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
+                    }}
+                  >
+                    {o.zakaznik}
+                  </button>
+                ))}
+                {zbyvaZahajeni > 0 && <div style={{ fontSize: 11, fontWeight: 600, color: C.inkSoft, paddingLeft: 4 }}>+{zbyvaZahajeni} další</div>}
                 {zobrazene.map((o) => {
                   const s = statusInfo(o.stav);
                   return (
@@ -180,7 +245,51 @@ export default function Kalendar({ orders, onOpen }) {
       </div>
 
       <div style={{ marginTop: 14, fontSize: 11, color: C.inkSoft }}>
-        Barevné štítky = rozpracované zakázky s vyplněným termínem. Číselné štítky (D/M) = odpracované hodiny dílna/montáž ten den, podle výkazu práce.
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: C.steel }} /> zahájení výroby
+        </span>{" "}
+        · <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: C.rust }} /> termín dokončení
+        </span>{" "}
+        (jen rozpracované zakázky). Číselné štítky (D/M) = odpracované hodiny dílna/montáž ten den, podle výkazu práce.
+      </div>
+
+      <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${C.line}` }}>
+        <div style={{ fontFamily: FONTS.display, fontSize: 14, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 4 }}>
+          Plán vytížení — dalších 8 týdnů
+        </div>
+        <div style={{ fontSize: 11, color: C.inkSoft, marginBottom: 12 }}>
+          Plánované hodiny (dílna + montáž z kalkulace) přiřazené podle termínu zahájení výroby. Zakázky bez vyplněného termínu zahájení se sem nepočítají.
+        </div>
+        {nasledujiciTydny.map((pondeli) => {
+          const t = planTydny.get(pondeli) || { dilna: 0, montaz: 0, zakazky: [] };
+          const celkem = t.dilna + t.montaz;
+          const [r, m, d] = pondeli.split("-");
+          return (
+            <div key={pondeli} style={{ marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 3 }}>
+                <span>
+                  Týden od {d}.{m}.
+                </span>
+                <span style={{ fontFamily: FONTS.mono, color: C.inkSoft }}>
+                  {celkem > 0 ? (
+                    <>
+                      D {t.dilna}h · M {t.montaz}h
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </span>
+              </div>
+              {celkem > 0 && (
+                <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", background: C.paper }}>
+                  <div style={{ width: `${(t.dilna / nejvicHodinTydne) * 100}%`, background: C.steel }} />
+                  <div style={{ width: `${(t.montaz / nejvicHodinTydne) * 100}%`, background: C.brass }} />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

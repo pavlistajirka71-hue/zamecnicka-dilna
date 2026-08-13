@@ -33,6 +33,7 @@ export default function OrderForm({ initial, orders, organizace, nadrazenaZakazk
         stav: "nova",
         cena: "",
         termin: "",
+        terminZahajeni: "",
         vytvoreno: todayISO(),
         poznamka: "",
         cisloFaktury: "",
@@ -59,6 +60,7 @@ export default function OrderForm({ initial, orders, organizace, nadrazenaZakazk
       stav: "nova",
       cena: "",
       termin: "",
+      terminZahajeni: "",
       vytvoreno: todayISO(),
       poznamka: "",
       cisloFaktury: "",
@@ -253,6 +255,9 @@ export default function OrderForm({ initial, orders, organizace, nadrazenaZakazk
           <TextInput type="date" value={f.termin} onChange={(e) => set("termin", e.target.value)} />
         </Field>
       </div>
+      <Field label="Termín zahájení výroby (nepovinné)">
+        <TextInput type="date" value={f.terminZahajeni} onChange={(e) => set("terminZahajeni", e.target.value)} style={{ maxWidth: 220 }} />
+      </Field>
 
       <SectionLabel>Fond pracovní (nepovinné — doplní se automaticky z kalkulace)</SectionLabel>
       <div className="field-row">

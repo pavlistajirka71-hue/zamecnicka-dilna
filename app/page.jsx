@@ -315,7 +315,7 @@ export default function HomePage() {
     // Číselné a datumové sloupce v databázi odmítnou prázdný textový řetězec "" —
     // musí být buď vyplněná hodnota, nebo null (nevyplněno).
     const NUMERICKA_POLE = ["cena", "planCasDilna", "planCasMontaz"];
-    const DATUMOVA_POLE = ["termin"];
+    const DATUMOVA_POLE = ["termin", "terminZahajeni"];
     const cistaZakazka = { ...order };
     [...NUMERICKA_POLE, ...DATUMOVA_POLE].forEach((klic) => {
       if (cistaZakazka[klic] === "") cistaZakazka[klic] = null;
@@ -368,7 +368,7 @@ export default function HomePage() {
   // práce) — appka tam nechce najednou přeskočit na detail nové zakázky.
   const createOrderQuick = async (order) => {
     const NUMERICKA_POLE = ["cena", "planCasDilna", "planCasMontaz"];
-    const DATUMOVA_POLE = ["termin"];
+    const DATUMOVA_POLE = ["termin", "terminZahajeni"];
     const cistaZakazka = { ...order };
     [...NUMERICKA_POLE, ...DATUMOVA_POLE].forEach((klic) => {
       if (cistaZakazka[klic] === "") cistaZakazka[klic] = null;
