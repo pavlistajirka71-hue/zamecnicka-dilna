@@ -1077,7 +1077,7 @@ export default function HomePage() {
       )}
 
       {showImportFaktur && (
-        <Modal title="Import faktur přijatých (Flexi)" onClose={() => setShowImportFaktur(false)}>
+        <Modal title="Import faktur přijatých (Flexi)" onClose={() => setShowImportFaktur(false)} zIndex={60}>
           <ImportFakturFlow orders={orders} onImportovat={importovatFaktury} onClose={() => setShowImportFaktur(false)} />
         </Modal>
       )}
