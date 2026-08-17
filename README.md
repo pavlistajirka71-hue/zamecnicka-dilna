@@ -135,7 +135,9 @@ Protože appka zpracovává **každý řádek souboru samostatně** (ne celou fa
 
 **Cena:** appka pozná cenu "za jednotku" (typicky sloupec "Cena za MJ") a sama ji vynásobí množstvím, ať do nákladů nezapíše jen cenu za 1 kus. Appka se snaží najít částku bez DPH — pokud si tím není jistá, v náhledu před importem to výrazně (oranžově) upozorní, ať to zkontroluješ ručně.
 
-Appka před importem vždycky ukáže náhled — co se spárovalo a kam, a co se nepovedlo spárovat. Nespárované je potřeba zapsat ručně přes "Zapsat náklady/účtenky".
+Appka před importem vždycky ukáže náhled — co se spárovalo a kam, a co se nepovedlo spárovat. U nespárovaných jde zakázku vybrat i ručně přímo v tomhle okně (appka nabídne rozklikávací seznam všech zakázek) — co nepřiřadíš, appka při importu zahodí.
+
+**Appka hlídá i duplicity** — pokud zakázka už má náklad se stejným popisem a stejnou částkou (typicky proto, že se stejný soubor omylem naimportoval podruhé), appka to výrazně (oranžově) označí a takovou položku předem nezaškrtne — ty se pak vědomě rozhodneš, jestli ji přesto chceš importovat.
 
 ## Podzakázky
 

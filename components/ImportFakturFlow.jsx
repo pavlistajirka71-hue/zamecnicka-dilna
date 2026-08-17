@@ -2,8 +2,8 @@
 import { useState } from "react";
 import * as XLSX from "xlsx";
 import { Upload, Check, AlertTriangle } from "lucide-react";
-import { C, FONTS, uid, parseFakturyCSV, parseCastku, odhadnoutUdajeFaktury, sparovatFakturySZakazkami } from "@/lib/theme";
-import { Button } from "./ui";
+import { C, FONTS, uid, parseFakturyCSV, sestavitNakladZFaktury, jeMoznaDuplicitaNakladu, odhadnoutUdajeFaktury, sparovatFakturySZakazkami } from "@/lib/theme";
+import { Button, Select } from "./ui";
 
 // Vrátí pole řádků (objekty sloupec -> hodnota) z XLSX souboru — appka na to zjistila,
 // že export z Flexi bývá XLSX, ne CSV, takže to umí přečíst přímo, bez nutnosti
@@ -20,6 +20,9 @@ function parseFakturyXLSX(buffer) {
 export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
   const [zpracovano, setZpracovano] = useState(null); // { sparovane, nesparovane }
   const [vybrane, setVybrane] = useState(new Set());
+  // Ruční přiřazení zakázky u nespárovaných položek — klíč je index v poli
+  // nesparovane, hodnota je id vybrané zakázky (nebo "" když appka má zahodit).
+  const [rucniVyber, setRucniVyber] = useState({});
   const [chyba, setChyba] = useState("");
   const [importuji, setImportuji] = useState(false);
   const [vysledek, setVysledek] = useState(null);
@@ -37,7 +40,17 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
       }
       const vysledekSparovani = sparovatFakturySZakazkami(radky, orders);
       setZpracovano(vysledekSparovani);
-      setVybrane(new Set(vysledekSparovani.sparovane.map((_, i) => i)));
+      // Appka nezaškrtne předem položky, co vypadají jako duplicita už existujícího
+      // nákladu — ať to uživatel vidomě potvrdí, ne že by appka duplicitu tiše
+      // naimportovala jen proto, že byla "spárovaná".
+      const vychoziVyber = vysledekSparovani.sparovane
+        .map(({ order, radek }, i) => {
+          const { popis, castka } = sestavitNakladZFaktury(radek);
+          return jeMoznaDuplicitaNakladu(order, popis, castka) ? null : i;
+        })
+        .filter((i) => i !== null);
+      setVybrane(new Set(vychoziVyber));
+      setRucniVyber({});
     } catch (err) {
       console.error(err);
       setChyba("Soubor se nepovedlo přečíst. Zkus ho exportovat z Flexi znovu.");
@@ -57,21 +70,23 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
     setImportuji(true);
     setChyba("");
     try {
-      const kNaimportovani = zpracovano.sparovane
+      const zeSparovanych = zpracovano.sparovane
         .filter((_, i) => vybrane.has(i))
-        .map(({ order, radek }) => {
-          const udaje = odhadnoutUdajeFaktury(radek);
-          const mnozstviText = udaje.mnozstvi ? `${udaje.mnozstvi}${udaje.jednotka ? ` ${udaje.jednotka}` : ""}` : "";
-          const popisCasti = [udaje.popisPolozky, mnozstviText, udaje.dodavatel ? `Faktura přijatá — ${udaje.dodavatel}` : "Faktura přijatá (Flexi)"];
-          return {
-            order,
-            naklad: {
-              id: uid(),
-              popis: popisCasti.filter(Boolean).join(" — "),
-              castka: parseCastku(udaje.castka),
-            },
-          };
-        });
+        .map(({ order, radek }) => ({ order, naklad: { id: uid(), ...sestavitNakladZFaktury(radek) } }));
+
+      // Ručně dopárované — appka bere jen ty, u kterých byla opravdu vybraná
+      // konkrétní zakázka; zbytek appka bez dalšího ptaní zahodí (uživatel to
+      // takhle výslovně chtěl).
+      const zRucnihoVyberu = zpracovano.nesparovane
+        .map((polozka, i) => ({ polozka, orderId: rucniVyber[i] }))
+        .filter(({ orderId }) => orderId)
+        .map(({ polozka, orderId }) => {
+          const order = orders.find((o) => o.id === orderId);
+          return { order, naklad: { id: uid(), ...sestavitNakladZFaktury(polozka.radek) } };
+        })
+        .filter(({ order }) => order);
+
+      const kNaimportovani = [...zeSparovanych, ...zRucnihoVyberu];
       await onImportovat(kNaimportovani);
       setVysledek({ pocet: kNaimportovani.length });
     } catch (err) {
@@ -80,6 +95,8 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
     }
     setImportuji(false);
   };
+
+  const pocetKImportu = vybrane.size + Object.values(rucniVyber).filter(Boolean).length;
 
   if (vysledek) {
     return (
@@ -140,6 +157,8 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
           </div>
           {zpracovano.sparovane.map(({ order, radek, cislo }, i) => {
             const udaje = odhadnoutUdajeFaktury(radek);
+            const { popis: sestavenyPopis, castka: sestavenaCastka } = sestavitNakladZFaktury(radek);
+            const jeDuplicita = jeMoznaDuplicitaNakladu(order, sestavenyPopis, sestavenaCastka);
             return (
               <label
                 key={i}
@@ -148,7 +167,7 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
                   alignItems: "flex-start",
                   gap: 10,
                   padding: "10px 12px",
-                  border: `1px solid ${C.line}`,
+                  border: `1px solid ${jeDuplicita ? C.rust : C.line}`,
                   borderRadius: 8,
                   marginBottom: 6,
                   fontSize: 13,
@@ -171,6 +190,11 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
                   {!udaje.jeBezDphJiste && udaje.castka && (
                     <div style={{ color: C.rust, fontSize: 11, marginTop: 2 }}>⚠ appka si není jistá, jestli je tahle částka bez DPH — zkontroluj</div>
                   )}
+                  {jeDuplicita && (
+                    <div style={{ color: C.rust, fontSize: 11, marginTop: 2, fontWeight: 600 }}>
+                      ⚠ zakázka už má náklad se stejným popisem a částkou — možná duplicita, appka to proto nezaškrtla předem
+                    </div>
+                  )}
                   <div style={{ fontFamily: FONTS.mono, fontSize: 11, color: C.steel, marginTop: 2 }}>
                     → {cislo} — {order.zakaznik}
                   </div>
@@ -187,14 +211,38 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
             <AlertTriangle size={14} /> Nespárováno ({zpracovano.nesparovane.length})
           </div>
           <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 8 }}>
-            U těchhle appka buď nenašla číslo zakázky, nebo takové číslo v appce neexistuje — zapiš je ručně přes "Zapsat náklady/účtenky".
+            U těchhle appka nenašla (nebo nepoznala) číslo zakázky — vyber ji ručně, nebo nech "Nepřiřazovat" a appka tuhle položku při importu zahodí.
           </div>
-          {zpracovano.nesparovane.map(({ radek, cislo }, i) => {
+          {zpracovano.nesparovane.map((polozka, i) => {
+            const { radek, cislo } = polozka;
             const udaje = odhadnoutUdajeFaktury(radek);
+            const vybranaZakazkaId = rucniVyber[i] || "";
+            const vybranaZakazka = vybranaZakazkaId ? orders.find((o) => o.id === vybranaZakazkaId) : null;
+            const { popis: sestavenyPopis, castka: sestavenaCastka } = sestavitNakladZFaktury(radek);
+            const jeDuplicita = vybranaZakazka ? jeMoznaDuplicitaNakladu(vybranaZakazka, sestavenyPopis, sestavenaCastka) : false;
             return (
-              <div key={i} style={{ padding: "8px 12px", border: `1px solid ${C.line}`, borderRadius: 8, marginBottom: 6, fontSize: 12, color: C.inkSoft }}>
-                {udaje.dodavatel || "(dodavatel neznámý)"} — {udaje.castka ? `${udaje.castka} Kč` : "?"}
-                {cislo ? ` — nalezené číslo "${cislo}" appka nezná` : " — číslo zakázky nenalezeno"}
+              <div key={i} style={{ padding: "10px 12px", border: `1px solid ${jeDuplicita ? C.rust : C.line}`, borderRadius: 8, marginBottom: 6, fontSize: 12 }}>
+                <div style={{ color: C.inkSoft }}>
+                  {udaje.dodavatel || "(dodavatel neznámý)"} — {udaje.castka ? `${udaje.castka} Kč` : "?"}
+                  {cislo ? ` — nalezené číslo "${cislo}" appka nezná` : " — číslo zakázky nenalezeno"}
+                </div>
+                <Select
+                  value={vybranaZakazkaId}
+                  onChange={(e) => setRucniVyber((prev) => ({ ...prev, [i]: e.target.value }))}
+                  style={{ marginTop: 6, fontSize: 12, padding: "6px 8px" }}
+                >
+                  <option value="">Nepřiřazovat (appka zahodí)</option>
+                  {orders.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.cislo} — {o.zakaznik}
+                    </option>
+                  ))}
+                </Select>
+                {jeDuplicita && (
+                  <div style={{ color: C.rust, fontSize: 11, marginTop: 4, fontWeight: 600 }}>
+                    ⚠ vybraná zakázka už má náklad se stejným popisem a částkou — možná duplicita
+                  </div>
+                )}
               </div>
             );
           })}
@@ -207,8 +255,8 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
         <Button variant="ghost" onClick={onClose} type="button">
           Zrušit
         </Button>
-        <Button variant="primary" onClick={potvrditImport} disabled={importuji || vybrane.size === 0} type="button">
-          {importuji ? "Importuji…" : `Naimportovat (${vybrane.size})`}
+        <Button variant="primary" onClick={potvrditImport} disabled={importuji || pocetKImportu === 0} type="button">
+          {importuji ? "Importuji…" : `Naimportovat (${pocetKImportu})`}
         </Button>
       </div>
     </div>
