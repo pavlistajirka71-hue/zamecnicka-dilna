@@ -1,20 +1,36 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { C, FONTS, uid, seedNakladyZKalkulace, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney } from "@/lib/theme";
 import { TextInput, Button, SectionLabel, MiniLabel, iconBtnStyle, Modal } from "./ui";
 import PhotoThumbnail from "./PhotoThumbnail";
 
-export default function NakladyForm({ order, nastaveni, onSave, onClose }) {
+export default function NakladyForm({ order, nastaveni, onSave, onDirtyChange, onClose }) {
   const [radky, setRadky] = useState(() => {
     if (order.naklady && order.naklady.length > 0) return order.naklady;
     const polozky = normalizovatKalkulaci(order.kalkulace);
     return seedNakladyZKalkulace(polozky, nastaveni);
   });
+  const puvodniRadky = useRef(radky);
   const [novyPopis, setNovyPopis] = useState("");
   const [novaCastka, setNovaCastka] = useState("");
   const [saving, setSaving] = useState(false);
   const [viewPhoto, setViewPhoto] = useState(null);
+
+  // Appka rodiči hlásí, jestli jsou v okně neuložené změny — appka to totiž dřív
+  // uměla tiše zahodit (přidáš náklad tlačítkem "+", ale to ho jen připraví do
+  // rozjeté obrazovky, skutečně to uloží až "Uložit náklady" dole). Rodič podle
+  // týhle informace appku před zavřením appky varuje.
+  useEffect(() => {
+    if (onDirtyChange) onDirtyChange(JSON.stringify(radky) !== JSON.stringify(puvodniRadky.current));
+  }, [radky, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      if (onDirtyChange) onDirtyChange(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const vysledek = computeNakladyZakazky({ ...order, naklady: radky }, nastaveni);
 
@@ -128,6 +144,8 @@ export default function NakladyForm({ order, nastaveni, onSave, onClose }) {
             setSaving(true);
             try {
               await onSave(radky);
+              puvodniRadky.current = radky;
+              if (onDirtyChange) onDirtyChange(false);
             } finally {
               setSaving(false);
             }

@@ -99,6 +99,7 @@ export default function HomePage() {
   const [showGoogleDrive, setShowGoogleDrive] = useState(false);
   const [fotkaOrder, setFotkaOrder] = useState(null);
   const [nakladyOrder, setNakladyOrder] = useState(null);
+  const [nakladyNeulozeno, setNakladyNeulozeno] = useState(false);
   const [generatingPdfId, setGeneratingPdfId] = useState(null);
   const [kalkulaceOrder, setKalkulaceOrder] = useState(null);
   const [quoteData, setQuoteData] = useState(null);
@@ -1163,8 +1164,27 @@ export default function HomePage() {
       )}
 
       {nakladyOrder && (
-        <Modal title={`Sledování nákladů — ${nakladyOrder.cislo}`} onClose={() => setNakladyOrder(null)} width={600} zIndex={60}>
-          <NakladyForm order={nakladyOrder} nastaveni={nastaveni} onSave={saveNaklady} onClose={() => setNakladyOrder(null)} />
+        <Modal
+          title={`Sledování nákladů — ${nakladyOrder.cislo}`}
+          onClose={() => {
+            if (nakladyNeulozeno && !window.confirm("Máš tu nezapsaný (neuložený) náklad — opravdu zavřít bez uložení?")) return;
+            setNakladyOrder(null);
+            setNakladyNeulozeno(false);
+          }}
+          width={600}
+          zIndex={60}
+        >
+          <NakladyForm
+            order={nakladyOrder}
+            nastaveni={nastaveni}
+            onSave={saveNaklady}
+            onDirtyChange={setNakladyNeulozeno}
+            onClose={() => {
+              if (nakladyNeulozeno && !window.confirm("Máš tu nezapsaný (neuložený) náklad — opravdu zavřít bez uložení?")) return;
+              setNakladyOrder(null);
+              setNakladyNeulozeno(false);
+            }}
+          />
         </Modal>
       )}
 
@@ -1201,7 +1221,10 @@ export default function HomePage() {
             onOpenPoptavka={() => setPoptavkaOrder(detailOrder)}
             onOpenProtokol={() => setProtokolOrder(detailOrder)}
             onOpenFotka={() => setFotkaOrder(detailOrder)}
-            onOpenNaklady={() => setNakladyOrder(detailOrder)}
+            onOpenNaklady={() => {
+              setNakladyNeulozeno(false);
+              setNakladyOrder(detailOrder);
+            }}
             onEditPrace={editPrace}
             onGeneratePdf={() => generatePdf(detailOrder)}
             generatingPdf={generatingPdfId === detailOrder?.id}

@@ -222,7 +222,14 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
             const jeDuplicita = vybranaZakazka ? jeMoznaDuplicitaNakladu(vybranaZakazka, sestavenyPopis, sestavenaCastka) : false;
             return (
               <div key={i} style={{ padding: "10px 12px", border: `1px solid ${jeDuplicita ? C.rust : C.line}`, borderRadius: 8, marginBottom: 6, fontSize: 12 }}>
-                <div style={{ color: C.inkSoft }}>
+                <div style={{ fontWeight: 600 }}>{udaje.popisPolozky || "(popis položky neznámý)"}</div>
+                {udaje.mnozstvi && (
+                  <div style={{ color: C.inkSoft, fontSize: 11 }}>
+                    {udaje.mnozstvi}
+                    {udaje.jednotka ? ` ${udaje.jednotka}` : ""}
+                  </div>
+                )}
+                <div style={{ color: C.inkSoft, marginTop: 2 }}>
                   {udaje.dodavatel || "(dodavatel neznámý)"} — {udaje.castka ? `${udaje.castka} Kč` : "?"}
                   {cislo ? ` — nalezené číslo "${cislo}" appka nezná` : " — číslo zakázky nenalezeno"}
                 </div>
