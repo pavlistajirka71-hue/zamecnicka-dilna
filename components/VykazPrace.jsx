@@ -48,6 +48,11 @@ export default function VykazPrace({ orders, onOpenOrder }) {
     setMesicIndex(m);
     setRok(r);
     setVybranyDen(null);
+    // Appka dřív při přepnutí měsíce nahoře zapomínala posunout i týdenní pruh
+    // dole (ten se řídí samostatnou "kotvou") — pruh pak zůstával viset na
+    // původním týdnu, i když čísla nahoře už ukazovala jiný měsíc. Appka teď
+    // pruh pošle na 1. den nově zvoleného měsíce.
+    setKotva(`${r}-${String(m + 1).padStart(2, "0")}-01`);
   };
 
   const jitTyden = (delta) => {
