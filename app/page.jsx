@@ -404,6 +404,7 @@ export default function HomePage() {
       throw error;
     }
     setOrders((prev) => prev.map((o) => (o.id === data.id ? data : o)));
+    if (detailOrder && detailOrder.id === data.id) setDetailOrder(data);
     setShowWorkModal(false);
   };
 
@@ -436,6 +437,17 @@ export default function HomePage() {
         const mapa = new Map(vysledky.map((v) => [v.data.id, v.data]));
         return prev.map((o) => mapa.get(o.id) || o);
       });
+      // KRITICKÉ: appka dřív zapomínala obnovit i otevřený detail zakázky
+      // (detailOrder) — pokud appka detail měla zrovna otevřený (nebo appka v
+      // detailu zůstala "zastaralá" verze), následná rychlá změna stavu by ho
+      // uložila přes tenhle starý, ještě-bez-nákladu stav a náklady by appka
+      // ztratila. Appka teď detail obnoví hned tady, ne až spoléhá na to, že to
+      // stihne realtime.
+      setDetailOrder((cur) => {
+        if (!cur) return cur;
+        const nalezeny = vysledky.find((v) => v.data.id === cur.id);
+        return nalezeny ? nalezeny.data : cur;
+      });
       setShowReceiptModal(false);
     } catch (error) {
       console.error(error);
@@ -466,6 +478,13 @@ export default function HomePage() {
       setOrders((prev) => {
         const mapa = new Map(vysledky.map((v) => [v.data.id, v.data]));
         return prev.map((o) => mapa.get(o.id) || o);
+      });
+      // Appka opravdu STEJNÝ důvod — appka dřív zapomínala obnovit otevřený
+      // detail zakázky, viz podrobný komentář u zapsatNaklady výše.
+      setDetailOrder((cur) => {
+        if (!cur) return cur;
+        const nalezeny = vysledky.find((v) => v.data.id === cur.id);
+        return nalezeny ? nalezeny.data : cur;
       });
     } catch (error) {
       console.error(error);
@@ -563,6 +582,11 @@ export default function HomePage() {
     setOrders((prev) => {
       const mapa = new Map(vysledky.map((v) => [v.data.id, v.data]));
       return prev.map((o) => mapa.get(o.id) || o);
+    });
+    setDetailOrder((cur) => {
+      if (!cur) return cur;
+      const nalezeny = vysledky.find((v) => v.data.id === cur.id);
+      return nalezeny ? nalezeny.data : cur;
     });
     return { presunuto, zakazek: kMigraci.length };
   };
