@@ -7,12 +7,16 @@ import { Button } from "./ui";
 const NAZVY_MESICU = ["Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"];
 const DNY_TYDNE = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
 
-export default function VykazPrace({ orders, onOpenOrder }) {
+export default function VykazPrace({ orders, onOpenOrder, initialDen }) {
   const dnes = todayISO();
-  const [rok, setRok] = useState(Number(dnes.slice(0, 4)));
-  const [mesicIndex, setMesicIndex] = useState(Number(dnes.slice(5, 7)) - 1);
-  const [kotva, setKotva] = useState(dnes); // den, kolem kterého se ukazuje týdenní pruh
-  const [vybranyDen, setVybranyDen] = useState(null); // null = ukazují se zakázky za celý měsíc
+  // Appka umí appku otevřít rovnou na konkrétním dni (appka to používá, když se
+  // sem appka dostane kliknutím na odznak odpracovaných hodin v kalendáři) —
+  // jinak appka jako dřív začíná na dnešku, bez vybraného konkrétního dne.
+  const pocatecniDen = initialDen || dnes;
+  const [rok, setRok] = useState(Number(pocatecniDen.slice(0, 4)));
+  const [mesicIndex, setMesicIndex] = useState(Number(pocatecniDen.slice(5, 7)) - 1);
+  const [kotva, setKotva] = useState(pocatecniDen); // den, kolem kterého se ukazuje týdenní pruh
+  const [vybranyDen, setVybranyDen] = useState(initialDen || null); // null = ukazují se zakázky za celý měsíc
   const [rozbaleneId, setRozbaleneId] = useState(null);
 
   const vsechnyZaznamy = useMemo(() => vsechnyZaznamyPrace(orders), [orders]);

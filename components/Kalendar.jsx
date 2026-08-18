@@ -37,7 +37,7 @@ function mesicniMrizka(rok, mesicIndex) {
   return dny;
 }
 
-export default function Kalendar({ orders, onOpen }) {
+export default function Kalendar({ orders, onOpen, onOpenVykaz }) {
   const dnes = todayISO();
   const [rok, setRok] = useState(Number(dnes.slice(0, 4)));
   const [mesicIndex, setMesicIndex] = useState(Number(dnes.slice(5, 7)) - 1);
@@ -163,14 +163,44 @@ export default function Kalendar({ orders, onOpen }) {
               {hodiny && (hodiny.dilna > 0 || hodiny.montaz > 0) && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginBottom: 3 }}>
                   {hodiny.dilna > 0 && (
-                    <span style={{ fontSize: 10, fontFamily: FONTS.mono, fontWeight: 700, color: "#fff", background: C.steel, borderRadius: 3, padding: "1px 4px" }}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenVykaz && onOpenVykaz(dateStr)}
+                      title={`Otevřít výkaz práce — ${dateStr}`}
+                      style={{
+                        fontSize: 10,
+                        fontFamily: FONTS.mono,
+                        fontWeight: 700,
+                        color: "#fff",
+                        background: C.steel,
+                        border: "none",
+                        borderRadius: 3,
+                        padding: "1px 4px",
+                        cursor: onOpenVykaz ? "pointer" : "default",
+                      }}
+                    >
                       D {hodiny.dilna}h
-                    </span>
+                    </button>
                   )}
                   {hodiny.montaz > 0 && (
-                    <span style={{ fontSize: 10, fontFamily: FONTS.mono, fontWeight: 700, color: "#fff", background: C.brass, borderRadius: 3, padding: "1px 4px" }}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenVykaz && onOpenVykaz(dateStr)}
+                      title={`Otevřít výkaz práce — ${dateStr}`}
+                      style={{
+                        fontSize: 10,
+                        fontFamily: FONTS.mono,
+                        fontWeight: 700,
+                        color: "#fff",
+                        background: C.brass,
+                        border: "none",
+                        borderRadius: 3,
+                        padding: "1px 4px",
+                        cursor: onOpenVykaz ? "pointer" : "default",
+                      }}
+                    >
                       M {hodiny.montaz}h
-                    </span>
+                    </button>
                   )}
                 </div>
               )}
@@ -251,7 +281,8 @@ export default function Kalendar({ orders, onOpen }) {
         · <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: C.rust }} /> termín dokončení
         </span>{" "}
-        (jen rozpracované zakázky). Číselné štítky (D/M) = odpracované hodiny dílna/montáž ten den, podle výkazu práce.
+        (jen rozpracované zakázky). Číselné štítky (D/M) = odpracované hodiny dílna/montáž ten den, podle výkazu práce — klikni na ně pro otevření
+        toho dne ve výkazu práce.
       </div>
 
       <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${C.line}` }}>

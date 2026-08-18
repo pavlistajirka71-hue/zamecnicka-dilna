@@ -76,6 +76,7 @@ export default function HomePage() {
   const [organizace, setOrganizace] = useState([]);
 
   const [tab, setTab] = useState("prehled");
+  const [vykazInitialDen, setVykazInitialDen] = useState(null);
   const [search, setSearch] = useState("");
   const [filterStav, setFilterStav] = useState("vse");
   const [zakazkyView, setZakazkyView] = useState("seznam");
@@ -791,7 +792,10 @@ export default function HomePage() {
           return (
             <button
               key={t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => {
+                if (t.key === "vykaz") setVykazInitialDen(null);
+                setTab(t.key);
+              }}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -1029,8 +1033,17 @@ export default function HomePage() {
           </div>
         )}
 
-        {tab === "kalendar" && <Kalendar orders={orders} onOpen={setDetailOrder} />}
-        {tab === "vykaz" && <VykazPrace orders={orders} onOpenOrder={setDetailOrder} />}
+        {tab === "kalendar" && (
+          <Kalendar
+            orders={orders}
+            onOpen={setDetailOrder}
+            onOpenVykaz={(datum) => {
+              setVykazInitialDen(datum);
+              setTab("vykaz");
+            }}
+          />
+        )}
+        {tab === "vykaz" && <VykazPrace orders={orders} onOpenOrder={setDetailOrder} initialDen={vykazInitialDen} />}
       </div>
 
       {showOrderForm && (
