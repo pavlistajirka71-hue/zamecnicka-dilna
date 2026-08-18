@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Users, ArrowRightLeft, Trash2, Plus, Upload, X } from "lucide-react";
+import { C } from "@/lib/theme";
 import { Field, TextInput, TextArea, Select, Button, SectionLabel, Modal } from "./ui";
 import { useSignedUrl } from "./PhotoThumbnail";
 import { nahratFotku } from "@/lib/uploadClient";
@@ -67,7 +68,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
 
   return (
     <div>
-      <SectionLabel>Sazby za práci</SectionLabel>
+      <SectionLabel>Sazby za práci — co se počítá zákazníkovi (kalkulace, nabídka)</SectionLabel>
       <div className="field-row">
         <Field label="Sazba dílna (Kč/h)">
           <TextInput type="number" value={f.sazbaDilna} onChange={(e) => set("sazbaDilna", e.target.value)} />
@@ -76,6 +77,21 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
           <TextInput type="number" value={f.sazbaMontaz} onChange={(e) => set("sazbaMontaz", e.target.value)} />
         </Field>
       </div>
+
+      <SectionLabel>Nákladová sazba — co appku skutečně stojí hodina práce (Vyhodnocení zakázky)</SectionLabel>
+      <div style={{ fontSize: 11, color: C.inkSoft, marginTop: -4, marginBottom: 10 }}>
+        Tahle sazba appka NEUKAZUJE zákazníkovi — používá se jen appka pro appku skutečného zisku a marže na zakázce (appka rozdíl mezi cenou appce a
+        tím, co appku odpracovaná hodina reálně stojí).
+      </div>
+      <div className="field-row">
+        <Field label="Nákladová sazba dílna (Kč/h)">
+          <TextInput type="number" value={f.nakladovaSazbaDilna} onChange={(e) => set("nakladovaSazbaDilna", e.target.value)} />
+        </Field>
+        <Field label="Nákladová sazba montáž (Kč/h)">
+          <TextInput type="number" value={f.nakladovaSazbaMontaz} onChange={(e) => set("nakladovaSazbaMontaz", e.target.value)} />
+        </Field>
+      </div>
+
       <SectionLabel>Kooperace</SectionLabel>
       <div className="field-row">
         <Field label="Zinkování (Kč/kg)">

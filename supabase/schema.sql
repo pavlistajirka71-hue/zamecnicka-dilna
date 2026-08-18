@@ -53,6 +53,8 @@ create table if not exists nastaveni (
   id int primary key default 1,
   "sazbaDilna" numeric default 550,
   "sazbaMontaz" numeric default 650,
+  "nakladovaSazbaDilna" numeric default 500,
+  "nakladovaSazbaMontaz" numeric default 400,
   "cenaZinkovani" numeric default 23,
   "cenaLakovani" numeric default 900,
   "zaokrouhleniNa" numeric default 10,
@@ -79,6 +81,8 @@ alter table nastaveni add column if not exists "firmaDic" text;
 alter table nastaveni add column if not exists "firmaEmail" text;
 alter table nastaveni add column if not exists "firmaLogoPath" text;
 alter table nastaveni add column if not exists "podminkyNabidky" text;
+alter table nastaveni add column if not exists "nakladovaSazbaDilna" numeric default 500;
+alter table nastaveni add column if not exists "nakladovaSazbaMontaz" numeric default 400;
 
 -- 3) Historie / katalog materiálů (pro našeptávač v kalkulaci a správu v appce)
 create table if not exists material_history (
