@@ -325,6 +325,64 @@ export default function HomePage() {
     if (error) console.error("Uložení organizace se nepovedlo:", error);
   };
 
+  // Appka POUZE mění stav zakázky — na rozdíl od saveOrder appka do appky pošle
+  // JEN pole "stav", nikdy celý appka objekt appky. I kdyby appka detail zakázky
+  // (detailOrder) byl v appce sebeméně zastaralý, appka funkce ho appka NEMŮŽE
+  // přepsat, protože appka do appky appky vůbec nepatří. Appka "Rychlá změna
+  // stavu" appku appku VÝHRADNĚ tuhle appku appky, ne appku saveOrder.
+  const zmenitStavZakazky = async (order, novyStav) => {
+    const predchoziZakazka = orders.find((o) => o.id === order.id);
+    if (predchoziZakazka) {
+      const optimisticky = { ...predchoziZakazka, stav: novyStav };
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? optimisticky : o)));
+      setDetailOrder((prev) => (prev && prev.id === order.id ? optimisticky : prev));
+    }
+    const { data, error } = await supabase.from("orders").update({ stav: novyStav }).eq("id", order.id).select().single();
+    if (error) {
+      console.error(error);
+      setGlobalError("Změnu stavu se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
+      if (predchoziZakazka) {
+        setOrders((prev) => prev.map((o) => (o.id === predchoziZakazka.id ? predchoziZakazka : o)));
+        setDetailOrder((prev) => (prev && prev.id === predchoziZakazka.id ? predchoziZakazka : prev));
+      }
+      throw error;
+    }
+    setOrders((prev) => prev.map((o) => (o.id === data.id ? data : o)));
+    setDetailOrder((prev) => (prev && prev.id === data.id ? data : prev));
+    const CIL_STAVY_PRO_PDF = ["hotovo", "fakturovano"];
+    if (CIL_STAVY_PRO_PDF.includes(data.stav) && predchoziZakazka?.stav !== data.stav) {
+      generatePdf(data).catch(() => {});
+    }
+    return data;
+  };
+
+  // Obecná appka pro jakoukoliv DROBNOU úpravu pole zakázky (appka jen pár
+  // konkrétních polí, ne celý objekt) — appka to používá appka "Materiál
+  // objednán/neobjednán" a jakékoliv podobné rychlé přepínače appky. Appka
+  // STEJNÝ princip jako appka zmenitStavZakazky výše: appka nikdy nepošle pole
+  // naklady/prace/kalkulace, takže je appka fyzicky nemůže přepsat.
+  const aktualizovatDilciPole = async (order, patch) => {
+    const predchoziZakazka = orders.find((o) => o.id === order.id);
+    if (predchoziZakazka) {
+      const optimisticky = { ...predchoziZakazka, ...patch };
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? optimisticky : o)));
+      setDetailOrder((prev) => (prev && prev.id === order.id ? optimisticky : prev));
+    }
+    const { data, error } = await supabase.from("orders").update(patch).eq("id", order.id).select().single();
+    if (error) {
+      console.error(error);
+      setGlobalError("Uložení se nepovedlo. Zkontroluj připojení a zkus to znovu.");
+      if (predchoziZakazka) {
+        setOrders((prev) => prev.map((o) => (o.id === predchoziZakazka.id ? predchoziZakazka : o)));
+        setDetailOrder((prev) => (prev && prev.id === predchoziZakazka.id ? predchoziZakazka : prev));
+      }
+      throw error;
+    }
+    setOrders((prev) => prev.map((o) => (o.id === data.id ? data : o)));
+    setDetailOrder((prev) => (prev && prev.id === data.id ? data : prev));
+    return data;
+  };
+
   const saveOrder = async (order) => {
     // Číselné a datumové sloupce v databázi odmítnou prázdný textový řetězec "" —
     // musí být buď vyplněná hodnota, nebo null (nevyplněno).
@@ -1020,7 +1078,7 @@ export default function HomePage() {
             </div>
 
             {zakazkyView === "nastenka" ? (
-              <Nastenka orders={filteredOrders} onOpen={setDetailOrder} onChangeStatus={(o, stav) => saveOrder({ ...o, stav })} />
+              <Nastenka orders={filteredOrders} onOpen={setDetailOrder} onChangeStatus={(o, stav) => zmenitStavZakazky(o, stav)} />
             ) : filteredOrders.length === 0 ? (
               <div style={{ textAlign: "center", padding: 40, color: C.inkSoft }}>Žádné zakázky neodpovídají filtru. Založ novou zakázku tlačítkem výše.</div>
             ) : (
@@ -1245,6 +1303,8 @@ export default function HomePage() {
             nastaveni={nastaveni}
             mojeRole={mojeRole}
             onSave={saveOrder}
+            onZmenaStavu={zmenitStavZakazky}
+            onZmenitDilciPole={aktualizovatDilciPole}
             onDelete={deleteOrder}
             onEdit={() => {
               setEditingOrder(detailOrder);

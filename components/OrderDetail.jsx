@@ -33,6 +33,8 @@ export default function OrderDetail({
   nastaveni,
   mojeRole,
   onSave,
+  onZmenaStavu,
+  onZmenitDilciPole,
   onDelete,
   onEdit,
   onOpenKalkulace,
@@ -364,14 +366,14 @@ export default function OrderDetail({
                   </Button>
                   {order.materialObjednano ? (
                     <button
-                      onClick={() => onSave({ ...order, materialObjednano: false, materialObjednanoDatum: null })}
+                      onClick={() => onZmenitDilciPole(order, { materialObjednano: false, materialObjednanoDatum: null })}
                       style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: C.moss, fontSize: 13 }}
                     >
                       <CheckCircle2 size={16} /> Objednáno {order.materialObjednanoDatum ? `(${fmtDate(order.materialObjednanoDatum)})` : ""} — zrušit
                     </button>
                   ) : (
                     <button
-                      onClick={() => onSave({ ...order, materialObjednano: true, materialObjednanoDatum: new Date().toISOString().slice(0, 10) })}
+                      onClick={() => onZmenitDilciPole(order, { materialObjednano: true, materialObjednanoDatum: new Date().toISOString().slice(0, 10) })}
                       style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${C.line}`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: C.inkSoft, fontSize: 13 }}
                     >
                       Označit jako objednané u dodavatele
@@ -651,7 +653,7 @@ export default function OrderDetail({
           {STATUSES.map((s) => (
             <button
               key={s.key}
-              onClick={() => onSave({ ...order, stav: s.key })}
+              onClick={() => onZmenaStavu(order, s.key)}
               style={{
                 fontFamily: FONTS.display,
                 textTransform: "uppercase",
