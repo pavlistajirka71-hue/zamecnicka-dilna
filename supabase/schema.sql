@@ -33,6 +33,18 @@ create table if not exists orders (
   archivy jsonb not null default '[]'::jsonb,
   created_at timestamptz default now()
 );
+
+-- KRITICKÉ: appka do databáze posílá jen ZMĚNĚNÁ pole (např. jen "stav"), ale
+-- velká jsonb pole (naklady, prace, kalkulace...) Postgres při přesažení určité
+-- velikosti ukládá zvlášť ("TOAST") a při nezměněné hodnotě je v logu změn
+-- (WAL) může zaznamenat jen jako "beze změny", ne s jejich skutečným obsahem.
+-- Bez REPLICA IDENTITY FULL pak appce Realtime posílá "payload.new" s
+-- neúplnými daty — pole naklady/prace v něm schází, appka to na obrazovce
+-- okamžitě ukáže jako prázdné, i když v databázi je vše v pořádku. Skutečná
+-- databázová query (SELECT) tenhle problém nemá — postihuje to jen ten "živý"
+-- update přes appkový Realtime kanál.
+alter table orders replica identity full;
+
 -- Pokud tabulka orders už existuje ze starší verze appky bez těchto sloupců:
 alter table orders add column if not exists "materialObjednano" boolean default false;
 alter table orders add column if not exists "materialObjednanoDatum" date;

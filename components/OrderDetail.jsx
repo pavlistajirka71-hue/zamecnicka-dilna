@@ -65,6 +65,11 @@ export default function OrderDetail({
     ...(jeHlavniZakazka ? [{ key: "podzakazky", label: `Podzakázky${podzakazky.length ? ` (${podzakazky.length})` : ""}` }] : []),
   ];
   const [tab, setTab] = useState("prace");
+  // Appka blokuje rychlé opakované klikání na tlačítka stavu — dokud předchozí
+  // požadavek nedoběhne, appka neposílá žádný další. Bez tohohle by dvě rychlé
+  // kliknutí za sebou mohly poslat dva souběžné požadavky, které by se mohly
+  // navzájem přepsat v nesprávném pořadí.
+  const [menimStav, setMenimStav] = useState(false);
   const [editujiciPrace, setEditujiciPrace] = useState(null);
   const [praceForm, setPraceForm] = useState({ datum: "", typ: "dilna", hodiny: "", pracovnik: "", popis: "" });
   const polozkyKalkulace = normalizovatKalkulaci(order.kalkulace);
@@ -653,7 +658,15 @@ export default function OrderDetail({
           {STATUSES.map((s) => (
             <button
               key={s.key}
-              onClick={() => onZmenaStavu(order, s.key)}
+              disabled={menimStav || order.stav === s.key}
+              onClick={async () => {
+                setMenimStav(true);
+                try {
+                  await onZmenaStavu(order, s.key);
+                } finally {
+                  setMenimStav(false);
+                }
+              }}
               style={{
                 fontFamily: FONTS.display,
                 textTransform: "uppercase",
@@ -664,7 +677,8 @@ export default function OrderDetail({
                 border: `1.5px solid ${s.color}`,
                 background: order.stav === s.key ? s.color : "transparent",
                 color: order.stav === s.key ? "#fff" : s.color,
-                cursor: "pointer",
+                cursor: menimStav || order.stav === s.key ? "default" : "pointer",
+                opacity: menimStav && order.stav !== s.key ? 0.5 : 1,
               }}
             >
               {s.label}

@@ -195,11 +195,11 @@ export default function HomePage() {
     setMaterialHistory(historyRes.data || []);
     setOrganizace(organizaceRes.data || []);
     setOfflineData(false);
-    // Appka appka i případně otevřené detaily zakázek (kdyby appka byla otevřená
-    // zrovna ve chvíli, kdy se appka celá znovu načetla, třeba po obnově ze
-    // zálohy) — jinak by appka mohla zůstat "zastaralá" a při dalším uložení by
-    // appka přepsala právě obnovená data zpátky tou starou verzí (stejná appka
-    // chyba, co appka appka opravila jinde).
+    // Appka aktualizuje i případně otevřené detaily zakázek (kdyby appka byla
+    // otevřená zrovna ve chvíli, kdy se appka celá znovu načetla, třeba po
+    // obnově ze zálohy) — jinak by appka mohla zůstat "zastaralá" a při
+    // dalším uložení by přepsala právě obnovená data zpátky tou starou verzí
+    // (stejná chyba, co jsme opravili jinde).
     const najitAktualni = (cur) => (cur ? noveOrders.find((o) => o.id === cur.id) || null : cur);
     setDetailOrder(najitAktualni);
     setKalkulaceOrder(najitAktualni);
@@ -264,20 +264,27 @@ export default function HomePage() {
     const channel = supabase
       .channel("orders-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
+        // Appka SLUČUJE (ne přepisuje) — pojistka pro případ, že by appka
+        // "payload.new" appka Realtime kanálu neobsahovala úplně všechna pole
+        // (typicky velká jsonb pole appka TOAST, viz "replica identity full" v
+        // schema.sql). Sloučení appka zajistí, že chybějící pole v appce nikdy
+        // nepřepíší appku existující hodnotu appka na appku/prázdno.
+        const slouzit = (stara) => (stara ? { ...stara, ...payload.new } : payload.new);
         setOrders((prev) => {
           if (payload.eventType === "DELETE") {
             return prev.filter((o) => o.id !== payload.old.id);
           }
           const row = payload.new;
-          const exists = prev.some((o) => o.id === row.id);
-          return exists ? prev.map((o) => (o.id === row.id ? row : o)) : [row, ...prev];
+          const existujici = prev.find((o) => o.id === row.id);
+          const sloucena = slouzit(existujici);
+          return existujici ? prev.map((o) => (o.id === row.id ? sloucena : o)) : [sloucena, ...prev];
         });
         // Keep any open detail/kalkulace/protokol modal in sync if it's the row that changed
         // (e.g. a customer signing remotely via the public link while a teammate has it open).
-        setDetailOrder((cur) => (cur && payload.new && cur.id === payload.new.id ? payload.new : cur));
-        setKalkulaceOrder((cur) => (cur && payload.new && cur.id === payload.new.id ? payload.new : cur));
-        setProtokolOrder((cur) => (cur && payload.new && cur.id === payload.new.id ? payload.new : cur));
-        setNakladyOrder((cur) => (cur && payload.new && cur.id === payload.new.id ? payload.new : cur));
+        setDetailOrder((cur) => (cur && payload.new && cur.id === payload.new.id ? slouzit(cur) : cur));
+        setKalkulaceOrder((cur) => (cur && payload.new && cur.id === payload.new.id ? slouzit(cur) : cur));
+        setProtokolOrder((cur) => (cur && payload.new && cur.id === payload.new.id ? slouzit(cur) : cur));
+        setNakladyOrder((cur) => (cur && payload.new && cur.id === payload.new.id ? slouzit(cur) : cur));
       })
       .subscribe();
     return () => {
@@ -325,11 +332,11 @@ export default function HomePage() {
     if (error) console.error("Uložení organizace se nepovedlo:", error);
   };
 
-  // Appka POUZE mění stav zakázky — na rozdíl od saveOrder appka do appky pošle
-  // JEN pole "stav", nikdy celý appka objekt appky. I kdyby appka detail zakázky
-  // (detailOrder) byl v appce sebeméně zastaralý, appka funkce ho appka NEMŮŽE
-  // přepsat, protože appka do appky appky vůbec nepatří. Appka "Rychlá změna
-  // stavu" appku appku VÝHRADNĚ tuhle appku appky, ne appku saveOrder.
+  // Appka POUZE mění stav zakázky — na rozdíl od saveOrder tahle funkce do
+  // databáze pošle JEN pole "stav", nikdy celý objekt zakázky. I kdyby detail
+  // zakázky (detailOrder) byl v prohlížeči sebeméně zastaralý, tahle funkce ho
+  // NEMŮŽE přepsat, protože pole naklady/prace/kalkulace do zápisu vůbec
+  // nepatří. Appka "Rychlá změna stavu" volá výhradně tuhle funkci, ne saveOrder.
   const zmenitStavZakazky = async (order, novyStav) => {
     const predchoziZakazka = orders.find((o) => o.id === order.id);
     if (predchoziZakazka) {
