@@ -189,11 +189,23 @@ export default function HomePage() {
       supabase.from("material_history").select("*"),
       supabase.from("organizace").select("*"),
     ]);
-    setOrders(ordersRes.data || []);
+    const noveOrders = ordersRes.data || [];
+    setOrders(noveOrders);
     if (nastaveniRes.data) setNastaveni({ ...DEFAULT_NASTAVENI, ...nastaveniRes.data });
     setMaterialHistory(historyRes.data || []);
     setOrganizace(organizaceRes.data || []);
     setOfflineData(false);
+    // Appka appka i případně otevřené detaily zakázek (kdyby appka byla otevřená
+    // zrovna ve chvíli, kdy se appka celá znovu načetla, třeba po obnově ze
+    // zálohy) — jinak by appka mohla zůstat "zastaralá" a při dalším uložení by
+    // appka přepsala právě obnovená data zpátky tou starou verzí (stejná appka
+    // chyba, co appka appka opravila jinde).
+    const najitAktualni = (cur) => (cur ? noveOrders.find((o) => o.id === cur.id) || null : cur);
+    setDetailOrder(najitAktualni);
+    setKalkulaceOrder(najitAktualni);
+    setProtokolOrder(najitAktualni);
+    setFotkaOrder(najitAktualni);
+    setNakladyOrder(najitAktualni);
   };
 
   useEffect(() => {
