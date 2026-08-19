@@ -69,10 +69,18 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
   };
 
   const saveDetails = async () => {
+    if (jePodepsano) {
+      const potvrzeno = window.confirm(
+        "Tohle je už PODEPSANÝ protokol. Úprava údajů se do dokumentu zapíše viditelně (s datem opravy), ať je jasné, že k ní došlo až po podpisu. Pokračovat?"
+      );
+      if (!potvrzeno) return;
+    }
     setSaving(true);
     setError("");
     try {
-      await onSave(order, protokol);
+      const next = jePodepsano ? { ...protokol, opravaUdajuDatum: todayISO() } : protokol;
+      await onSave(order, next);
+      if (jePodepsano) setProtokol(next);
     } catch (e) {
       setError("Uložení se nepovedlo, zkus to znovu.");
     }
@@ -125,32 +133,41 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
         </div>
       )}
 
+      <SectionLabel>Údaje protokolu</SectionLabel>
+      {jePodepsano && (
+        <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 10 }}>
+          Protokol je už podepsaný. Údaje jde pořád opravit (třeba překlep), ale oprava se do dokumentu zapíše viditelně, s datem opravy — samotný podpis
+          samotný tím nezruší.
+        </div>
+      )}
+      <Field label="Předmět díla (co se předává)">
+        <TextArea value={protokol.popisDila} onChange={(e) => set("popisDila", e.target.value)} />
+      </Field>
+      <div className="field-row">
+        <Field label="Datum předání">
+          <TextInput type="date" value={protokol.datumPredani} onChange={(e) => set("datumPredani", e.target.value)} />
+        </Field>
+        <Field label="Místo předání (nepovinné)">
+          <TextInput value={protokol.mistoPredani} onChange={(e) => set("mistoPredani", e.target.value)} />
+        </Field>
+      </div>
+      <div className="field-row">
+        <Field label="Jméno přebírající osoby">
+          <TextInput value={protokol.jmenoPrebirajiciho} onChange={(e) => set("jmenoPrebirajiciho", e.target.value)} />
+        </Field>
+        <Field label="Záruční doba (měsíců, nepovinné)">
+          <TextInput type="number" value={protokol.zarucniDobaMesicu} onChange={(e) => set("zarucniDobaMesicu", e.target.value)} />
+        </Field>
+      </div>
+      <Field label="Výhrady / poznámky (nepovinné — necháš prázdné, pokud je dílo bez vad)">
+        <TextArea value={protokol.vyhrady} onChange={(e) => set("vyhrady", e.target.value)} />
+      </Field>
+      <Button variant="ghost" onClick={saveDetails} disabled={saving} style={{ marginBottom: 20 }}>
+        {saving ? "Ukládám…" : "Uložit údaje protokolu"}
+      </Button>
+
       {!jePodepsano && (
         <>
-          <SectionLabel>Údaje protokolu</SectionLabel>
-          <div className="field-row">
-            <Field label="Datum předání">
-              <TextInput type="date" value={protokol.datumPredani} onChange={(e) => set("datumPredani", e.target.value)} />
-            </Field>
-            <Field label="Místo předání (nepovinné)">
-              <TextInput value={protokol.mistoPredani} onChange={(e) => set("mistoPredani", e.target.value)} />
-            </Field>
-          </div>
-          <div className="field-row">
-            <Field label="Jméno přebírající osoby">
-              <TextInput value={protokol.jmenoPrebirajiciho} onChange={(e) => set("jmenoPrebirajiciho", e.target.value)} />
-            </Field>
-            <Field label="Záruční doba (měsíců, nepovinné)">
-              <TextInput type="number" value={protokol.zarucniDobaMesicu} onChange={(e) => set("zarucniDobaMesicu", e.target.value)} />
-            </Field>
-          </div>
-          <Field label="Výhrady / poznámky (nepovinné — necháš prázdné, pokud je dílo bez vad)">
-            <TextArea value={protokol.vyhrady} onChange={(e) => set("vyhrady", e.target.value)} />
-          </Field>
-          <Button variant="ghost" onClick={saveDetails} disabled={saving} style={{ marginBottom: 20 }}>
-            {saving ? "Ukládám…" : "Uložit údaje protokolu"}
-          </Button>
-
           <SectionLabel>Podpis přebírajícího</SectionLabel>
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
             <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: 14 }}>

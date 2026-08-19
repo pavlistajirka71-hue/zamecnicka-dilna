@@ -63,8 +63,13 @@ export default function ProtokolContent({ protokol }) {
       )}
 
       {protokol.opravaZhotoviteleDatum && (
-        <div style={{ fontSize: 11, color: C.inkSoft, fontStyle: "italic", marginBottom: 20 }}>
+        <div style={{ fontSize: 11, color: C.inkSoft, fontStyle: "italic", marginBottom: 8 }}>
           Údaje o zhotoviteli byly opraveny dne {fmtDate(protokol.opravaZhotoviteleDatum)} — po datu podpisu.
+        </div>
+      )}
+      {protokol.opravaUdajuDatum && (
+        <div style={{ fontSize: 11, color: C.inkSoft, fontStyle: "italic", marginBottom: 20 }}>
+          Údaje protokolu byly opraveny dne {fmtDate(protokol.opravaUdajuDatum)} — po datu podpisu.
         </div>
       )}
     </div>

@@ -16,6 +16,7 @@ function safeProtokol(protokol, signatureUrl) {
     zarucniDobaMesicu: protokol.zarucniDobaMesicu,
     zhotovitel: protokol.zhotovitel,
     opravaZhotoviteleDatum: protokol.opravaZhotoviteleDatum,
+    opravaUdajuDatum: protokol.opravaUdajuDatum,
     podpisDatum: protokol.podpisDatum,
     stav: protokol.stav,
     signatureUrl,
