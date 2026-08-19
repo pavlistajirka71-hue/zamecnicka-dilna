@@ -75,9 +75,13 @@ export default function ProtokolContent({ protokol, fotky }) {
             Fotodokumentace k protokolu
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-            {fotky.map((f) => (
-              <ProtokolFotka key={f.id} path={f.path} />
-            ))}
+            {fotky.map((f) =>
+              f.url ? (
+                <img key={f.id} src={f.url} alt="Fotka k protokolu" referrerPolicy="no-referrer" style={{ width: "100%", borderRadius: 6, border: `1px solid ${C.line}`, display: "block" }} />
+              ) : (
+                <ProtokolFotka key={f.id} path={f.path} />
+              )
+            )}
           </div>
         </div>
       )}

@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { nahratFotkuNaServeru } from "@/lib/photoUpload";
 import { nazevSlozkyZakazky } from "@/lib/theme";
 
-function safeProtokol(protokol, signatureUrl) {
+function safeProtokol(protokol, signatureUrl, fotky) {
   return {
     cislo: protokol.cislo,
     zakaznik: protokol.zakaznik,
@@ -20,16 +20,31 @@ function safeProtokol(protokol, signatureUrl) {
     podpisDatum: protokol.podpisDatum,
     stav: protokol.stav,
     signatureUrl,
+    fotky: fotky || [],
   };
 }
 
-// Podpisy nahrané před zapnutím Google Drive mají podpisPath jako cestu v Supabase
-// Storage (bez "http"); nové mají rovnou plnou URL na Drive. Podporujeme obojí.
-async function ziskatUrlPodpisu(supabase, podpisPath) {
-  if (!podpisPath) return null;
-  if (podpisPath.startsWith("http")) return podpisPath;
-  const { data } = await supabase.storage.from("protokoly").createSignedUrl(podpisPath, 3600);
+// Podpisy/fotky nahrané před zapnutím Google Drive mají cestu jako čistý název
+// v Supabase Storage (bez "http"); nové mají rovnou plnou URL na Drive. Funkce
+// podporuje obojí a bere bucket jako parametr, ať jde použít pro protokoly
+// (podpis) i pro fotky (fotodokumentace).
+async function ziskatSignedUrl(supabase, cesta, bucket) {
+  if (!cesta) return null;
+  if (cesta.startsWith("http")) return cesta;
+  const { data } = await supabase.storage.from(bucket).createSignedUrl(cesta, 3600);
   return data?.signedUrl || null;
+}
+
+// Veřejná stránka nemá přihlášeného uživatele (zákazník otevírá odkaz bez
+// účtu), takže klientský useSignedUrl hook, co počítá s aktivní session, by
+// tady nemohl fungovat. URL adresy fotek se proto rozdiskují rovnou na
+// serveru přes administrátorský přístup a pošlou se stránce už hotové.
+async function ziskatFotkyKProtokolu(supabase, order) {
+  const fotky = (order.fotky || []).filter((f) => f.typ === "protokol");
+  const sUrl = await Promise.all(
+    fotky.map(async (f) => ({ id: f.id, url: await ziskatSignedUrl(supabase, f.path, "fotky") }))
+  );
+  return sUrl.filter((f) => f.url);
 }
 
 export async function GET(request, { params }) {
@@ -38,13 +53,14 @@ export async function GET(request, { params }) {
   if (!token) return NextResponse.json({ error: "Chybí token." }, { status: 400 });
 
   const supabase = getSupabaseAdmin();
-  const { data: order, error } = await supabase.from("orders").select("id, protokol").eq("id", id).maybeSingle();
+  const { data: order, error } = await supabase.from("orders").select("id, protokol, fotky").eq("id", id).maybeSingle();
   if (error || !order || !order.protokol || order.protokol.token !== token) {
     return NextResponse.json({ error: "Odkaz nenalezen nebo už neplatí." }, { status: 404 });
   }
 
-  const signatureUrl = await ziskatUrlPodpisu(supabase, order.protokol.podpisPath);
-  return NextResponse.json({ protokol: safeProtokol(order.protokol, signatureUrl) });
+  const signatureUrl = await ziskatSignedUrl(supabase, order.protokol.podpisPath, "protokoly");
+  const fotky = await ziskatFotkyKProtokolu(supabase, order);
+  return NextResponse.json({ protokol: safeProtokol(order.protokol, signatureUrl, fotky) });
 }
 
 export async function POST(request, { params }) {
@@ -55,7 +71,7 @@ export async function POST(request, { params }) {
   if (!token || !signature) return NextResponse.json({ error: "Chybí token nebo podpis." }, { status: 400 });
 
   const supabase = getSupabaseAdmin();
-  const { data: order, error } = await supabase.from("orders").select("id, cislo, zakaznik, protokol").eq("id", id).maybeSingle();
+  const { data: order, error } = await supabase.from("orders").select("id, cislo, zakaznik, protokol, fotky").eq("id", id).maybeSingle();
   if (error || !order || !order.protokol || order.protokol.token !== token) {
     return NextResponse.json({ error: "Odkaz nenalezen nebo už neplatí." }, { status: 404 });
   }
@@ -86,5 +102,6 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "Uložení podpisu se nepovedlo." }, { status: 500 });
   }
 
-  return NextResponse.json({ protokol: safeProtokol(nextProtokol, podpisPath) });
+  const fotky = await ziskatFotkyKProtokolu(supabase, order);
+  return NextResponse.json({ protokol: safeProtokol(nextProtokol, podpisPath, fotky) });
 }

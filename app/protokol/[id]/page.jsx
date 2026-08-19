@@ -101,7 +101,7 @@ function PublicProtokolPageInner() {
 
         {protokol && (
           <div style={{ background: C.surface, border: `1px solid ${C.line}`, borderRadius: 10, padding: 20 }}>
-            <ProtokolContent protokol={protokol} />
+            <ProtokolContent protokol={protokol} fotky={protokol.fotky} />
 
             {protokol.stav === "podepsano" || done ? (
               <div style={{ marginTop: 16, borderTop: `2px dashed ${C.line}`, paddingTop: 16 }}>
