@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { C, FONTS, uid, seedNakladyZKalkulace, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney } from "@/lib/theme";
+import { C, FONTS, uid, todayISO, seedNakladyZKalkulace, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney } from "@/lib/theme";
 import { TextInput, Button, SectionLabel, MiniLabel, iconBtnStyle, Modal } from "./ui";
 import PhotoThumbnail from "./PhotoThumbnail";
 
@@ -14,6 +14,8 @@ export default function NakladyForm({ order, nastaveni, onSave, onDirtyChange, o
   const puvodniRadky = useRef(radky);
   const [novyPopis, setNovyPopis] = useState("");
   const [novaCastka, setNovaCastka] = useState("");
+  const [novyDatum, setNovyDatum] = useState(todayISO());
+  const [novaJizda, setNovaJizda] = useState(false);
   const [saving, setSaving] = useState(false);
   const [viewPhoto, setViewPhoto] = useState(null);
 
@@ -39,9 +41,11 @@ export default function NakladyForm({ order, nastaveni, onSave, onDirtyChange, o
 
   const pridatNaklad = () => {
     if (!novyPopis.trim() || !novaCastka) return;
-    setRadky((prev) => [...prev, { id: uid(), popis: novyPopis.trim(), castka: Number(novaCastka) }]);
+    setRadky((prev) => [...prev, { id: uid(), popis: novyPopis.trim(), castka: Number(novaCastka), datum: novyDatum || null, jeJizda: novaJizda }]);
     setNovyPopis("");
     setNovaCastka("");
+    setNovyDatum(todayISO());
+    setNovaJizda(false);
   };
 
   return (
@@ -55,6 +59,9 @@ export default function NakladyForm({ order, nastaveni, onSave, onDirtyChange, o
           <div style={{ flex: 1 }}>
             <MiniLabel>Kč bez DPH</MiniLabel>
           </div>
+          <div style={{ width: 130 }}>
+            <MiniLabel>Datum</MiniLabel>
+          </div>
           <div style={{ width: 32 }} />
         </div>
       )}
@@ -67,10 +74,15 @@ export default function NakladyForm({ order, nastaveni, onSave, onDirtyChange, o
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <TextInput value={r.popis} onChange={(e) => updateRadek(r.id, { popis: e.target.value })} style={{ flex: 3 }} />
                 <TextInput type="number" value={r.castka} onChange={(e) => updateRadek(r.id, { castka: e.target.value })} style={{ flex: 1 }} />
+                <TextInput type="date" value={r.datum || ""} onChange={(e) => updateRadek(r.id, { datum: e.target.value || null })} style={{ width: 130 }} />
                 <button onClick={() => removeRadek(r.id)} style={{ ...iconBtnStyle, color: C.danger }}>
                   <Trash2 size={16} />
                 </button>
               </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.inkSoft, marginTop: 4, marginLeft: 2, cursor: "pointer" }}>
+                <input type="checkbox" checked={!!r.jeJizda} onChange={(e) => updateRadek(r.id, { jeJizda: e.target.checked })} />
+                Jízda (zobrazí se v kalendáři)
+              </label>
               {r.fotoPath && (
                 <div style={{ marginTop: 4 }}>
                   <PhotoThumbnail bucket="uctenky" path={r.fotoPath} alt="Účtenka" onOpen={setViewPhoto} />
@@ -88,15 +100,23 @@ export default function NakladyForm({ order, nastaveni, onSave, onDirtyChange, o
         <div style={{ flex: 1 }}>
           <MiniLabel>Kč bez DPH</MiniLabel>
         </div>
+        <div style={{ width: 130 }}>
+          <MiniLabel>Datum</MiniLabel>
+        </div>
         <div style={{ width: 32 }} />
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <TextInput value={novyPopis} onChange={(e) => setNovyPopis(e.target.value)} style={{ flex: 3 }} />
         <TextInput type="number" value={novaCastka} onChange={(e) => setNovaCastka(e.target.value)} style={{ flex: 1 }} />
+        <TextInput type="date" value={novyDatum} onChange={(e) => setNovyDatum(e.target.value)} style={{ width: 130 }} />
         <Button variant="ghost" type="button" onClick={pridatNaklad}>
           <Plus size={14} />
         </Button>
       </div>
+      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.inkSoft, marginTop: 6, marginBottom: 16, cursor: "pointer" }}>
+        <input type="checkbox" checked={novaJizda} onChange={(e) => setNovaJizda(e.target.checked)} />
+        Jízda (zobrazí se v kalendáři)
+      </label>
 
       <SectionLabel>Práce (dopočteno automaticky ze zápisů práce)</SectionLabel>
       <div style={{ background: C.paper, borderRadius: 8, padding: 12, marginBottom: 16, border: `1px solid ${C.line}`, fontSize: 13 }}>

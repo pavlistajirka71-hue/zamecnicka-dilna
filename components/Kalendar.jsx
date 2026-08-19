@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { C, FONTS, statusInfo, todayISO, hodinyPodleDne, tydenniDny, planovaneHodinyPodleTydne } from "@/lib/theme";
+import { ChevronLeft, ChevronRight, Car } from "lucide-react";
+import { C, FONTS, statusInfo, todayISO, hodinyPodleDne, jizdyPodleDne, tydenniDny, planovaneHodinyPodleTydne } from "@/lib/theme";
 import { Button } from "./ui";
 
 const DNY_TYDNE = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
@@ -70,6 +70,7 @@ export default function Kalendar({ orders, onOpen, onOpenVykaz }) {
   }, [orders]);
 
   const hodinyDne = useMemo(() => hodinyPodleDne(orders), [orders]);
+  const jizdyDne = useMemo(() => jizdyPodleDne(orders), [orders]);
   const planTydny = useMemo(() => planovaneHodinyPodleTydne(orders), [orders]);
 
   // Následujících 8 týdnů (podle pondělí), ať appka ukáže rozumný výhled dopředu,
@@ -145,6 +146,7 @@ export default function Kalendar({ orders, onOpen, onOpenVykaz }) {
           const zobrazeneZahajeni = zahajeniDne.slice(0, 3);
           const zbyvaZahajeni = zahajeniDne.length - zobrazeneZahajeni.length;
           const hodiny = hodinyDne.get(dateStr);
+          const jizdy = jizdyDne.get(dateStr);
           return (
             <div
               key={dateStr}
@@ -160,9 +162,9 @@ export default function Kalendar({ orders, onOpen, onOpenVykaz }) {
               <div style={{ fontSize: 11, fontFamily: FONTS.mono, color: jeDnes ? C.steel : C.inkSoft, fontWeight: jeDnes ? 700 : 400, marginBottom: 3 }}>
                 {den}
               </div>
-              {hodiny && (hodiny.dilna > 0 || hodiny.montaz > 0) && (
+              {((hodiny && (hodiny.dilna > 0 || hodiny.montaz > 0)) || (jizdy && jizdy.pocet > 0)) && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginBottom: 3 }}>
-                  {hodiny.dilna > 0 && (
+                  {hodiny && hodiny.dilna > 0 && (
                     <button
                       type="button"
                       onClick={() => onOpenVykaz && onOpenVykaz(dateStr)}
@@ -182,7 +184,7 @@ export default function Kalendar({ orders, onOpen, onOpenVykaz }) {
                       D {hodiny.dilna}h
                     </button>
                   )}
-                  {hodiny.montaz > 0 && (
+                  {hodiny && hodiny.montaz > 0 && (
                     <button
                       type="button"
                       onClick={() => onOpenVykaz && onOpenVykaz(dateStr)}
@@ -200,6 +202,29 @@ export default function Kalendar({ orders, onOpen, onOpenVykaz }) {
                       }}
                     >
                       M {hodiny.montaz}h
+                    </button>
+                  )}
+                  {jizdy && jizdy.pocet > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => onOpen && jizdy.jizdy[0] && onOpen(jizdy.jizdy[0].order)}
+                      title={`Jízda(y) — ${dateStr} — ${jizdy.castkaCelkem} Kč`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        fontSize: 10,
+                        fontFamily: FONTS.mono,
+                        fontWeight: 700,
+                        color: "#fff",
+                        background: C.moss,
+                        border: "none",
+                        borderRadius: 3,
+                        padding: "1px 4px",
+                        cursor: onOpen ? "pointer" : "default",
+                      }}
+                    >
+                      <Car size={10} /> {jizdy.pocet > 1 ? `${jizdy.pocet}×` : `${jizdy.castkaCelkem} Kč`}
                     </button>
                   )}
                 </div>
@@ -282,7 +307,10 @@ export default function Kalendar({ orders, onOpen, onOpenVykaz }) {
           <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: C.rust }} /> termín dokončení
         </span>{" "}
         (jen rozpracované zakázky). Číselné štítky (D/M) = odpracované hodiny dílna/montáž ten den, podle výkazu práce — klikni na ně pro otevření
-        toho dne ve výkazu práce.
+        toho dne ve výkazu práce.{" "}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <Car size={11} /> = zapsaná jízda ten den (z nákladů zakázky).
+        </span>
       </div>
 
       <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${C.line}` }}>

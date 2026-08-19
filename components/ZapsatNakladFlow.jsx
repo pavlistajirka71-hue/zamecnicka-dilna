@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useRef, useState } from "react";
 import { Camera, Search } from "lucide-react";
-import { C, FONTS, uid, resizeImageFile, rozpocitatNaklad } from "@/lib/theme";
+import { C, FONTS, uid, todayISO, resizeImageFile, rozpocitatNaklad } from "@/lib/theme";
 import { nahratFotku } from "@/lib/uploadClient";
 import { Field, TextInput, Button } from "./ui";
 
@@ -14,6 +14,8 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
   const [vybrane, setVybrane] = useState([]);
   const [popis, setPopis] = useState("");
   const [castka, setCastka] = useState("");
+  const [datum, setDatum] = useState(todayISO());
+  const [jeJizda, setJeJizda] = useState(false);
   const [photoBlob, setPhotoBlob] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [processing, setProcessing] = useState(false);
@@ -67,7 +69,7 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
       await onSubmit(
         rozpocet.map(({ order, castka: dil }) => ({
           order,
-          naklad: { id: uid(), popis: popis.trim() || "Náklad", castka: dil, fotoPath },
+          naklad: { id: uid(), popis: popis.trim() || "Náklad", castka: dil, fotoPath, datum: datum || null, jeJizda },
         }))
       );
     } catch (err) {
@@ -118,9 +120,18 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
       <Field label="Popis nákladu (nepovinné)">
         <TextInput value={popis} onChange={(e) => setPopis(e.target.value)} />
       </Field>
-      <Field label="Cena celkem (Kč, bez DPH — povinné)">
-        <TextInput type="number" value={castka} onChange={(e) => setCastka(e.target.value)} />
-      </Field>
+      <div className="field-row">
+        <Field label="Cena celkem (Kč, bez DPH — povinné)">
+          <TextInput type="number" value={castka} onChange={(e) => setCastka(e.target.value)} />
+        </Field>
+        <Field label="Datum">
+          <TextInput type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+        </Field>
+      </div>
+      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, marginBottom: 12, cursor: "pointer" }}>
+        <input type="checkbox" checked={jeJizda} onChange={(e) => setJeJizda(e.target.checked)} />
+        Jízda (zobrazí se v kalendáři)
+      </label>
 
       {nahled.length > 1 && (
         <div style={{ background: C.paper, borderRadius: 8, padding: "8px 10px", marginBottom: 10, fontSize: 12 }}>
