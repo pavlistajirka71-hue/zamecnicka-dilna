@@ -18,6 +18,7 @@ import {
   BarChart3,
   DatabaseBackup,
   Cloud,
+  FileSpreadsheet,
   X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -783,6 +784,9 @@ export default function HomePage() {
           <button onClick={() => setShowZaloha(true)} title="Zálohování" style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 10, margin: -10 }}>
             <DatabaseBackup size={20} />
           </button>
+          <button onClick={() => setShowImportFaktur(true)} title="Import faktur přijatých (Flexi)" style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 10, margin: -10 }}>
+            <FileSpreadsheet size={20} />
+          </button>
           <button onClick={() => setShowReport(true)} title="Měsíční report práce" style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 10, margin: -10 }}>
             <BarChart3 size={20} />
           </button>
@@ -1203,7 +1207,6 @@ export default function HomePage() {
             uzivatele={uzivatele}
             onSave={saveNastaveni}
             onMigrovatUctenky={migrovatUctenky}
-            onOpenImportFaktur={() => setShowImportFaktur(true)}
             onClose={() => setShowNastaveni(false)}
           />
         </Modal>
