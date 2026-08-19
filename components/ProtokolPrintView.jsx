@@ -4,7 +4,7 @@ import { C } from "@/lib/theme";
 import { Button } from "./ui";
 import ProtokolContent from "./ProtokolContent";
 
-export default function ProtokolPrintView({ protokol, signatureUrl, onClose }) {
+export default function ProtokolPrintView({ protokol, signatureUrl, fotky, onClose }) {
   const zhotovitel = protokol.zhotovitel || {};
   return (
     <div style={{ position: "fixed", inset: 0, background: "#fff", zIndex: 100, overflowY: "auto" }}>
@@ -17,7 +17,7 @@ export default function ProtokolPrintView({ protokol, signatureUrl, onClose }) {
         </Button>
       </div>
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "30px 24px" }}>
-        <ProtokolContent protokol={protokol} />
+        <ProtokolContent protokol={protokol} fotky={fotky} />
 
         <div style={{ marginTop: 40, display: "flex", justifyContent: "space-between", gap: 24 }}>
           <div style={{ textAlign: "center" }}>

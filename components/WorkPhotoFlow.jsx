@@ -9,7 +9,7 @@ import { Field, TextInput, Button } from "./ui";
 const TYPY = [
   { key: "pred", label: "Před" },
   { key: "po", label: "Po" },
-  { key: "ostatni", label: "Ostatní" },
+  { key: "protokol", label: "Protokol" },
 ];
 
 export default function WorkPhotoFlow({ order, onSubmit, onClose }) {

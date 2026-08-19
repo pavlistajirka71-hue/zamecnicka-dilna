@@ -1,7 +1,14 @@
 "use client";
 import { C, FONTS, fmtDate } from "@/lib/theme";
+import { useSignedUrl } from "./PhotoThumbnail";
 
-export default function ProtokolContent({ protokol }) {
+function ProtokolFotka({ path }) {
+  const url = useSignedUrl("fotky", path);
+  if (!url) return null;
+  return <img src={url} alt="Fotka k protokolu" referrerPolicy="no-referrer" style={{ width: "100%", borderRadius: 6, border: `1px solid ${C.line}`, display: "block" }} />;
+}
+
+export default function ProtokolContent({ protokol, fotky }) {
   const z = protokol.zhotovitel || {};
   const maVyhrady = protokol.vyhrady && protokol.vyhrady.trim().length > 0;
 
@@ -59,6 +66,19 @@ export default function ProtokolContent({ protokol }) {
       {protokol.zarucniDobaMesicu && (
         <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 20 }}>
           Záruční doba na provedené dílo činí {protokol.zarucniDobaMesicu} měsíců a počíná běžet dnem předání uvedeným výše.
+        </div>
+      )}
+
+      {fotky && fotky.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, color: C.inkSoft, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+            Fotodokumentace k protokolu
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+            {fotky.map((f) => (
+              <ProtokolFotka key={f.id} path={f.path} />
+            ))}
+          </div>
         </div>
       )}
 

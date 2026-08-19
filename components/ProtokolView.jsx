@@ -115,10 +115,15 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
 
   const jePodepsano = protokol.stav === "podepsano";
 
+  // Fotky označené při vyfocení tagem "Protokol" — najdou se přímo v
+  // order.fotky (fotografie se ukládají u zakázky obecně, ne uvnitř samotného
+  // protokolu) a filtrují se podle typu.
+  const fotkyKProtokolu = (order.fotky || []).filter((f) => f.typ === "protokol");
+
   return (
     <div>
       <div style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 8, padding: 16, marginBottom: 16 }}>
-        <ProtokolContent protokol={protokol} />
+        <ProtokolContent protokol={protokol} fotky={fotkyKProtokolu} />
       </div>
 
       {jeZhotovitelZastaraly && (
@@ -202,7 +207,7 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
       {error && <div style={{ color: C.rust, fontSize: 13, marginBottom: 10 }}>{error}</div>}
 
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-        <Button variant="ghost" onClick={() => onPrint(protokol, signatureUrl)}>
+        <Button variant="ghost" onClick={() => onPrint(protokol, signatureUrl, fotkyKProtokolu)}>
           <Printer size={14} /> Tisk protokolu
         </Button>
         <Button variant="ghost" onClick={onClose}>

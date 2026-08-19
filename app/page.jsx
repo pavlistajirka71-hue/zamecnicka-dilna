@@ -1265,13 +1265,13 @@ export default function HomePage() {
             nastaveni={nastaveni}
             onSave={saveProtokol}
             onClose={() => setProtokolOrder(null)}
-            onPrint={(protokol, signatureUrl) => setProtokolPrint({ protokol, signatureUrl })}
+            onPrint={(protokol, signatureUrl, fotky) => setProtokolPrint({ protokol, signatureUrl, fotky })}
           />
         </Modal>
       )}
 
       {protokolPrint && (
-        <ProtokolPrintView protokol={protokolPrint.protokol} signatureUrl={protokolPrint.signatureUrl} onClose={() => setProtokolPrint(null)} />
+        <ProtokolPrintView protokol={protokolPrint.protokol} signatureUrl={protokolPrint.signatureUrl} fotky={protokolPrint.fotky} onClose={() => setProtokolPrint(null)} />
       )}
 
       {fotkaOrder && (
