@@ -19,7 +19,7 @@ export async function POST(request) {
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
     password: heslo,
-    email_confirm: true, // appka nemá nastavené odesílání potvrzovacích e-mailů — účet je rovnou aktivní
+    email_confirm: true, // aplikace nemá nastavené odesílání potvrzovacích e-mailů — účet je rovnou aktivní
   });
   if (error) {
     return NextResponse.json({ error: error.message || "Založení uživatele se nepovedlo." }, { status: 500 });

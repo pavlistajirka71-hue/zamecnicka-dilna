@@ -13,9 +13,9 @@ const CINNOSTI = [
 
 export default function WorkLogFlow({ orders, nastaveni, uzivatele, onSubmit, onCreateOrder, onClose }) {
   const [order, setOrder] = useState(null);
-  // Kroky appky: "vyberZakazky" (appka umí i zakázku rovnou rychle založit), "cinnost"
+  // Kroky aplikace: "vyberZakazky" (aplikace umí i zakázku rovnou rychle založit), "cinnost"
   // (dílna/montáž — vybere se jako první a samo posune dál), "detaily" (zbytek
-  // formuláře). Ať appka po výběru zakázky nezahltí uživatele všemi poli najednou.
+  // formuláře). Ať aplikace po výběru zakázky nezahltí uživatele všemi poli najednou.
   const [krok, setKrok] = useState("vyberZakazky");
   const [novyZakaznik, setNovyZakaznik] = useState("");
   const [novyPopis, setNovyPopis] = useState("");
@@ -36,7 +36,7 @@ export default function WorkLogFlow({ orders, nastaveni, uzivatele, onSubmit, on
   }, []);
 
   // Návrhy pro "Co se dělalo" — jen z historie TÉHLE zakázky (činnosti se v rámci
-  // jedné zakázky často opakují), ne napříč celou appkou.
+  // jedné zakázky často opakují), ne napříč celou aplikací.
   const navrhyPopisu = useMemo(() => {
     if (!order) return [];
     const unikatni = new Set();
@@ -63,8 +63,8 @@ export default function WorkLogFlow({ orders, nastaveni, uzivatele, onSubmit, on
         if (error) throw error;
         cislo = `Z-${rok}-${String(data).padStart(4, "0")}`;
       } catch (e) {
-        // Záložní řešení offline/při chybě RPC — appka radši založí zakázku s
-        // provizorním označením, než aby appka o odpracovanou práci přišla.
+        // Záložní řešení offline/při chybě RPC — aplikace radši založí zakázku s
+        // provizorním označením, než aby aplikace o odpracovanou práci přišla.
         cislo = `Z-${rok}-DOPLNIT-${uid().slice(-4)}`;
       }
       const novaZakazka = {
@@ -109,7 +109,7 @@ export default function WorkLogFlow({ orders, nastaveni, uzivatele, onSubmit, on
           <ArrowLeft size={14} /> Vybrat existující zakázku
         </button>
         <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 14 }}>
-          Appka založí minimální zakázku hned teď, ať se odpracovaná práce nikde neztratí — zbylé údaje (cenu, termín, kalkulaci…) doplníš později v detailu
+          Aplikace založí minimální zakázku hned teď, ať se odpracovaná práce nikde neztratí — zbylé údaje (cenu, termín, kalkulaci…) doplníš později v detailu
           zakázky.
         </div>
         <Field label="Zákazník">

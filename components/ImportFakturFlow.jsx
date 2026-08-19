@@ -5,14 +5,14 @@ import { Upload, Check, AlertTriangle } from "lucide-react";
 import { C, FONTS, uid, parseFakturyCSV, sestavitNakladZFaktury, jeMoznaDuplicitaNakladu, odhadnoutUdajeFaktury, sparovatFakturySZakazkami } from "@/lib/theme";
 import { Button, Select } from "./ui";
 
-// Vrátí pole řádků (objekty sloupec -> hodnota) z XLSX souboru — appka na to zjistila,
+// Vrátí pole řádků (objekty sloupec -> hodnota) z XLSX souboru — aplikace na to zjistila,
 // že export z Flexi bývá XLSX, ne CSV, takže to umí přečíst přímo, bez nutnosti
 // cokoliv ručně převádět.
 function parseFakturyXLSX(buffer) {
   const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
   const list = workbook.Sheets[workbook.SheetNames[0]];
-  // raw:false -> appka dostane naformátovaný text (např. datum jako "05.08.2026",
-  // ne syrové sériové číslo Excelu) — stejný tvar dat jako z CSV, ať appka nemusí
+  // raw:false -> aplikace dostane naformátovaný text (např. datum jako "05.08.2026",
+  // ne syrové sériové číslo Excelu) — stejný tvar dat jako z CSV, ať aplikace nemusí
   // mít pro oba formáty jinou logiku.
   return XLSX.utils.sheet_to_json(list, { defval: "", raw: false });
 }
@@ -21,7 +21,7 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
   const [zpracovano, setZpracovano] = useState(null); // { sparovane, nesparovane }
   const [vybrane, setVybrane] = useState(new Set());
   // Ruční přiřazení zakázky u nespárovaných položek — klíč je index v poli
-  // nesparovane, hodnota je id vybrané zakázky (nebo "" když appka má zahodit).
+  // nesparovane, hodnota je id vybrané zakázky (nebo "" když aplikace má zahodit).
   const [rucniVyber, setRucniVyber] = useState({});
   const [chyba, setChyba] = useState("");
   const [importuji, setImportuji] = useState(false);
@@ -35,13 +35,13 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
       const jeExcel = /\.xlsx?$/i.test(file.name);
       const radky = jeExcel ? parseFakturyXLSX(await file.arrayBuffer()) : parseFakturyCSV(await file.text());
       if (radky.length === 0) {
-        setChyba("V souboru appka nenašla žádné řádky s daty — zkontroluj, že je to opravdu export faktur z Flexi.");
+        setChyba("V souboru aplikace nenašla žádné řádky s daty — zkontroluj, že je to opravdu export faktur z Flexi.");
         return;
       }
       const vysledekSparovani = sparovatFakturySZakazkami(radky, orders);
       setZpracovano(vysledekSparovani);
-      // Appka nezaškrtne předem položky, co vypadají jako duplicita už existujícího
-      // nákladu — ať to uživatel vidomě potvrdí, ne že by appka duplicitu tiše
+      // Aplikace nezaškrtne předem položky, co vypadají jako duplicita už existujícího
+      // nákladu — ať to uživatel vidomě potvrdí, ne že by aplikace duplicitu tiše
       // naimportovala jen proto, že byla "spárovaná".
       const vychoziVyber = vysledekSparovani.sparovane
         .map(({ order, radek }, i) => {
@@ -74,8 +74,8 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
         .filter((_, i) => vybrane.has(i))
         .map(({ order, radek }) => ({ order, naklad: { id: uid(), ...sestavitNakladZFaktury(radek) } }));
 
-      // Ručně dopárované — appka bere jen ty, u kterých byla opravdu vybraná
-      // konkrétní zakázka; zbytek appka bez dalšího ptaní zahodí (uživatel to
+      // Ručně dopárované — aplikace bere jen ty, u kterých byla opravdu vybraná
+      // konkrétní zakázka; zbytek aplikace bez dalšího ptaní zahodí (uživatel to
       // takhle výslovně chtěl).
       const zRucnihoVyberu = zpracovano.nesparovane
         .map((polozka, i) => ({ polozka, orderId: rucniVyber[i] }))
@@ -118,7 +118,7 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
     return (
       <div>
         <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 16 }}>
-          Nahraj export "Faktury přijaté" z ABRA Flexi (CSV nebo XLSX, u položek, ne jen v hlavičce). Appka číslo zakázky hledá přednostně přímo
+          Nahraj export "Faktury přijaté" z ABRA Flexi (CSV nebo XLSX, u položek, ne jen v hlavičce). Aplikace číslo zakázky hledá přednostně přímo
           ve sloupci "Zakázka" — pokud tam číslo nenajde, prohledá i zbytek řádku.
         </div>
         <label
@@ -188,11 +188,11 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
                     {udaje.castka ? `${udaje.castka} Kč` : "částka neznámá"} {udaje.datum && `· ${udaje.datum}`}
                   </div>
                   {!udaje.jeBezDphJiste && udaje.castka && (
-                    <div style={{ color: C.rust, fontSize: 11, marginTop: 2 }}>⚠ appka si není jistá, jestli je tahle částka bez DPH — zkontroluj</div>
+                    <div style={{ color: C.rust, fontSize: 11, marginTop: 2 }}>⚠ aplikace si není jistá, jestli je tahle částka bez DPH — zkontroluj</div>
                   )}
                   {jeDuplicita && (
                     <div style={{ color: C.rust, fontSize: 11, marginTop: 2, fontWeight: 600 }}>
-                      ⚠ zakázka už má náklad se stejným popisem a částkou — možná duplicita, appka to proto nezaškrtla předem
+                      ⚠ zakázka už má náklad se stejným popisem a částkou — možná duplicita, aplikace to proto nezaškrtla předem
                     </div>
                   )}
                   <div style={{ fontFamily: FONTS.mono, fontSize: 11, color: C.steel, marginTop: 2 }}>
@@ -211,7 +211,7 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
             <AlertTriangle size={14} /> Nespárováno ({zpracovano.nesparovane.length})
           </div>
           <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 8 }}>
-            U těchhle appka nenašla (nebo nepoznala) číslo zakázky — vyber ji ručně, nebo nech "Nepřiřazovat" a appka tuhle položku při importu zahodí.
+            U těchhle aplikace nenašla (nebo nepoznala) číslo zakázky — vyber ji ručně, nebo nech "Nepřiřazovat" a aplikace tuhle položku při importu zahodí.
           </div>
           {zpracovano.nesparovane.map((polozka, i) => {
             const { radek, cislo } = polozka;
@@ -231,14 +231,14 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
                 )}
                 <div style={{ color: C.inkSoft, marginTop: 2 }}>
                   {udaje.dodavatel || "(dodavatel neznámý)"} — {udaje.castka ? `${udaje.castka} Kč` : "?"}
-                  {cislo ? ` — nalezené číslo "${cislo}" appka nezná` : " — číslo zakázky nenalezeno"}
+                  {cislo ? ` — nalezené číslo "${cislo}" aplikace nezná` : " — číslo zakázky nenalezeno"}
                 </div>
                 <Select
                   value={vybranaZakazkaId}
                   onChange={(e) => setRucniVyber((prev) => ({ ...prev, [i]: e.target.value }))}
                   style={{ marginTop: 6, fontSize: 12, padding: "6px 8px" }}
                 >
-                  <option value="">Nepřiřazovat (appka zahodí)</option>
+                  <option value="">Nepřiřazovat (aplikace zahodí)</option>
                   {orders.map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.cislo} — {o.zakaznik}

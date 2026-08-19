@@ -13,7 +13,7 @@ const nextConfig = {
       },
     ],
   },
-  // Appka si nese vlastní font (fonts/*.ttf, plná podpora češtiny) a nikdy nesahá na
+  // Aplikace si nese vlastní font (fonts/*.ttf, plná podpora češtiny) a nikdy nesahá na
   // vestavěné fonty pdfkitu — to je hlavní oprava. Tohle je jen dodatečná pojistka, ať
   // Next.js při nasazení na Vercel určitě zabalí i tenhle vlastní font soubor.
   experimental: {

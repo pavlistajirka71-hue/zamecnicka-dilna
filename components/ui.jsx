@@ -180,7 +180,7 @@ export function AutoCompleteTextInput({ value, onChange, navrhy, ...rest }) {
 // jako běžné textové pole bez nabídky.
 // Textové pole s "nabídkou" — VLASTNÍ rozbalovací seznam postavený v Reactu (ne
 // nativní <datalist>, ten má na iOS Safari dlouhodobě nespolehlivou podporu —
-// appka na to narazila naživo). Pořád jde napsat cokoliv jiného, není to
+// aplikace na to narazila naživo). Pořád jde napsat cokoliv jiného, není to
 // uzamčené jen na položky ze seznamu. Když je "navrhy" prázdné, chová se jako
 // běžné textové pole bez nabídky.
 export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
@@ -268,7 +268,7 @@ export function TextInputSNabidkou({ value, onChange, navrhy, ...rest }) {
                 key={n}
                 type="button"
                 onMouseDown={(e) => {
-                  e.stopPropagation(); // ať to nezachytí i backdrop pod tím a nezavře to dřív, než appka stihne vybrat
+                  e.stopPropagation(); // ať to nezachytí i backdrop pod tím a nezavře to dřív, než aplikace stihne vybrat
                   onChange({ target: { value: n } });
                   setProchazetVse(false);
                   setOtevreno(false);

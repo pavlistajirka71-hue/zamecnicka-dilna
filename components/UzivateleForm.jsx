@@ -97,8 +97,8 @@ export default function UzivateleForm({ onClose }) {
   return (
     <div>
       <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 16 }}>
-        Noví uživatelé se do appky nemůžou zaregistrovat sami — přidat je (a nastavit jim roli) může jen správce (role <strong>sa</strong>). Role{" "}
-        <strong>user</strong> nesmí mazat zakázky ani upravovat kalkulace — appka to vynucuje přímo v databázi, ne jen schovaným tlačítkem.
+        Noví uživatelé se do aplikace nemůžou zaregistrovat sami — přidat je (a nastavit jim roli) může jen správce (role <strong>sa</strong>). Role{" "}
+        <strong>user</strong> nesmí mazat zakázky ani upravovat kalkulace — aplikace to vynucuje přímo v databázi, ne jen schovaným tlačítkem.
       </div>
 
       {!loading && !jsemSA && (

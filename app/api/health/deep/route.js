@@ -7,11 +7,11 @@ import { jeGoogleDriveNastaveny } from "@/lib/photoUpload";
 import { vyhledatVAres } from "@/lib/ares";
 
 // Veřejná (bez přihlášení), pomalejší a důkladnější sestra /api/health — místo
-// "odpovídá server" appka appce si skutečně VYZKOUŠÍ, že si s appkou externí
-// služby rozumí přesně tak, jak appka očekává (přesný tvar odpovědi, ne jen že
+// "odpovídá server" aplikace aplikaci si skutečně VYZKOUŠÍ, že si s aplikací externí
+// služby rozumí přesně tak, jak aplikace očekává (přesný tvar odpovědi, ne jen že
 // něco vrátí). Chytá tím i situace, kdy třetí strana nespadla, jen si "tiše"
 // změnila chování (a stejná chyba, co jsme řešili u PDF, by se objevila hned,
-// ne až při skutečném použití appkou).
+// ne až při skutečném použití aplikací).
 //
 // Doporučené použití: druhý, samostatný monitor v UptimeRobotu (nebo podobné
 // službě) s intervalem třeba jednou denně — je to pomalejší a "dražší" kontrola
@@ -50,11 +50,11 @@ export async function GET() {
     vysledek.kontroly.ares = "ok";
   } catch (e) {
     vysledek.kontroly.ares = "chyba: " + e.message;
-    // ARES je jen doplňková funkce (appka bez ní jede dál), takže její výpadek
-    // appku jako celek neshazuje — jen se to ukáže ve výsledku.
+    // ARES je jen doplňková funkce (aplikace bez ní jede dál), takže její výpadek
+    // aplikaci jako celek neshazuje — jen se to ukáže ve výsledku.
   }
 
-  // ---------- Generování PDF — appka si opravdu zkusí vytvořit dokument ----------
+  // ---------- Generování PDF — aplikace si opravdu zkusí vytvořit dokument ----------
   try {
     const FONT_PATH = path.join(process.cwd(), "fonts", "IBMPlexSerif-Regular.ttf");
     const buffer = await new Promise((resolve, reject) => {
@@ -74,7 +74,7 @@ export async function GET() {
     vysledek.kontroly.generovaniPdf = "ok";
   } catch (e) {
     vysledek.kontroly.generovaniPdf = "chyba: " + e.message;
-    vysledek.ok = false; // generování PDF je klíčová funkce appky (archiv zakázek) — tohle appku shodí
+    vysledek.ok = false; // generování PDF je klíčová funkce aplikace (archiv zakázek) — tohle aplikaci shodí
   }
 
   return NextResponse.json(vysledek, { status: vysledek.ok ? 200 : 503 });

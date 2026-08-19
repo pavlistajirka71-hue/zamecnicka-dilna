@@ -15,7 +15,7 @@ export const metadata = {
   },
 };
 
-// viewport-fit: cover je nutné, aby appka na iPhonu šla přes celou obrazovku
+// viewport-fit: cover je nutné, aby aplikace na iPhonu šla přes celou obrazovku
 // (i pod výřez/dynamic island) a fungovaly proměnné env(safe-area-inset-*).
 export const viewport = {
   width: "device-width",

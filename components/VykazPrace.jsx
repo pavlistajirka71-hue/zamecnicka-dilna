@@ -9,9 +9,9 @@ const DNY_TYDNE = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
 
 export default function VykazPrace({ orders, onOpenOrder, initialDen }) {
   const dnes = todayISO();
-  // Appka umí appku otevřít rovnou na konkrétním dni (appka to používá, když se
-  // sem appka dostane kliknutím na odznak odpracovaných hodin v kalendáři) —
-  // jinak appka jako dřív začíná na dnešku, bez vybraného konkrétního dne.
+  // Aplikace umí aplikaci otevřít rovnou na konkrétním dni (aplikace to používá, když se
+  // sem aplikace dostane kliknutím na odznak odpracovaných hodin v kalendáři) —
+  // jinak aplikace jako dřív začíná na dnešku, bez vybraného konkrétního dne.
   const pocatecniDen = initialDen || dnes;
   const [rok, setRok] = useState(Number(pocatecniDen.slice(0, 4)));
   const [mesicIndex, setMesicIndex] = useState(Number(pocatecniDen.slice(5, 7)) - 1);
@@ -52,11 +52,11 @@ export default function VykazPrace({ orders, onOpenOrder, initialDen }) {
     setMesicIndex(m);
     setRok(r);
 
-    // Appka zachová STEJNÉ číslo dne (např. 17.), na které byl uživatel
+    // Aplikace zachová STEJNÉ číslo dne (např. 17.), na které byl uživatel
     // zaostřený — ať už přes konkrétně vybraný den, nebo jen přes polohu
     // týdenního pruhu — a jen ho přenese do nově zvoleného měsíce (zaokrouhleno
     // dolů, pokud by ten den v novém měsíci vůbec neexistoval, např. 31. → 30.).
-    // Appka tak po přepnutí měsíce neskáče vždycky na 1. den.
+    // Aplikace tak po přepnutí měsíce neskáče vždycky na 1. den.
     const aktualniDen = vybranyDen || kotva;
     const [, , dOrigStr] = aktualniDen.split("-");
     const dOrig = Number(dOrigStr);
@@ -64,13 +64,13 @@ export default function VykazPrace({ orders, onOpenOrder, initialDen }) {
     const novyDen = Math.min(dOrig, posledniDenNovehoMesice);
     const novaKotva = `${r}-${String(m + 1).padStart(2, "0")}-${String(novyDen).padStart(2, "0")}`;
     setKotva(novaKotva);
-    // Pokud appka měla vybraný konkrétní den (ne celý měsíc), zůstane vybraný
-    // konkrétní den i po přepnutí — appka tak rovnou ukáže práci na stejném
-    // datu v novém měsíci, přesně jak appka má.
+    // Pokud aplikace měla vybraný konkrétní den (ne celý měsíc), zůstane vybraný
+    // konkrétní den i po přepnutí — aplikace tak rovnou ukáže práci na stejném
+    // datu v novém měsíci, přesně jak aplikace má.
     setVybranyDen(vybranyDen ? novaKotva : null);
-    // Appka dřív při přepnutí měsíce nahoře zapomínala posunout i týdenní pruh
+    // Aplikace dřív při přepnutí měsíce nahoře zapomínala posunout i týdenní pruh
     // dole (ten se řídí samostatnou "kotvou") — pruh pak zůstával viset na
-    // původním týdnu, i když čísla nahoře už ukazovala jiný měsíc. Appka teď
+    // původním týdnu, i když čísla nahoře už ukazovala jiný měsíc. Aplikace teď
     // to synchronizuje s výpočtem výše.
   };
 
@@ -79,7 +79,7 @@ export default function VykazPrace({ orders, onOpenOrder, initialDen }) {
     const dt = new Date(r, m - 1, d + delta * 7);
     const novaKotva = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
     setKotva(novaKotva);
-    // Pruh se může přesunout i do jiného měsíce — appka nahoře pak ukazuje ten,
+    // Pruh se může přesunout i do jiného měsíce — aplikace nahoře pak ukazuje ten,
     // ve kterém je většina zobrazeného týdne (poslední den pruhu).
     setRok(Number(novaKotva.slice(0, 4)));
     setMesicIndex(Number(novaKotva.slice(5, 7)) - 1);

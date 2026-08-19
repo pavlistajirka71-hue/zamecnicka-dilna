@@ -195,9 +195,9 @@ export default function HomePage() {
     setMaterialHistory(historyRes.data || []);
     setOrganizace(organizaceRes.data || []);
     setOfflineData(false);
-    // Appka aktualizuje i případně otevřené detaily zakázek (kdyby appka byla
-    // otevřená zrovna ve chvíli, kdy se appka celá znovu načetla, třeba po
-    // obnově ze zálohy) — jinak by appka mohla zůstat "zastaralá" a při
+    // Aplikace aktualizuje i případně otevřené detaily zakázek (kdyby aplikace byla
+    // otevřená zrovna ve chvíli, kdy se aplikace celá znovu načetla, třeba po
+    // obnově ze zálohy) — jinak by aplikace mohla zůstat "zastaralá" a při
     // dalším uložení by přepsala právě obnovená data zpátky tou starou verzí
     // (stejná chyba, co jsme opravili jinde).
     const najitAktualni = (cur) => (cur ? noveOrders.find((o) => o.id === cur.id) || null : cur);
@@ -225,7 +225,7 @@ export default function HomePage() {
       setLoading(false);
     })();
 
-    // Vlastní role appka zjišťuje samostatně od hlavních dat, ať jedno pomalé/chybějící
+    // Vlastní role aplikace zjišťuje samostatně od hlavních dat, ať jedno pomalé/chybějící
     // API nezablokuje druhé.
     (async () => {
       try {
@@ -238,7 +238,7 @@ export default function HomePage() {
       }
     })();
 
-    // Seznam přihlašovacích e-mailů — appka je nabídne při zápisu práce spolu s
+    // Seznam přihlašovacích e-mailů — aplikace je nabídne při zápisu práce spolu s
     // ručně zadanými brigádníky. Taky se zjišťuje samostatně, ať to nezablokuje nic jiného.
     (async () => {
       try {
@@ -247,7 +247,7 @@ export default function HomePage() {
         const data = await res.json();
         if (res.ok && data.uzivatele) setUzivatele(data.uzivatele.filter((u) => u.email));
       } catch (e) {
-        // ponechá se prázdný seznam — appka pořád nabídne aspoň ručně zadané pracovníky
+        // ponechá se prázdný seznam — aplikace pořád nabídne aspoň ručně zadané pracovníky
       }
     })();
   }, [session?.user?.id]);
@@ -264,11 +264,11 @@ export default function HomePage() {
     const channel = supabase
       .channel("orders-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
-        // Appka SLUČUJE (ne přepisuje) — pojistka pro případ, že by appka
-        // "payload.new" appka Realtime kanálu neobsahovala úplně všechna pole
-        // (typicky velká jsonb pole appka TOAST, viz "replica identity full" v
-        // schema.sql). Sloučení appka zajistí, že chybějící pole v appce nikdy
-        // nepřepíší appku existující hodnotu appka na appku/prázdno.
+        // Aplikace SLUČUJE (ne přepisuje) — pojistka pro případ, že by aplikace
+        // "payload.new" aplikace Realtime kanálu neobsahovala úplně všechna pole
+        // (typicky velká jsonb pole aplikace TOAST, viz "replica identity full" v
+        // schema.sql). Sloučení aplikace zajistí, že chybějící pole v aplikaci nikdy
+        // nepřepíší aplikaci existující hodnotu aplikace na aplikaci/prázdno.
         const slouzit = (stara) => (stara ? { ...stara, ...payload.new } : payload.new);
         setOrders((prev) => {
           if (payload.eventType === "DELETE") {
@@ -297,9 +297,9 @@ export default function HomePage() {
     router.replace("/login");
   };
 
-  // Automatické odhlášení po 1 hodině nečinnosti (appka samotná, nezávisle na
-  // Supabase — appka udrží přihlášení donekonečna sama od sebe, tohle je vlastní
-  // bezpečnostní pojistka appky, např. pro sdílený tablet v dílně).
+  // Automatické odhlášení po 1 hodině nečinnosti (aplikace samotná, nezávisle na
+  // Supabase — aplikace udrží přihlášení donekonečna sama od sebe, tohle je vlastní
+  // bezpečnostní pojistka aplikace, např. pro sdílený tablet v dílně).
   useEffect(() => {
     if (!session) return;
     const LIMIT_NECINNOSTI_MS = 60 * 60 * 1000; // 1 hodina
@@ -332,11 +332,11 @@ export default function HomePage() {
     if (error) console.error("Uložení organizace se nepovedlo:", error);
   };
 
-  // Appka POUZE mění stav zakázky — na rozdíl od saveOrder tahle funkce do
+  // Aplikace POUZE mění stav zakázky — na rozdíl od saveOrder tahle funkce do
   // databáze pošle JEN pole "stav", nikdy celý objekt zakázky. I kdyby detail
   // zakázky (detailOrder) byl v prohlížeči sebeméně zastaralý, tahle funkce ho
   // NEMŮŽE přepsat, protože pole naklady/prace/kalkulace do zápisu vůbec
-  // nepatří. Appka "Rychlá změna stavu" volá výhradně tuhle funkci, ne saveOrder.
+  // nepatří. Aplikace "Rychlá změna stavu" volá výhradně tuhle funkci, ne saveOrder.
   const zmenitStavZakazky = async (order, novyStav) => {
     const predchoziZakazka = orders.find((o) => o.id === order.id);
     if (predchoziZakazka) {
@@ -363,11 +363,11 @@ export default function HomePage() {
     return data;
   };
 
-  // Obecná appka pro jakoukoliv DROBNOU úpravu pole zakázky (appka jen pár
-  // konkrétních polí, ne celý objekt) — appka to používá appka "Materiál
-  // objednán/neobjednán" a jakékoliv podobné rychlé přepínače appky. Appka
-  // STEJNÝ princip jako appka zmenitStavZakazky výše: appka nikdy nepošle pole
-  // naklady/prace/kalkulace, takže je appka fyzicky nemůže přepsat.
+  // Obecná aplikace pro jakoukoliv DROBNOU úpravu pole zakázky (aplikace jen pár
+  // konkrétních polí, ne celý objekt) — aplikace to používá aplikace "Materiál
+  // objednán/neobjednán" a jakékoliv podobné rychlé přepínače aplikace. Aplikace
+  // STEJNÝ princip jako aplikace zmenitStavZakazky výše: aplikace nikdy nepošle pole
+  // naklady/prace/kalkulace, takže je aplikace fyzicky nemůže přepsat.
   const aktualizovatDilciPole = async (order, patch) => {
     const predchoziZakazka = orders.find((o) => o.id === order.id);
     if (predchoziZakazka) {
@@ -402,11 +402,11 @@ export default function HomePage() {
 
     const predchoziZakazka = orders.find((o) => o.id === order.id);
 
-    // Appka rovnou (bez čekání na server) ukáže novou hodnotu — hlavně u rychlé změny
-    // stavu to na mobilu s pomalejším připojením jinak působilo, že appka "vázne".
-    // Zápis na server běží na pozadí; kdyby se nepovedl, appka se vrátí na předchozí
+    // Aplikace rovnou (bez čekání na server) ukáže novou hodnotu — hlavně u rychlé změny
+    // stavu to na mobilu s pomalejším připojením jinak působilo, že aplikace "vázne".
+    // Zápis na server běží na pozadí; kdyby se nepovedl, aplikace se vrátí na předchozí
     // stav a ukáže chybu. (U úplně nové zakázky se optimisticky nic nedělá — není
-    // co lokálně sloučit, dokud appka nedostane skutečné id z databáze.)
+    // co lokálně sloučit, dokud aplikace nedostane skutečné id z databáze.)
     if (predchoziZakazka) {
       const optimisticky = { ...predchoziZakazka, ...cistaZakazka };
       setOrders((prev) => prev.map((o) => (o.id === optimisticky.id ? optimisticky : o)));
@@ -432,7 +432,7 @@ export default function HomePage() {
     setDetailOrder(data);
 
     // Automatický archiv PDF: jakmile zakázka nově přejde do stavu Hotovo nebo
-    // Fakturováno, appka sama vygeneruje a uloží PDF na Drive — netřeba na nic klikat.
+    // Fakturováno, aplikace sama vygeneruje a uloží PDF na Drive — netřeba na nic klikat.
     const CIL_STAVY_PRO_PDF = ["hotovo", "fakturovano"];
     if (CIL_STAVY_PRO_PDF.includes(data.stav) && predchoziZakazka?.stav !== data.stav) {
       generatePdf(data).catch(() => {});
@@ -442,9 +442,9 @@ export default function HomePage() {
   };
 
   // "Tichá" verze založení zakázky — na rozdíl od saveOrder NEotvírá detail
-  // zakázky ani nezavírá jiné formuláře. Používá se, když appka zakázku zakládá
+  // zakázky ani nezavírá jiné formuláře. Používá se, když aplikace zakázku zakládá
   // jako vedlejší krok uprostřed jiného úkonu (např. rychlé založení při zápisu
-  // práce) — appka tam nechce najednou přeskočit na detail nové zakázky.
+  // práce) — aplikace tam nechce najednou přeskočit na detail nové zakázky.
   const createOrderQuick = async (order) => {
     const NUMERICKA_POLE = ["cena", "planCasDilna", "planCasMontaz"];
     const DATUMOVA_POLE = ["termin", "terminZahajeni"];
@@ -514,11 +514,11 @@ export default function HomePage() {
         const mapa = new Map(vysledky.map((v) => [v.data.id, v.data]));
         return prev.map((o) => mapa.get(o.id) || o);
       });
-      // KRITICKÉ: appka dřív zapomínala obnovit i otevřený detail zakázky
-      // (detailOrder) — pokud appka detail měla zrovna otevřený (nebo appka v
+      // KRITICKÉ: aplikace dřív zapomínala obnovit i otevřený detail zakázky
+      // (detailOrder) — pokud aplikace detail měla zrovna otevřený (nebo aplikace v
       // detailu zůstala "zastaralá" verze), následná rychlá změna stavu by ho
-      // uložila přes tenhle starý, ještě-bez-nákladu stav a náklady by appka
-      // ztratila. Appka teď detail obnoví hned tady, ne až spoléhá na to, že to
+      // uložila přes tenhle starý, ještě-bez-nákladu stav a náklady by aplikace
+      // ztratila. Aplikace teď detail obnoví hned tady, ne až spoléhá na to, že to
       // stihne realtime.
       setDetailOrder((cur) => {
         if (!cur) return cur;
@@ -535,7 +535,7 @@ export default function HomePage() {
 
   // Import faktur přijatých (CSV z ABRA Flexi) — na rozdíl od zapsatNaklady se tu
   // MŮŽE stát, že víc faktur patří ke stejné zakázce (dvě faktury na stejné číslo).
-  // Appka proto zápisy nejdřív SESKUPÍ podle zakázky, ať dvě souběžné aktualizace
+  // Aplikace proto zápisy nejdřív SESKUPÍ podle zakázky, ať dvě souběžné aktualizace
   // téhož řádku jedna druhou nepřepíší (klasické riziko souběhu).
   const importovatFaktury = async (polozky) => {
     try {
@@ -556,7 +556,7 @@ export default function HomePage() {
         const mapa = new Map(vysledky.map((v) => [v.data.id, v.data]));
         return prev.map((o) => mapa.get(o.id) || o);
       });
-      // Appka opravdu STEJNÝ důvod — appka dřív zapomínala obnovit otevřený
+      // Aplikace opravdu STEJNÝ důvod — aplikace dřív zapomínala obnovit otevřený
       // detail zakázky, viz podrobný komentář u zapsatNaklady výše.
       setDetailOrder((cur) => {
         if (!cur) return cur;
@@ -809,7 +809,7 @@ export default function HomePage() {
             textAlign: "center",
           }}
         >
-          Jsi offline — appka zobrazuje poslední stažená data{offlineData ? "" : " z aktuální relace"}. Nové změny se uloží, až se připojení obnoví.
+          Jsi offline — aplikace zobrazuje poslední stažená data{offlineData ? "" : " z aktuální relace"}. Nové změny se uloží, až se připojení obnoví.
         </div>
       )}
 

@@ -5,9 +5,9 @@ import { C, FONTS, fmtMoney, fmtDate, todayISO } from "@/lib/theme";
 import { Button, Select } from "./ui";
 import { useSignedUrl } from "./PhotoThumbnail";
 
-// Nabídka se tiskne s vybranou sazbou DPH nezávisle na tom, s jakou appka počítá
+// Nabídka se tiskne s vybranou sazbou DPH nezávisle na tom, s jakou aplikace počítá
 // interně kalkulaci/marži (u stavebních prací na bydlení jde občas použít snížená
-// sazba) — appka si to jen dopočítá pro tisk, uloženou kalkulaci to nemění.
+// sazba) — aplikace si to jen dopočítá pro tisk, uloženou kalkulaci to nemění.
 const SAZBY_DPH = [
   { hodnota: 0.21, label: "21 %" },
   { hodnota: 0.15, label: "15 %" },

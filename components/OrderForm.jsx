@@ -12,7 +12,7 @@ export default function OrderForm({ initial, orders, organizace, nadrazenaZakazk
       // Duplikace: přenese se zákazník, popis a kalkulace (s novými id, ať jsou
       // nezávislé na originálu) — ale ne stav, termín, práce, náklady, fotky,
       // protokol ani archivy. Ty patří ke KONKRÉTNÍMU průběhu té staré zakázky,
-      // ne k šabloně, kterou appka duplikuje.
+      // ne k šabloně, kterou aplikace duplikuje.
       const d = duplikatZakazky;
       const novaKalkulace = (d.kalkulace || []).map((p) => ({
         ...p,
@@ -308,7 +308,7 @@ export default function OrderForm({ initial, orders, organizace, nadrazenaZakazk
             try {
               const zaUlozeni = f.cislo ? f : { ...f, cislo: await ziskatCisloZeSeru() };
               await onSave(zaUlozeni);
-              // I bez ARES appka uloží telefon/e-mail do katalogu organizací, ať se
+              // I bez ARES aplikace uloží telefon/e-mail do katalogu organizací, ať se
               // příště nabídnou znovu — jen když má zakázka vyplněné IČO.
               if (f.ico && (f.telefon || f.email) && onSaveOrganizace) {
                 onSaveOrganizace({ ico: f.ico, telefon: f.telefon || "", email: f.email || "" });

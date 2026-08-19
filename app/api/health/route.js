@@ -3,10 +3,10 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { ziskatStavPripojeni } from "@/lib/googleDrive";
 import { jeGoogleDriveNastaveny } from "@/lib/photoUpload";
 
-// Veřejná (bez přihlášení) kontrolní routa pro automatické sledování appky —
+// Veřejná (bez přihlášení) kontrolní routa pro automatické sledování aplikace —
 // bezpečná k volání zvenčí, nic necitlivého nevrací, jen "funguje / nefunguje".
 // Doporučený způsob použití: napojit na ni bezplatnou externí službu (viz README),
-// ať appku sama pravidelně kontroluje a upozorní e-mailem, když něco selže.
+// ať aplikaci sama pravidelně kontroluje a upozorní e-mailem, když něco selže.
 export async function GET() {
   const vysledek = { ok: true, cas: new Date().toISOString(), kontroly: {} };
 
@@ -24,8 +24,8 @@ export async function GET() {
     if (await jeGoogleDriveNastaveny()) {
       const stav = await ziskatStavPripojeni();
       vysledek.kontroly.googleDrive = stav.pripojeno ? "ok" : "odpojeno";
-      // Google Drive je jen doplňkové úložiště (appka má záložní řešení), takže
-      // jeho výpadek appku neshazuje jako celek — jen se to ukáže ve výsledku.
+      // Google Drive je jen doplňkové úložiště (aplikace má záložní řešení), takže
+      // jeho výpadek aplikaci neshazuje jako celek — jen se to ukáže ve výsledku.
     } else {
       vysledek.kontroly.googleDrive = "nenastaveno";
     }

@@ -34,18 +34,18 @@ create table if not exists orders (
   created_at timestamptz default now()
 );
 
--- KRITICKÉ: appka do databáze posílá jen ZMĚNĚNÁ pole (např. jen "stav"), ale
+-- KRITICKÉ: aplikace do databáze posílá jen ZMĚNĚNÁ pole (např. jen "stav"), ale
 -- velká jsonb pole (naklady, prace, kalkulace...) Postgres při přesažení určité
 -- velikosti ukládá zvlášť ("TOAST") a při nezměněné hodnotě je v logu změn
 -- (WAL) může zaznamenat jen jako "beze změny", ne s jejich skutečným obsahem.
--- Bez REPLICA IDENTITY FULL pak appce Realtime posílá "payload.new" s
--- neúplnými daty — pole naklady/prace v něm schází, appka to na obrazovce
+-- Bez REPLICA IDENTITY FULL pak aplikaci Realtime posílá "payload.new" s
+-- neúplnými daty — pole naklady/prace v něm schází, aplikace to na obrazovce
 -- okamžitě ukáže jako prázdné, i když v databázi je vše v pořádku. Skutečná
 -- databázová query (SELECT) tenhle problém nemá — postihuje to jen ten "živý"
--- update přes appkový Realtime kanál.
+-- update přes aplikační Realtime kanál.
 alter table orders replica identity full;
 
--- Pokud tabulka orders už existuje ze starší verze appky bez těchto sloupců:
+-- Pokud tabulka orders už existuje ze starší verze aplikace bez těchto sloupců:
 alter table orders add column if not exists "materialObjednano" boolean default false;
 alter table orders add column if not exists "materialObjednanoDatum" date;
 alter table orders add column if not exists "zakaznikIdentifikace" text;
@@ -60,7 +60,7 @@ alter table orders add column if not exists fotky jsonb not null default '[]'::j
 alter table orders add column if not exists naklady jsonb not null default '[]'::jsonb;
 alter table orders add column if not exists archivy jsonb not null default '[]'::jsonb;
 
--- 2) Nastavení appky (jeden řádek, id vždy 1)
+-- 2) Nastavení aplikace (jeden řádek, id vždy 1)
 create table if not exists nastaveni (
   id int primary key default 1,
   "sazbaDilna" numeric default 550,
@@ -82,7 +82,7 @@ create table if not exists nastaveni (
   "vybraniUzivatele" jsonb not null default '[]'::jsonb
 );
 insert into nastaveni (id) values (1) on conflict (id) do nothing;
--- Pokud tabulka nastaveni už existuje ze starší verze appky bez těchto sloupců:
+-- Pokud tabulka nastaveni už existuje ze starší verze aplikace bez těchto sloupců:
 alter table nastaveni add column if not exists "firmaNazev" text;
 alter table nastaveni add column if not exists "firmaAdresa" text;
 alter table nastaveni add column if not exists pracovnici jsonb not null default '[]'::jsonb;
@@ -96,7 +96,7 @@ alter table nastaveni add column if not exists "podminkyNabidky" text;
 alter table nastaveni add column if not exists "nakladovaSazbaDilna" numeric default 500;
 alter table nastaveni add column if not exists "nakladovaSazbaMontaz" numeric default 400;
 
--- 3) Historie / katalog materiálů (pro našeptávač v kalkulaci a správu v appce)
+-- 3) Historie / katalog materiálů (pro našeptávač v kalkulaci a správu v aplikaci)
 create table if not exists material_history (
   nazev text primary key,
   dodavatel text,
@@ -105,7 +105,7 @@ create table if not exists material_history (
   vaha numeric,
   plocha numeric
 );
--- Pokud tabulka už existuje ze starší verze appky bez sloupce dodavatel:
+-- Pokud tabulka už existuje ze starší verze aplikace bez sloupce dodavatel:
 alter table material_history add column if not exists dodavatel text;
 
 -- ---- Zabezpečení řádků (RLS) ----
@@ -122,13 +122,13 @@ create table if not exists uzivatele_role (
   created_at timestamptz default now()
 );
 alter table uzivatele_role enable row level security;
--- Kdokoliv přihlášený smí zjistit role (appka to potřebuje k zobrazení "kdo je uživatel") —
--- zápis do téhle tabulky appka řeší jen přes server (service role), ne přímo z prohlížeče.
+-- Kdokoliv přihlášený smí zjistit role (aplikace to potřebuje k zobrazení "kdo je uživatel") —
+-- zápis do téhle tabulky aplikace řeší jen přes server (service role), ne přímo z prohlížeče.
 drop policy if exists "authenticated read uzivatele_role" on uzivatele_role;
 create policy "authenticated read uzivatele_role" on uzivatele_role
   for select using (auth.role() = 'authenticated');
 
--- Smazání zakázky smí jen "sa" — vynucené přímo v databázi, ne jen schované tlačítko v appce.
+-- Smazání zakázky smí jen "sa" — vynucené přímo v databázi, ne jen schované tlačítko v aplikaci.
 drop policy if exists "authenticated full access orders" on orders;
 drop policy if exists "authenticated read orders" on orders;
 create policy "authenticated read orders" on orders
@@ -258,7 +258,7 @@ create policy "authenticated delete logo" on storage.objects
 
 -- 6) Bezpečné (atomické) číslování zakázek — počítadlo na serveru, ať se dvěma lidem
 -- založivším zakázku ve stejnou chvíli nikdy nepřidělí stejné číslo (běžné riziko,
--- pokud by se číslo počítalo jen v prohlížeči z toho, co appka zrovna vidí).
+-- pokud by se číslo počítalo jen v prohlížeči z toho, co aplikace zrovna vidí).
 create table if not exists cislo_pocitadlo (
   rok int primary key,
   posledni_cislo int not null default 0
@@ -302,7 +302,7 @@ drop policy if exists "authenticated full access organizace" on organizace;
 create policy "authenticated full access organizace" on organizace
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
--- 4) Přihlášení ke Google Drive (OAuth refresh token) — appka se k Drive přihlašuje jako
+-- 4) Přihlášení ke Google Drive (OAuth refresh token) — aplikace se k Drive přihlašuje jako
 -- konkrétní lidský Google účet (ne servisní účet), aby mohla využívat jeho úložiště.
 -- Schválně BEZ "authenticated" policy níže — tahle tabulka nesmí být čitelná/zapisovatelná
 -- přímo z prohlížeče (anon klíčem), jen ze serveru přes service role klíč.

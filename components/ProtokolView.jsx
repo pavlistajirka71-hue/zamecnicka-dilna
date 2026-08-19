@@ -38,7 +38,7 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
   // Adresa/IČO/DIČ zhotovitele se do protokolu "vyfotí" v okamžiku, kdy vzniká —
   // pokud se pak v Nastavení opraví (třeba zjistíš, že tam byla špatná fakturační
   // adresa), NEPROMÍTNE se to automaticky do už rozjetého protokolu. Dokud není
-  // podepsaný, appka nabídne ruční obnovu podle aktuálního Nastavení.
+  // podepsaný, aplikace nabídne ruční obnovu podle aktuálního Nastavení.
   const zNastaveniAktualni = {
     nazev: nastaveni.firmaNazev || "",
     adresa: nastaveni.firmaAdresa || "",

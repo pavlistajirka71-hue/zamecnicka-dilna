@@ -66,7 +66,7 @@ export default function LoginPage() {
         </form>
 
         <div style={{ fontSize: 12, color: C.inkSoft, marginTop: 14, textAlign: "center" }}>
-          Nemáš účet? Požádej administrátora appky, ať tě přidá v Nastavení → Uživatelé.
+          Nemáš účet? Požádej administrátora aplikace, ať tě přidá v Nastavení → Uživatelé.
         </div>
       </div>
     </div>

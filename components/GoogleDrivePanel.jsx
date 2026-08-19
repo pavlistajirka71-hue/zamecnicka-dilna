@@ -90,7 +90,7 @@ export default function GoogleDrivePanel({ onClose }) {
 
           <div style={{ borderTop: `1px dashed ${C.line}`, marginTop: 14, paddingTop: 14 }}>
             <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 8 }}>
-              Pokud appka mezitím (výpadek nebo vypršelé přihlášení) uložila nějaké soubory záložně do Supabase Storage, tímhle je přesuneš sem na Drive.
+              Pokud aplikace mezitím (výpadek nebo vypršelé přihlášení) uložila nějaké soubory záložně do Supabase Storage, tímhle je přesuneš sem na Drive.
             </div>
             <Button variant="ghost" onClick={spustitMigraci} disabled={migrace}>
               <ArrowRightLeft size={14} /> {migrace ? "Přesouvám…" : "Přesunout starší soubory na Drive"}
@@ -111,7 +111,7 @@ export default function GoogleDrivePanel({ onClose }) {
       ) : (
         <div style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 8, padding: 14 }}>
           <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 10 }}>
-            Zatím nepřipojeno — fotky se zatím ukládají do Supabase Storage (appka funguje normálně dál).
+            Zatím nepřipojeno — fotky se zatím ukládají do Supabase Storage (aplikace funguje normálně dál).
           </div>
           <Button variant="primary" onClick={pripojit}>
             <Cloud size={14} /> Připojit Google Drive

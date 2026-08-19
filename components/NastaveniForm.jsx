@@ -61,7 +61,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
       const vysledek = await onMigrovatUctenky();
       setMigraceVysledek(vysledek);
     } catch (e) {
-      // chyba se appce ukáže přes globální hlášku, tady nic navíc dělat nemusíme
+      // chyba se aplikaci ukáže přes globální hlášku, tady nic navíc dělat nemusíme
     }
     setMigruji(false);
   };
@@ -78,10 +78,10 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
         </Field>
       </div>
 
-      <SectionLabel>Nákladová sazba — co appku skutečně stojí hodina práce (Vyhodnocení zakázky)</SectionLabel>
+      <SectionLabel>Nákladová sazba — co aplikaci skutečně stojí hodina práce (Vyhodnocení zakázky)</SectionLabel>
       <div style={{ fontSize: 11, color: C.inkSoft, marginTop: -4, marginBottom: 10 }}>
-        Tahle sazba appka NEUKAZUJE zákazníkovi — používá se jen appka pro appku skutečného zisku a marže na zakázce (appka rozdíl mezi cenou appce a
-        tím, co appku odpracovaná hodina reálně stojí).
+        Tahle sazba aplikace NEUKAZUJE zákazníkovi — používá se jen aplikace pro aplikaci skutečného zisku a marže na zakázce (aplikace rozdíl mezi cenou aplikaci a
+        tím, co aplikaci odpracovaná hodina reálně stojí).
       </div>
       <div className="field-row">
         <Field label="Nákladová sazba dílna (Kč/h)">
@@ -167,7 +167,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
 
       <SectionLabel>Pracovníci (brigádníci)</SectionLabel>
       <div style={{ fontSize: 12, color: "#5B5A52", marginBottom: 8 }}>
-        Jména se nabízí při zápisu práce — pro pracovníky, kteří nemají vlastní přihlášení do appky.
+        Jména se nabízí při zápisu práce — pro pracovníky, kteří nemají vlastní přihlášení do aplikace.
       </div>
       <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 10 }}>
         <input type="checkbox" checked={f.nabizetPracovniky} onChange={(e) => set("nabizetPracovniky", e.target.checked)} />
@@ -176,7 +176,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
 
       {uzivatele && uzivatele.length > 0 && (
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: "#5B5A52", marginBottom: 6 }}>Kteří uživatelé appky se mají nabízet (kromě brigádníků níže):</div>
+          <div style={{ fontSize: 12, color: "#5B5A52", marginBottom: 6 }}>Kteří uživatelé aplikace se mají nabízet (kromě brigádníků níže):</div>
           <div style={{ border: "1px solid #D9D4C7", borderRadius: 6, overflow: "hidden" }}>
             {uzivatele.map((u, i) => (
               <label
@@ -231,7 +231,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
       <SectionLabel>Faktury přijaté (ABRA Flexi)</SectionLabel>
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 12, color: "#5B5A52", marginBottom: 8 }}>
-          Nahraj CSV export faktur přijatých z Flexi — appka je podle čísla zakázky (kdekoliv v řádku, třeba ve variabilním symbolu) sama přiřadí
+          Nahraj CSV export faktur přijatých z Flexi — aplikace je podle čísla zakázky (kdekoliv v řádku, třeba ve variabilním symbolu) sama přiřadí
           do nákladů.
         </div>
         <Button variant="ghost" type="button" onClick={onOpenImportFaktur}>
@@ -242,7 +242,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
       <SectionLabel>Údržba dat</SectionLabel>
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 12, color: "#5B5A52", marginBottom: 8 }}>
-          Starší samostatně vyfocené účtenky appka teď zapisuje rovnou jako náklad — tímhle tlačítkem přesuneš i ty už dřív uložené.
+          Starší samostatně vyfocené účtenky aplikace teď zapisuje rovnou jako náklad — tímhle tlačítkem přesuneš i ty už dřív uložené.
         </div>
         <Button variant="ghost" type="button" onClick={spustitMigraci} disabled={migruji}>
           <ArrowRightLeft size={14} /> {migruji ? "Přesouvám…" : "Přesunout staré účtenky do nákladů"}

@@ -65,8 +65,8 @@ export default function OrderDetail({
     ...(jeHlavniZakazka ? [{ key: "podzakazky", label: `Podzakázky${podzakazky.length ? ` (${podzakazky.length})` : ""}` }] : []),
   ];
   const [tab, setTab] = useState("prace");
-  // Appka blokuje rychlé opakované klikání na tlačítka stavu — dokud předchozí
-  // požadavek nedoběhne, appka neposílá žádný další. Bez tohohle by dvě rychlé
+  // Aplikace blokuje rychlé opakované klikání na tlačítka stavu — dokud předchozí
+  // požadavek nedoběhne, aplikace neposílá žádný další. Bez tohohle by dvě rychlé
   // kliknutí za sebou mohly poslat dva souběžné požadavky, které by se mohly
   // navzájem přepsat v nesprávném pořadí.
   const [menimStav, setMenimStav] = useState(false);

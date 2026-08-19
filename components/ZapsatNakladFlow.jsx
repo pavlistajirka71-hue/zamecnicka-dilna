@@ -5,7 +5,7 @@ import { C, FONTS, uid, todayISO, resizeImageFile, rozpocitatNaklad } from "@/li
 import { nahratFotku } from "@/lib/uploadClient";
 import { Field, TextInput, Button } from "./ui";
 
-// Nahrazuje starší "Vyfotit účtenku" — místo samostatné galerie účtenek appka náklad
+// Nahrazuje starší "Vyfotit účtenku" — místo samostatné galerie účtenek aplikace náklad
 // (s volitelnou přiloženou fotkou) zapíše rovnou do Sledování nákladů dané zakázky.
 // Jde vybrat i víc zakázek najednou — částka se pak rozpočítá poměrově podle jejich ceny.
 export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {

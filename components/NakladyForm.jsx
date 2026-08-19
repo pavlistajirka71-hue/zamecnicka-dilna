@@ -19,10 +19,10 @@ export default function NakladyForm({ order, nastaveni, onSave, onDirtyChange, o
   const [saving, setSaving] = useState(false);
   const [viewPhoto, setViewPhoto] = useState(null);
 
-  // Appka rodiči hlásí, jestli jsou v okně neuložené změny — appka to totiž dřív
+  // Aplikace rodiči hlásí, jestli jsou v okně neuložené změny — aplikace to totiž dřív
   // uměla tiše zahodit (přidáš náklad tlačítkem "+", ale to ho jen připraví do
   // rozjeté obrazovky, skutečně to uloží až "Uložit náklady" dole). Rodič podle
-  // týhle informace appku před zavřením appky varuje.
+  // týhle informace aplikaci před zavřením aplikace varuje.
   useEffect(() => {
     if (onDirtyChange) onDirtyChange(JSON.stringify(radky) !== JSON.stringify(puvodniRadky.current));
   }, [radky, onDirtyChange]);

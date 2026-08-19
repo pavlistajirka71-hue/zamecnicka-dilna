@@ -55,7 +55,7 @@ export default function Kalendar({ orders, onOpen, onOpenVykaz }) {
     return mapa;
   }, [orders]);
 
-  // Termín zahájení výroby — appka ho drží ve vlastní mapě, ať se dá odlišit
+  // Termín zahájení výroby — aplikace ho drží ve vlastní mapě, ať se dá odlišit
   // jinou barvou od termínu dokončení (obojí se v kalendáři může sejít i na
   // stejný den u jiných zakázek).
   const zahajeniPodleDne = useMemo(() => {
@@ -73,7 +73,7 @@ export default function Kalendar({ orders, onOpen, onOpenVykaz }) {
   const jizdyDne = useMemo(() => jizdyPodleDne(orders), [orders]);
   const planTydny = useMemo(() => planovaneHodinyPodleTydne(orders), [orders]);
 
-  // Následujících 8 týdnů (podle pondělí), ať appka ukáže rozumný výhled dopředu,
+  // Následujících 8 týdnů (podle pondělí), ať aplikace ukáže rozumný výhled dopředu,
   // ne úplně všechno až do nekonečna.
   const nasledujiciTydny = useMemo(() => {
     const prvniPondeli = tydenniDny(dnes)[0];

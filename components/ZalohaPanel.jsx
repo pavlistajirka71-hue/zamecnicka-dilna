@@ -39,11 +39,11 @@ export default function ZalohaPanel({ orders, nastaveni, materialHistory, onRest
       const text = await file.text();
       const data = JSON.parse(text);
       if (data.typ !== "zamecnictvi-app-zaloha" || !Array.isArray(data.orders)) {
-        throw new Error("Soubor nevypadá jako platná záloha appky.");
+        throw new Error("Soubor nevypadá jako platná záloha aplikace.");
       }
       setConfirmFile(data);
     } catch (err) {
-      setError("Soubor se nepodařilo přečíst — zkontroluj, že jde o zálohu z téhle appky.");
+      setError("Soubor se nepodařilo přečíst — zkontroluj, že jde o zálohu z téhle aplikace.");
     }
     if (fileRef.current) fileRef.current.value = "";
   };
@@ -78,7 +78,7 @@ export default function ZalohaPanel({ orders, nastaveni, materialHistory, onRest
     <div>
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 10 }}>
-          Stáhne kompletní zálohu — zakázky, nastavení i katalog materiálů — do jednoho souboru. Ulož si ho někam mimo appku (Google Drive,
+          Stáhne kompletní zálohu — zakázky, nastavení i katalog materiálů — do jednoho souboru. Ulož si ho někam mimo aplikaci (Google Drive,
           e-mail…). Fotky (účtenky, podpisy) v záloze nejsou, ty zůstávají bezpečně v Supabase Storage.
         </div>
         <Button variant="primary" onClick={stahnoutZalohu}>
