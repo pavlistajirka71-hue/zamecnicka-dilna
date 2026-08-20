@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Wrench } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { C, FONTS } from "@/lib/theme";
 import { Field, TextInput, Button } from "@/components/ui";
@@ -39,15 +38,34 @@ export default function LoginPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: C.paper,
+        background: "#0D0D0D",
         fontFamily: FONTS.body,
         padding: 16,
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      <div style={{ width: "100%", maxWidth: 380, background: "#fff", borderRadius: 10, border: `1px solid ${C.line}`, padding: 28 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, justifyContent: "center" }}>
-          <Wrench size={22} color={C.rust} />
-          <span style={{ fontFamily: FONTS.display, fontSize: 20, letterSpacing: "0.04em", textTransform: "uppercase" }}>Dílna — Zakázky</span>
+      <img
+        src="/logo-mysteel.jpg"
+        alt=""
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "min(140vw, 1400px)",
+          opacity: 0.06,
+          filter: "invert(1)",
+          pointerEvents: "none",
+          userSelect: "none",
+        }}
+      />
+
+      <div style={{ width: "100%", maxWidth: 380, background: "#fff", borderRadius: 10, border: "1px solid #2A2A2A", padding: 28, position: "relative", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 20 }}>
+          <img src="/logo-mysteel.jpg" alt="MySteel" style={{ width: 64, height: 64, borderRadius: "50%" }} />
+          <span style={{ fontFamily: FONTS.display, fontSize: 18, letterSpacing: "0.06em", textTransform: "uppercase", color: "#111" }}>Dílna — Zakázky</span>
         </div>
 
         <form onSubmit={submit}>
@@ -60,7 +78,12 @@ export default function LoginPage() {
 
           {error && <div style={{ color: C.danger, fontSize: 13, marginBottom: 10 }}>{error}</div>}
 
-          <Button variant="primary" type="submit" style={{ width: "100%", justifyContent: "center" }} disabled={loading}>
+          <Button
+            variant="primary"
+            type="submit"
+            style={{ width: "100%", justifyContent: "center", background: "#111", borderColor: "#111" }}
+            disabled={loading}
+          >
             {loading ? "Chvilku…" : "Přihlásit se"}
           </Button>
         </form>

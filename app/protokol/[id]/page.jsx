@@ -11,7 +11,7 @@ export default function PublicProtokolPage() {
   return (
     <Suspense
       fallback={
-        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#5B5A52", fontFamily: FONTS.body }}>
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#68686A", fontFamily: FONTS.body }}>
           Načítám…
         </div>
       }

@@ -110,7 +110,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
           <option value={1000}>1000 Kč</option>
         </Select>
       </Field>
-      <div style={{ fontSize: 12, color: "#5B5A52", marginTop: 4, marginBottom: 16 }}>DPH je pevně 21 % (aktuální česká sazba).</div>
+      <div style={{ fontSize: 12, color: "#68686A", marginTop: 4, marginBottom: 16 }}>DPH je pevně 21 % (aktuální česká sazba).</div>
 
       <SectionLabel>Firma (zhotovitel na protokolu a nabídce)</SectionLabel>
       <Field label="Název firmy">
@@ -134,7 +134,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
       <Field label="Logo firmy (zobrazí se na nabídce)">
         {f.firmaLogoPath ? (
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {logoUrl && <img src={logoUrl} alt="Logo firmy" style={{ height: 48, maxWidth: 160, objectFit: "contain", background: "#fff", border: "1px solid #D9D4C7", borderRadius: 6, padding: 4 }} />}
+            {logoUrl && <img src={logoUrl} alt="Logo firmy" style={{ height: 48, maxWidth: 160, objectFit: "contain", background: "#fff", border: "1px solid #DEDEDC", borderRadius: 6, padding: 4 }} />}
             <button
               type="button"
               onClick={() => set("firmaLogoPath", "")}
@@ -145,7 +145,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
           </div>
         ) : (
           <label style={{ display: "inline-block" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#34506B", cursor: "pointer", border: "1px solid #D9D4C7", borderRadius: 6, padding: "8px 12px" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#1E1E1E", cursor: "pointer", border: "1px solid #DEDEDC", borderRadius: 6, padding: "8px 12px" }}>
               <Upload size={14} /> {nahravamLogo ? "Nahrávám…" : "Nahrát logo"}
             </span>
             <input type="file" accept="image/*" onChange={nahratLogo} disabled={nahravamLogo} style={{ display: "none" }} />
@@ -166,7 +166,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
       </div>
 
       <SectionLabel>Pracovníci (brigádníci)</SectionLabel>
-      <div style={{ fontSize: 12, color: "#5B5A52", marginBottom: 8 }}>
+      <div style={{ fontSize: 12, color: "#68686A", marginBottom: 8 }}>
         Jména se nabízí při zápisu práce — pro pracovníky, kteří nemají vlastní přihlášení do aplikace.
       </div>
       <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 10 }}>
@@ -176,8 +176,8 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
 
       {uzivatele && uzivatele.length > 0 && (
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: "#5B5A52", marginBottom: 6 }}>Kteří uživatelé aplikace se mají nabízet (kromě brigádníků níže):</div>
-          <div style={{ border: "1px solid #D9D4C7", borderRadius: 6, overflow: "hidden" }}>
+          <div style={{ fontSize: 12, color: "#68686A", marginBottom: 6 }}>Kteří uživatelé aplikace se mají nabízet (kromě brigádníků níže):</div>
+          <div style={{ border: "1px solid #DEDEDC", borderRadius: 6, overflow: "hidden" }}>
             {uzivatele.map((u, i) => (
               <label
                 key={u.id}
@@ -186,7 +186,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
                   alignItems: "center",
                   gap: 8,
                   padding: "8px 10px",
-                  borderTop: i > 0 ? "1px solid #D9D4C7" : "none",
+                  borderTop: i > 0 ? "1px solid #DEDEDC" : "none",
                   fontSize: 13,
                   cursor: "pointer",
                 }}
@@ -202,7 +202,7 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
       {(f.pracovnici || []).length > 0 && (
         <div style={{ marginBottom: 10 }}>
           {f.pracovnici.map((jmeno) => (
-            <div key={jmeno} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", border: "1px solid #D9D4C7", borderRadius: 6, marginBottom: 6, fontSize: 13 }}>
+            <div key={jmeno} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", border: "1px solid #DEDEDC", borderRadius: 6, marginBottom: 6, fontSize: 13 }}>
               <span>{jmeno}</span>
               <button type="button" onClick={() => odebratPracovnika(jmeno)} style={{ background: "none", border: "none", color: "#B33A3A", cursor: "pointer", padding: 4 }}>
                 <Trash2 size={14} />
@@ -230,14 +230,14 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
 
       <SectionLabel>Údržba dat</SectionLabel>
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 12, color: "#5B5A52", marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: "#68686A", marginBottom: 8 }}>
           Starší samostatně vyfocené účtenky aplikace teď zapisuje rovnou jako náklad — tímhle tlačítkem přesuneš i ty už dřív uložené.
         </div>
         <Button variant="ghost" type="button" onClick={spustitMigraci} disabled={migruji}>
           <ArrowRightLeft size={14} /> {migruji ? "Přesouvám…" : "Přesunout staré účtenky do nákladů"}
         </Button>
         {migraceVysledek && (
-          <div style={{ fontSize: 12, marginTop: 8, color: "#5B5A52" }}>
+          <div style={{ fontSize: 12, marginTop: 8, color: "#68686A" }}>
             {migraceVysledek.presunuto === 0
               ? "Nic k přesunutí — všechno je už v nákladech."
               : `Přesunuto ${migraceVysledek.presunuto} účtenek u ${migraceVysledek.zakazek} zakázek.`}
