@@ -783,36 +783,49 @@ export default function HomePage() {
           padding: "14px 20px",
           paddingTop: "calc(14px + env(safe-area-inset-top))",
           display: "flex",
+          flexWrap: "wrap",
           alignItems: "center",
           justifyContent: "space-between",
+          rowGap: 10,
+          columnGap: 10,
           borderBottom: `1px solid ${C.line}`,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/logo-mysteel.jpg" alt="MySteel" style={{ width: 30, height: 30, borderRadius: "50%" }} />
-          <span style={{ fontFamily: FONTS.display, fontSize: 20, letterSpacing: "0.04em", textTransform: "uppercase" }}>Dílna — Zakázky</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <img src="/logo-mysteel.jpg" alt="MySteel" style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0 }} />
+          <span
+            style={{
+              fontFamily: FONTS.display,
+              fontSize: "clamp(15px, 4.2vw, 20px)",
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Dílna — Zakázky
+          </span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft }}>{fmtDate(todayISO())}</div>
-          <button onClick={() => setShowGoogleDrive(true)} title="Google Drive" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "clamp(4px, 2vw, 14px)", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <div style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft, whiteSpace: "nowrap" }}>{fmtDate(todayISO())}</div>
+          <button onClick={() => setShowGoogleDrive(true)} title="Google Drive" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
             <Cloud size={20} />
           </button>
-          <button onClick={() => setShowZaloha(true)} title="Zálohování" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
+          <button onClick={() => setShowZaloha(true)} title="Zálohování" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
             <DatabaseBackup size={20} />
           </button>
-          <button onClick={() => setShowImportFaktur(true)} title="Import faktur přijatých (Flexi)" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
+          <button onClick={() => setShowImportFaktur(true)} title="Import faktur přijatých (Flexi)" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
             <FileSpreadsheet size={20} />
           </button>
-          <button onClick={() => setShowReport(true)} title="Měsíční report práce" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
+          <button onClick={() => setShowReport(true)} title="Měsíční report práce" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
             <BarChart3 size={20} />
           </button>
-          <button onClick={() => setShowMaterialy(true)} title="Katalog materiálů" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
+          <button onClick={() => setShowMaterialy(true)} title="Katalog materiálů" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
             <Layers size={20} />
           </button>
-          <button onClick={() => setShowNastaveni(true)} style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
+          <button onClick={() => setShowNastaveni(true)} style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
             <Settings size={20} />
           </button>
-          <button onClick={signOut} title="Odhlásit se" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
+          <button onClick={signOut} title="Odhlásit se" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
             <LogOut size={20} />
           </button>
         </div>
@@ -901,7 +914,8 @@ export default function HomePage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, padding: "10px 16px 0", background: C.paper, borderBottom: `1px solid ${C.line}`, overflowX: "auto" }}>
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "flex", gap: 4, padding: "10px 16px 0", background: C.paper, borderBottom: `1px solid ${C.line}`, overflowX: "auto" }}>
         {[
           { key: "prehled", label: "Přehled", icon: LayoutDashboard },
           { key: "zakazky", label: "Zakázky", icon: ClipboardList },
@@ -940,6 +954,18 @@ export default function HomePage() {
             </button>
           );
         })}
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            bottom: 1,
+            right: 0,
+            width: 24,
+            background: `linear-gradient(to right, transparent, ${C.paper})`,
+            pointerEvents: "none",
+          }}
+        />
       </div>
 
       <div style={{ padding: 20, maxWidth: 1100, margin: "0 auto" }}>
