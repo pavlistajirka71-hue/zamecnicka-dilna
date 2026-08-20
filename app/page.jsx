@@ -985,36 +985,37 @@ export default function HomePage() {
                     const plan = planHodin(o);
                     const odvedeno = sumHodin(o.prace);
                     const overdueRow = isOverdue(o);
+                    const madeProgress = plan > 0 ? Math.min(100, Math.round((odvedeno / plan) * 100)) : null;
                     return (
                       <div
                         key={o.id}
                         onClick={() => setDetailOrder(o)}
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
                           padding: "12px 16px",
                           borderTop: i > 0 ? `1px solid ${C.line}` : "none",
                           cursor: "pointer",
-                          borderLeft: overdueRow ? `4px solid ${C.rust}` : "4px solid transparent",
+                          borderLeft: overdueRow ? `3px solid ${C.ink}` : `3px solid ${C.line}`,
                         }}
                       >
-                        <div style={{ width: 78, flexShrink: 0 }}>
-                          <div style={{ fontFamily: FONTS.mono, fontSize: 13, color: overdueRow ? C.rust : C.ink, fontWeight: 600 }}>{fmtDate(o.termin)}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                          <span style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft }}>{o.cislo}</span>
+                          <StampBadge status={o.stav} small />
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                            <span style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft }}>{o.cislo}</span>
-                            <StampBadge status={o.stav} small />
-                          </div>
-                          <div style={{ fontWeight: 600, fontSize: 14 }}>{o.zakaznik}</div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
+                          <div style={{ fontWeight: 600, fontSize: 15 }}>{o.zakaznik}</div>
+                          <div style={{ fontFamily: FONTS.mono, fontSize: 16, fontWeight: 600, whiteSpace: "nowrap" }}>{fmtMoney(o.cena)}</div>
                         </div>
-                        <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <div style={{ fontFamily: FONTS.mono, fontSize: 14 }}>{fmtMoney(o.cena)}</div>
-                          <div style={{ fontSize: 11, color: C.inkSoft, fontFamily: FONTS.mono }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: overdueRow ? C.ink : C.inkSoft, fontWeight: overdueRow ? 600 : 400, marginBottom: 4 }}>
+                          <span>Termín {fmtDate(o.termin)}</span>
+                          <span style={{ fontFamily: FONTS.mono }}>
                             plán {plan} h · odvedeno {odvedeno} h
-                          </div>
+                          </span>
                         </div>
+                        {plan > 0 && (
+                          <div style={{ height: 4, borderRadius: 2, background: C.paper, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${madeProgress}%`, background: C.ink }} />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
