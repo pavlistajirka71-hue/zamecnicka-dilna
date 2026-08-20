@@ -2,7 +2,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Wrench,
   LayoutDashboard,
   ClipboardList,
   CalendarDays,
@@ -759,7 +758,24 @@ export default function HomePage() {
   if (!session) return null;
 
   return (
-    <div style={{ minHeight: "100vh", background: C.paper, fontFamily: FONTS.body, color: C.ink }}>
+    <div style={{ minHeight: "100vh", background: C.paper, fontFamily: FONTS.body, color: C.ink, position: "relative" }}>
+      <img
+        src="/logo-mysteel.jpg"
+        alt=""
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          bottom: "-8vw",
+          right: "-8vw",
+          width: "42vw",
+          maxWidth: 520,
+          opacity: 0.05,
+          pointerEvents: "none",
+          userSelect: "none",
+          zIndex: 0,
+        }}
+      />
+      <div style={{ position: "relative", zIndex: 1 }}>
       <div
         style={{
           background: C.steelDark,
@@ -773,7 +789,7 @@ export default function HomePage() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Wrench size={22} color={C.rust} />
+          <img src="/logo-mysteel.jpg" alt="MySteel" style={{ width: 30, height: 30, borderRadius: "50%" }} />
           <span style={{ fontFamily: FONTS.display, fontSize: 20, letterSpacing: "0.04em", textTransform: "uppercase" }}>Dílna — Zakázky</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -1360,6 +1376,7 @@ export default function HomePage() {
           />
         </Modal>
       )}
+      </div>
     </div>
   );
 }
