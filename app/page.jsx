@@ -778,41 +778,41 @@ export default function HomePage() {
       <div style={{ position: "relative", zIndex: 1 }}>
       <div
         style={{
-          background: C.steelDark,
-          color: "#fff",
+          background: "#fff",
+          color: C.ink,
           padding: "14px 20px",
           paddingTop: "calc(14px + env(safe-area-inset-top))",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          borderBottom: `4px solid ${C.rust}`,
+          borderBottom: `1px solid ${C.line}`,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/logo-mysteel-inverted.png" alt="MySteel" style={{ width: 30, height: 30 }} />
+          <img src="/logo-mysteel.jpg" alt="MySteel" style={{ width: 30, height: 30, borderRadius: "50%" }} />
           <span style={{ fontFamily: FONTS.display, fontSize: 20, letterSpacing: "0.04em", textTransform: "uppercase" }}>Dílna — Zakázky</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ fontFamily: FONTS.mono, fontSize: 12, color: "#C9CDD2" }}>{fmtDate(todayISO())}</div>
-          <button onClick={() => setShowGoogleDrive(true)} title="Google Drive" style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 10, margin: -10 }}>
+          <div style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft }}>{fmtDate(todayISO())}</div>
+          <button onClick={() => setShowGoogleDrive(true)} title="Google Drive" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
             <Cloud size={20} />
           </button>
-          <button onClick={() => setShowZaloha(true)} title="Zálohování" style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 10, margin: -10 }}>
+          <button onClick={() => setShowZaloha(true)} title="Zálohování" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
             <DatabaseBackup size={20} />
           </button>
-          <button onClick={() => setShowImportFaktur(true)} title="Import faktur přijatých (Flexi)" style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 10, margin: -10 }}>
+          <button onClick={() => setShowImportFaktur(true)} title="Import faktur přijatých (Flexi)" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
             <FileSpreadsheet size={20} />
           </button>
-          <button onClick={() => setShowReport(true)} title="Měsíční report práce" style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 10, margin: -10 }}>
+          <button onClick={() => setShowReport(true)} title="Měsíční report práce" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
             <BarChart3 size={20} />
           </button>
-          <button onClick={() => setShowMaterialy(true)} title="Katalog materiálů" style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 10, margin: -10 }}>
+          <button onClick={() => setShowMaterialy(true)} title="Katalog materiálů" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
             <Layers size={20} />
           </button>
-          <button onClick={() => setShowNastaveni(true)} style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 10, margin: -10 }}>
+          <button onClick={() => setShowNastaveni(true)} style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
             <Settings size={20} />
           </button>
-          <button onClick={signOut} title="Odhlásit se" style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 10, margin: -10 }}>
+          <button onClick={signOut} title="Odhlásit se" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 10, margin: -10 }}>
             <LogOut size={20} />
           </button>
         </div>
