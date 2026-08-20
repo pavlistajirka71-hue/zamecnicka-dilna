@@ -789,7 +789,7 @@ export default function HomePage() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/logo-mysteel.jpg" alt="MySteel" style={{ width: 30, height: 30, borderRadius: "50%" }} />
+          <img src="/logo-mysteel-inverted.png" alt="MySteel" style={{ width: 30, height: 30 }} />
           <span style={{ fontFamily: FONTS.display, fontSize: 20, letterSpacing: "0.04em", textTransform: "uppercase" }}>Dílna — Zakázky</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
