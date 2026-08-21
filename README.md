@@ -82,7 +82,7 @@ Přiložil jsem `supabase/seed_materialy_mzhutni.csv` se ~20 reálnými položka
 
 ## Archiv zakázky jako PDF na Google Drive
 
-**Aplikace teď generuje PDF automaticky** — jakmile zakázku přepneš na stav **Hotovo** nebo **Fakturováno** (v detailu zakázky, na nástěnce, kdekoliv), aplikace sama na pozadí sesbírá všechna podstatná data a uloží PDF na Drive, bez nutnosti na cokoliv klikat. Přepnutí na Fakturováno vygeneruje nové, aktuální PDF i podruhé (např. s doplněnými náklady). V detailu zakázky zůstává i ruční tlačítko **"Vygenerovat PDF a uložit na Drive"**, kdyby sis chtěl/a archiv vytvořit znovu mimo tyhle dva okamžiky.
+**Aplikace teď generuje PDF automaticky** — jakmile zakázku přepneš na stav **Zaplaceno** nebo **Fakturováno** (v detailu zakázky, na nástěnce, kdekoliv), aplikace sama na pozadí sesbírá všechna podstatná data a uloží PDF na Drive, bez nutnosti na cokoliv klikat. Přepnutí na Fakturováno vygeneruje nové, aktuální PDF i podruhé (např. s doplněnými náklady). V detailu zakázky zůstává i ruční tlačítko **"Vygenerovat PDF a uložit na Drive"**, kdyby sis chtěl/a archiv vytvořit znovu mimo tyhle dva okamžiky.
 
 Do PDF aplikace vloží: zákazníka, popis, kalkulaci po položkách, zápisy práce, náklady/zisk/marži (u vyfakturovaných i s porovnáním s plánem), stav protokolu, materiál a fotky účtenek i fotodokumentace.
 
@@ -340,7 +340,7 @@ Aplikace teď umí zakládat přístupy pro kolegy přímo v aplikaci, bez nutno
 
 ## Co aplikace umí
 
-- Zakázky s fondem pracovní (plán dílna/montáž) a stavy (Nabídnuto → Rozpracováno → Hotovo → Fakturováno, + Neúspěšná nabídka)
+- Zakázky s fondem pracovní (plán dílna/montáž) a stavy (Nabídnuto → Rozpracováno → Zaplaceno → Fakturováno, + Neúspěšná nabídka)
 - Zápis odpracovaných hodin (dílna/montáž) přímo ke konkrétní zakázce
 - Focení účtenek mobilem — nahrávají se do Supabase Storage (ne do aplikace samotné)
 - Kalkulace zakázky: materiál (s historií a našeptávačem), práce, kooperace (zinkování/lakování), přirážka, DPH, plánovaná marže

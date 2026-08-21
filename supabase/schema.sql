@@ -331,3 +331,24 @@ create policy "authenticated upload archivy" on storage.objects
 drop policy if exists "authenticated delete archivy" on storage.objects;
 create policy "authenticated delete archivy" on storage.objects
   for delete using (bucket_id = 'archivy' and auth.role() = 'authenticated');
+
+-- ---- Úkoly (vzájemné zadávání úkolů mezi uživateli) ----
+create table if not exists ukoly (
+  id uuid primary key default gen_random_uuid(),
+  text text not null,
+  "prirazenoKomu" text not null,
+  "zadalKdo" text not null,
+  "zakazkaId" text,
+  "zakazkaCislo" text,
+  termin date,
+  hotovo boolean not null default false,
+  "hotovoKdy" timestamptz,
+  created_at timestamptz default now()
+);
+alter table ukoly enable row level security;
+-- Kdokoliv přihlášený smí úkoly číst i zapisovat — je to sdílený, malý tým,
+-- rozlišení mezi "svými" a "cizími" úkoly řeší jen samotné zobrazení
+-- v aplikaci, ne databázová pravidla.
+drop policy if exists "authenticated all ukoly" on ukoly;
+create policy "authenticated all ukoly" on ukoly
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');

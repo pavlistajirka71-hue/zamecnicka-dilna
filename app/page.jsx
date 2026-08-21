@@ -11,6 +11,7 @@ import {
   Clock,
   Camera,
   Timer,
+  ListChecks,
   Settings,
   LogOut,
   Layers,
@@ -48,6 +49,7 @@ import ImportFakturFlow from "@/components/ImportFakturFlow";
 import KalkulaceForm from "@/components/KalkulaceForm";
 import Kalendar from "@/components/Kalendar";
 import VykazPrace from "@/components/VykazPrace";
+import UkolyPanel from "@/components/UkolyPanel";
 import UzivateleForm from "@/components/UzivateleForm";
 import NastaveniForm from "@/components/NastaveniForm";
 import QuoteView from "@/components/QuoteView";
@@ -94,6 +96,7 @@ export default function HomePage() {
   const [showMaterialy, setShowMaterialy] = useState(false);
   const [poptavkaOrder, setPoptavkaOrder] = useState(null);
   const [showReport, setShowReport] = useState(false);
+  const [ukoly, setUkoly] = useState([]);
   const [protokolOrder, setProtokolOrder] = useState(null);
   const [protokolPrint, setProtokolPrint] = useState(null);
   const [showZaloha, setShowZaloha] = useState(false);
@@ -183,17 +186,19 @@ export default function HomePage() {
 
   // ---- initial data load ----
   const loadAllData = async () => {
-    const [ordersRes, nastaveniRes, historyRes, organizaceRes] = await Promise.all([
+    const [ordersRes, nastaveniRes, historyRes, organizaceRes, ukolyRes] = await Promise.all([
       supabase.from("orders").select("*").order("vytvoreno", { ascending: false }),
       supabase.from("nastaveni").select("*").eq("id", 1).maybeSingle(),
       supabase.from("material_history").select("*"),
       supabase.from("organizace").select("*"),
+      supabase.from("ukoly").select("*").order("created_at", { ascending: false }),
     ]);
     const noveOrders = ordersRes.data || [];
     setOrders(noveOrders);
     if (nastaveniRes.data) setNastaveni({ ...DEFAULT_NASTAVENI, ...nastaveniRes.data });
     setMaterialHistory(historyRes.data || []);
     setOrganizace(organizaceRes.data || []);
+    setUkoly(ukolyRes.data || []);
     setOfflineData(false);
     // Aplikace aktualizuje i případně otevřené detaily zakázek (kdyby aplikace byla
     // otevřená zrovna ve chvíli, kdy se aplikace celá znovu načetla, třeba po
@@ -292,6 +297,25 @@ export default function HomePage() {
     };
   }, [session?.user?.id]);
 
+  // Živý kanál pro úkoly — malé, jednoduché řádky bez velkých jsonb polí, takže
+  // sem oproti zakázkám výše nehrozí stejná past s neúplnými daty.
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const channel = supabase
+      .channel("ukoly-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "ukoly" }, (payload) => {
+        setUkoly((prev) => {
+          if (payload.eventType === "DELETE") return prev.filter((u) => u.id !== payload.old.id);
+          const existuje = prev.some((u) => u.id === payload.new.id);
+          return existuje ? prev.map((u) => (u.id === payload.new.id ? payload.new : u)) : [payload.new, ...prev];
+        });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id]);
+
   const signOut = async () => {
     await supabase.auth.signOut();
     router.replace("/login");
@@ -330,6 +354,39 @@ export default function HomePage() {
       .from("organizace")
       .upsert({ ico: org.ico, nazev: org.nazev, adresa: org.adresa, dic: org.dic, telefon: org.telefon, email: org.email });
     if (error) console.error("Uložení organizace se nepovedlo:", error);
+  };
+
+  const createUkol = async (novyUkol) => {
+    const zaznam = { ...novyUkol, zadalKdo: session?.user?.email || "?" };
+    const { data, error } = await supabase.from("ukoly").insert(zaznam).select().single();
+    if (error) {
+      console.error(error);
+      setGlobalError("Úkol se nepovedlo zadat. Zkontroluj připojení a zkus to znovu.");
+      throw error;
+    }
+    setUkoly((prev) => [data, ...prev]);
+  };
+
+  const toggleUkolHotovo = async (ukol) => {
+    const patch = { hotovo: !ukol.hotovo, hotovoKdy: !ukol.hotovo ? new Date().toISOString() : null };
+    setUkoly((prev) => prev.map((u) => (u.id === ukol.id ? { ...u, ...patch } : u)));
+    const { error } = await supabase.from("ukoly").update(patch).eq("id", ukol.id);
+    if (error) {
+      console.error(error);
+      setUkoly((prev) => prev.map((u) => (u.id === ukol.id ? ukol : u)));
+      setGlobalError("Změnu se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
+    }
+  };
+
+  const deleteUkol = async (ukol) => {
+    if (!window.confirm("Opravdu smazat tenhle úkol?")) return;
+    setUkoly((prev) => prev.filter((u) => u.id !== ukol.id));
+    const { error } = await supabase.from("ukoly").delete().eq("id", ukol.id);
+    if (error) {
+      console.error(error);
+      setUkoly((prev) => [...prev, ukol]);
+      setGlobalError("Smazání se nepovedlo. Zkontroluj připojení a zkus to znovu.");
+    }
   };
 
   // Aplikace POUZE mění stav zakázky — na rozdíl od saveOrder tahle funkce do
@@ -431,7 +488,7 @@ export default function HomePage() {
     setEditingOrder(null);
     setDetailOrder(data);
 
-    // Automatický archiv PDF: jakmile zakázka nově přejde do stavu Hotovo nebo
+    // Automatický archiv PDF: jakmile zakázka nově přejde do stavu Zaplaceno nebo
     // Fakturováno, aplikace sama vygeneruje a uloží PDF na Drive — netřeba na nic klikat.
     const CIL_STAVY_PRO_PDF = ["hotovo", "fakturovano"];
     if (CIL_STAVY_PRO_PDF.includes(data.stav) && predchoziZakazka?.stav !== data.stav) {
@@ -921,6 +978,7 @@ export default function HomePage() {
           { key: "zakazky", label: "Zakázky", icon: ClipboardList },
           { key: "kalendar", label: "Kalendář", icon: CalendarDays },
           { key: "vykaz", label: "Výkaz práce", icon: Timer },
+          { key: "ukoly", label: "Úkoly", icon: ListChecks },
         ].map((t) => {
           const Icon = t.icon;
           const active = tab === t.key;
@@ -951,6 +1009,21 @@ export default function HomePage() {
             >
               <Icon size={15} />
               {t.label}
+              {t.key === "ukoly" && ukoly.filter((u) => u.prirazenoKomu === session?.user?.email && !u.hotovo).length > 0 && (
+                <span
+                  style={{
+                    background: C.ink,
+                    color: "#fff",
+                    borderRadius: 10,
+                    fontSize: 10,
+                    fontFamily: FONTS.mono,
+                    padding: "1px 6px",
+                    marginLeft: 2,
+                  }}
+                >
+                  {ukoly.filter((u) => u.prirazenoKomu === session?.user?.email && !u.hotovo).length}
+                </span>
+              )}
             </button>
           );
         })}
@@ -1192,6 +1265,18 @@ export default function HomePage() {
           />
         )}
         {tab === "vykaz" && <VykazPrace orders={orders} onOpenOrder={setDetailOrder} initialDen={vykazInitialDen} />}
+        {tab === "ukoly" && (
+          <UkolyPanel
+            ukoly={ukoly}
+            orders={orders}
+            uzivatele={uzivatele}
+            mujEmail={session?.user?.email}
+            onCreate={createUkol}
+            onToggleHotovo={toggleUkolHotovo}
+            onDelete={deleteUkol}
+            onOpenOrder={setDetailOrder}
+          />
+        )}
       </div>
 
       {showOrderForm && (
