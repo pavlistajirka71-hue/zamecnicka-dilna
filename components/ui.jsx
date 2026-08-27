@@ -97,7 +97,13 @@ export function Field({ label, children }) {
 }
 
 export function TextInput(props) {
-  return <input {...props} style={{ ...inputStyle, ...(props.style || {}) }} />;
+  // Prohlížeče (hlavně stolní Chrome) mění hodnotu číselného pole (type="number")
+  // při otočení kolečka myši/touchpadu, pokud je pole zrovna aktivní — vypadá to,
+  // jako by se hodnota "sama od sebe" měnila při rolování stránky. Odebrání
+  // zaostření hned při otočení kolečka to zastaví, samotné rolování stránky to
+  // nijak neovlivní.
+  const onWheel = props.type === "number" ? (e) => e.target.blur() : undefined;
+  return <input {...props} onWheel={onWheel} style={{ ...inputStyle, ...(props.style || {}) }} />;
 }
 export function TextArea(props) {
   return <textarea {...props} style={{ ...inputStyle, minHeight: 70, resize: "vertical", ...(props.style || {}) }} />;

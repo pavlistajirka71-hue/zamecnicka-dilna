@@ -77,7 +77,7 @@ export default function HomePage() {
   const [uzivatele, setUzivatele] = useState([]);
   const [organizace, setOrganizace] = useState([]);
 
-  const [tab, setTab] = useState("prehled");
+  const [tab, setTab] = useState("ukoly");
   const [vykazInitialDen, setVykazInitialDen] = useState(null);
   const [search, setSearch] = useState("");
   const [filterStav, setFilterStav] = useState("vse");
