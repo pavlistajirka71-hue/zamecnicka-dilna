@@ -82,6 +82,8 @@ Jak se s tím pracuje:
 2. V **detailu poptávky** průběžně přidáváš fotky a poznámky (každá s datem a kdo ji napsal) a měníš stav: Nová → Řeší se → (Odmítnutá).
 3. **Vytvořit nabídku a zakázku**: otevře formulář zakázky předvyplněný z poptávky (zákazník, kontakt, popis, termín, poznámky, fotky). Po uložení vznikne zakázka ve stavu **Nabídnuto**, otevře se její detail, kde uděláš kalkulaci a nabídku jako dosud. Poptávka se přepne na „Nabídka vytvořena“ a má odkaz na zakázku.
 
+**Načtení z e-mailu (Outlook):** v Nové poptávce je pole **Načíst z e-mailu**. Buď přetáhneš e-mail (klasický Outlook: přetáhni zprávu na plochu, vznikne soubor .msg, ten přetáhni do aplikace; webový/nový Outlook: … → Stáhnout → .eml), nebo zkopíruješ text zprávy (Ctrl+A, Ctrl+C) a vložíš ho. Aplikace sama vyplní zákazníka, telefon, e-mail, IČO, adresu, termín a popis a přidá fotky z příloh. Doplní jen prázdná pole, nic nepřepíše. Všechno běží přímo v prohlížeči, zdarma a bez jakékoli další služby, e-mail se nikam neodesílá. Rozpoznávání je pravidlové (ne AI), takže údaje vždy zkontroluj. Přílohy jiné než fotky (PDF, výkresy) se zatím nepřenášejí.
+
 Číslo u záložky ukazuje počet nových (nevyřízených) poptávek. Smazat poptávku smí jen správce; zakázka z ní založená tím zůstane netknutá. Poptávky jsou i v záloze (Zálohování).
 
 ## Katalog materiálů (dodavatelé, CSV import)
