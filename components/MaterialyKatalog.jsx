@@ -184,7 +184,7 @@ export default function MaterialyKatalog({ materialHistory, onChange, onClose })
 }
 
 function MaterialEditForm({ initial, onSave, onCancel }) {
-  const [f, setF] = useState(initial || { nazev: "", dodavatel: "", cena: "", jednotka: "kg", vaha: "", plocha: "" });
+  const [f, setF] = useState(initial || { nazev: "", dodavatel: "", cena: "", jednotka: "m", vaha: "", plocha: "" });
   const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
   return (
     <div style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: 12, marginBottom: 12, background: C.paper }}>

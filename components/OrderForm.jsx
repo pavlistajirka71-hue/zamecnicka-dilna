@@ -14,7 +14,8 @@ export default function OrderForm({ initial, zPoptavky, orders, organizace, nadr
       // protokol ani archivy. Ty patří ke KONKRÉTNÍMU průběhu té staré zakázky,
       // ne k šabloně, kterou aplikace duplikuje.
       const d = duplikatZakazky;
-      const novaKalkulace = (d.kalkulace || []).map((p) => ({
+      const novaKalkulace = (d.kalkulace || []).map(({ sazby, ...p }) => ({
+        // uložené sazby originálu se nepřenáší — kopie se počítá s aktuálními sazbami
         ...p,
         id: uid(),
         materialy: (p.materialy || []).map((m) => ({ ...m, id: uid() })),

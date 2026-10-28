@@ -1,18 +1,22 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
-import { C, FONTS, uid, novaPolozkaKalkulace, normalizovatKalkulaci, computeKalkulace, computeKalkulaceCelkem, fmtMoney, DPH_SAZBA } from "@/lib/theme";
+import { C, FONTS, uid, novaPolozkaKalkulace, normalizovatKalkulaci, computeKalkulace, computeKalkulaceCelkem, fmtMoney, DPH_SAZBA, maJineSazby, sazbyZNastaveni } from "@/lib/theme";
+
+const fmtCislo = (n, des = 2) => (Number(n) || 0).toLocaleString("cs-CZ", { maximumFractionDigits: des });
 import { Field, TextInput, Select, Button, SectionLabel, iconBtnStyle } from "./ui";
 import MaterialRow from "./MaterialRow";
 
-function PolozkaForm({ polozka, nastaveni, materialHistory, sazbaDph, onChange }) {
-  const vysledek = useMemo(() => computeKalkulace(polozka, nastaveni, sazbaDph), [polozka, nastaveni, sazbaDph]);
+function PolozkaForm({ polozka, nastaveni: nastaveniAktualni, materialHistory, sazbaDph, onChange }) {
+  // Sazby, se kterými se položka skutečně počítá (uložené v položce, jinak aktuální).
+  const nastaveni = polozka.sazby ? { ...nastaveniAktualni, ...polozka.sazby } : nastaveniAktualni;
+  const vysledek = useMemo(() => computeKalkulace(polozka, nastaveniAktualni, sazbaDph), [polozka, nastaveniAktualni, sazbaDph]);
   const materialy = polozka.materialy || [];
 
   const addMaterial = () =>
     onChange({
       ...polozka,
-      materialy: [...materialy, { id: uid(), nazev: "", dodavatel: "", cena: "", jednotka: "kg", mnozstvi: "", vaha: "", plocha: "" }],
+      materialy: [...materialy, { id: uid(), nazev: "", dodavatel: "", cena: "", jednotka: "m", mnozstvi: "", vaha: "", plocha: "" }],
     });
   const updateMaterial = (idx, item) => onChange({ ...polozka, materialy: materialy.map((m, i) => (i === idx ? item : m)) });
   const removeMaterial = (idx) => onChange({ ...polozka, materialy: materialy.filter((_, i) => i !== idx) });
@@ -63,12 +67,22 @@ function PolozkaForm({ polozka, nastaveni, materialHistory, sazbaDph, onChange }
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
           <input type="checkbox" checked={polozka.zinkovaniAktivni} onChange={(e) => onChange({ ...polozka, zinkovaniAktivni: e.target.checked })} />
-          Zinkování — {vysledek.vahaSum} kg × {fmtMoney(nastaveni.cenaZinkovani)} = {fmtMoney(vysledek.zinkovaniSum)}
+          Zinkování — {fmtCislo(vysledek.vahaSum)} kg × {fmtMoney(nastaveni.cenaZinkovani)} = {fmtMoney(vysledek.zinkovaniSum)}
         </label>
+        {polozka.zinkovaniAktivni && materialy.length > 0 && vysledek.vahaSum === 0 && (
+          <div style={{ fontSize: 12, color: C.danger, marginLeft: 24, marginTop: -4 }}>
+            Zinkování je zapnuté, ale materiál nemá vyplněnou váhu (kg/jednotku) — zinkování se počítá 0 Kč.
+          </div>
+        )}
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
           <input type="checkbox" checked={polozka.lakovaniAktivni} onChange={(e) => onChange({ ...polozka, lakovaniAktivni: e.target.checked })} />
-          Lakování — {vysledek.plochaProLakovani.toFixed(2)} m² (plocha + 5 % na ztráty) × {fmtMoney(nastaveni.cenaLakovani)} = {fmtMoney(vysledek.lakovaniSum)}
+          Lakování — {fmtCislo(vysledek.plochaProLakovani)} m² (plocha + 5 % na ztráty) × {fmtMoney(nastaveni.cenaLakovani)} = {fmtMoney(vysledek.lakovaniSum)}
         </label>
+        {polozka.lakovaniAktivni && materialy.length > 0 && vysledek.plochaSum === 0 && (
+          <div style={{ fontSize: 12, color: C.danger, marginLeft: 24, marginTop: -4 }}>
+            Lakování je zapnuté, ale materiál nemá vyplněnou plochu (m²/jednotku) — lakování se počítá 0 Kč.
+          </div>
+        )}
       </div>
 
       <SectionLabel>Přirážka</SectionLabel>
@@ -112,6 +126,10 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
 
   const updatePolozka = (id, next) => setPolozky((prev) => prev.map((p) => (p.id === id ? next : p)));
 
+  // Kalkulace uložená se staršími sazbami (před jejich změnou v Nastavení)
+  const staraSazbaPolozka = polozky.find((p) => maJineSazby(p, nastaveni));
+  const prepocitatNaAktualniSazby = () => setPolozky((prev) => prev.map((p) => ({ ...p, sazby: sazbyZNastaveni(nastaveni) })));
+
   const addPolozka = () => {
     const p = novaPolozkaKalkulace(`Položka ${polozky.length + 1}`);
     setPolozky((prev) => [...prev, p]);
@@ -133,6 +151,18 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
 
   return (
     <div>
+      {staraSazbaPolozka && (
+        <div style={{ background: "#FBF3E4", border: `1px solid ${C.brass}`, borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 13 }}>
+          Kalkulace je spočítaná se sazbami platnými při jejím uložení (dílna {fmtMoney(staraSazbaPolozka.sazby.sazbaDilna)}/h, montáž{" "}
+          {fmtMoney(staraSazbaPolozka.sazby.sazbaMontaz)}/h, zinkování {fmtMoney(staraSazbaPolozka.sazby.cenaZinkovani)}/kg, lakování{" "}
+          {fmtMoney(staraSazbaPolozka.sazby.cenaLakovani)}/m²). V Nastavení jsou teď jiné — cena odeslané nabídky se tím sama nemění.
+          <div style={{ marginTop: 8 }}>
+            <Button variant="ghost" type="button" onClick={prepocitatNaAktualniSazby}>
+              Přepočítat podle aktuálních sazeb
+            </Button>
+          </div>
+        </div>
+      )}
       {polozky.map((p, idx) => {
         const v = computeKalkulace(p, nastaveni, sazbaDph);
         const open = openId === p.id;

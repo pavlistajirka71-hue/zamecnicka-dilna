@@ -32,6 +32,7 @@ import {
   DPH_SAZBA,
   computeKalkulaceCelkem,
   normalizovatKalkulaci,
+  sazbyZNastaveni,
   upsertMaterialHistory,
   upsertOrganizaceHistory,
   planHodin,
@@ -902,7 +903,15 @@ export default function HomePage() {
     const planCasMontaz = polozky.reduce((s, p) => s + (Number(p.praceMontazHodiny) || 0) * Math.max(1, Number(p.pocetKs) || 1), 0);
     const { data, error } = await supabase
       .from("orders")
-      .update({ kalkulace: polozky, cena: celkem.finalniCena, planCasDilna, planCasMontaz, sazbaDph })
+      // Každá položka si uloží sazby, se kterými byla spočítaná (viz SAZBY_KALKULACE) —
+      // položky bez nich (nové nebo starší) dostanou aktuální sazby z Nastavení.
+      .update({
+        kalkulace: polozky.map((p) => (p.sazby ? p : { ...p, sazby: sazbyZNastaveni(nastaveni) })),
+        cena: celkem.finalniCena,
+        planCasDilna,
+        planCasMontaz,
+        sazbaDph,
+      })
       .eq("id", order.id)
       .select()
       .single();

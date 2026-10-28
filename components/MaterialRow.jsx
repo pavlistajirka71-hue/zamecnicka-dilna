@@ -105,7 +105,22 @@ export default function MaterialRow({ item, history, onChange, onRemove }) {
         </div>
         <div>
           <MiniLabel>Jednotka</MiniLabel>
-          <Select value={item.jednotka || "kg"} onChange={(e) => onChange({ ...item, jednotka: e.target.value })}>
+          <Select
+            value={item.jednotka || "kg"}
+            onChange={(e) => {
+              // U materiálu v kg je váha 1 kg na jednotku, u m² plocha 1 m² — doplní se samo,
+              // jinak by zinkování/lakování vyšlo 0 Kč. Při změně na jinou jednotku se
+              // automaticky doplněná 1 zase smaže (u metrů apod. je potřeba skutečná hodnota).
+              const nova = e.target.value;
+              const stara = item.jednotka || "kg";
+              const dalsi = { ...item, jednotka: nova };
+              if (nova === "kg" && !(Number(item.vaha) > 0)) dalsi.vaha = "1";
+              if (stara === "kg" && nova !== "kg" && String(item.vaha) === "1") dalsi.vaha = "";
+              if (nova === "m2" && !(Number(item.plocha) > 0)) dalsi.plocha = "1";
+              if (stara === "m2" && nova !== "m2" && String(item.plocha) === "1") dalsi.plocha = "";
+              onChange(dalsi);
+            }}
+          >
             {MATERIAL_UNITS.map((u) => (
               <option key={u} value={u}>
                 {u}
@@ -132,7 +147,8 @@ export default function MaterialRow({ item, history, onChange, onRemove }) {
         </button>
       </div>
       <div style={{ textAlign: "right", fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft, marginTop: 6 }}>
-        Celkem: {fmtMoney(celkemCena)} · {celkemVaha} kg · {celkemPlocha} m²
+        Celkem: {fmtMoney(celkemCena)} · {celkemVaha.toLocaleString("cs-CZ", { maximumFractionDigits: 2 })} kg ·{" "}
+        {celkemPlocha.toLocaleString("cs-CZ", { maximumFractionDigits: 2 })} m²
       </div>
     </div>
   );
