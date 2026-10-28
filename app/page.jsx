@@ -647,7 +647,7 @@ export default function HomePage() {
     setEditingOrder(null);
     setDetailOrder(data);
 
-    // Automatický archiv PDF: jakmile zakázka nově přejde do stavu Zaplaceno nebo
+    // Automatický archiv PDF: jakmile zakázka nově přejde do stavu Hotovo nebo
     // Fakturováno, aplikace sama vygeneruje a uloží PDF na Drive — netřeba na nic klikat.
     const CIL_STAVY_PRO_PDF = ["hotovo", "fakturovano"];
     if (CIL_STAVY_PRO_PDF.includes(data.stav) && predchoziZakazka?.stav !== data.stav) {
