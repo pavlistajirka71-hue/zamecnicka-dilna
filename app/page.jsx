@@ -1501,6 +1501,15 @@ export default function HomePage() {
           <PoptavkaForm
             initial={poptavkaForm === "nova" ? null : poptavkaForm}
             poptavky={poptavky}
+            organizace={organizace}
+            onSaveOrganizace={saveOrganizace}
+            vlastni={{
+              // Vlastní e-maily a údaje firmy se při načítání z e-mailu nikdy nevyplní jako zákazník
+              emaily: [nastaveni.firmaEmail, session?.user?.email, ...uzivatele.map((u) => u.email)].filter(Boolean),
+              ico: nastaveni.firmaIco,
+              nazev: nastaveni.firmaNazev,
+              adresa: nastaveni.firmaAdresa,
+            }}
             onSave={ulozitPoptavku}
             onClose={() => setPoptavkaForm(null)}
           />
