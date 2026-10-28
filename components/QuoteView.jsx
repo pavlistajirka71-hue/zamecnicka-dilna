@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
-import { X, Printer } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, Download, Share2 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 import { C, FONTS, fmtMoney, fmtDate, todayISO } from "@/lib/theme";
 import { Button, Select } from "./ui";
 import { useSignedUrl } from "./PhotoThumbnail";
@@ -23,6 +24,83 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
   const n = nastaveni || {};
   const logoUrl = useSignedUrl("logo", n.firmaLogoPath);
 
+  // PDF se připraví na serveru hned při otevření (a znovu při změně sazby DPH), takže
+  // stažení i sdílení jsou pak okamžité — a mobil (hlavně iPhone) sdílení povolí jen
+  // tehdy, když proběhne hned po ťuknutí, ne až po čekání na server.
+  const [pdf, setPdf] = useState(null); // { blob, nazev }
+  const [pdfStav, setPdfStav] = useState("pripravuji"); // pripravuji | hotovo | chyba
+  const [pdfChyba, setPdfChyba] = useState("");
+  const [umiSdilet, setUmiSdilet] = useState(false);
+
+  useEffect(() => {
+    try {
+      const zkusebni = new File([""], "test.pdf", { type: "application/pdf" });
+      setUmiSdilet(!!(navigator.canShare && navigator.canShare({ files: [zkusebni] })));
+    } catch (e) {
+      setUmiSdilet(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let zruseno = false;
+    (async () => {
+      setPdfStav("pripravuji");
+      setPdfChyba("");
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        const res = await fetch(`/api/nabidka-pdf/${encodeURIComponent(order.id)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
+          body: JSON.stringify({ sazbaDph }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "PDF se nepodařilo vytvořit.");
+        }
+        const blob = await res.blob();
+        const hlavicka = res.headers.get("Content-Disposition") || "";
+        const nazev = (hlavicka.match(/filename="([^"]+)"/) || [])[1] || `Nabidka_${order.cislo}.pdf`;
+        if (!zruseno) {
+          setPdf({ blob, nazev });
+          setPdfStav("hotovo");
+        }
+      } catch (e) {
+        if (!zruseno) {
+          setPdfStav("chyba");
+          setPdfChyba(e.message || "PDF se nepodařilo vytvořit.");
+        }
+      }
+    })();
+    return () => {
+      zruseno = true;
+    };
+  }, [order.id, order.cislo, sazbaDph]);
+
+  const stahnout = () => {
+    if (!pdf) return;
+    const url = URL.createObjectURL(pdf.blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = pdf.nazev;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  };
+
+  const sdilet = async () => {
+    if (!pdf) return;
+    try {
+      await navigator.share({
+        files: [new File([pdf.blob], pdf.nazev, { type: "application/pdf" })],
+        title: `Cenová nabídka ${order.cislo}`,
+      });
+    } catch (e) {
+      if (e && e.name !== "AbortError") setPdfChyba("Sdílení se nepovedlo — použij Stáhnout PDF.");
+    }
+  };
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "#fff", zIndex: 100, overflowY: "auto" }}>
       <div
@@ -43,10 +121,16 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
           <Button variant="ghost" onClick={onClose}>
             <X size={14} /> Zavřít
           </Button>
-          <Button variant="primary" onClick={() => window.print()}>
-            <Printer size={14} /> Tisk
+          {umiSdilet && (
+            <Button variant="ghost" onClick={sdilet} disabled={pdfStav !== "hotovo"}>
+              <Share2 size={14} /> Sdílet
+            </Button>
+          )}
+          <Button variant="primary" onClick={stahnout} disabled={pdfStav !== "hotovo"}>
+            <Download size={14} /> {pdfStav === "pripravuji" ? "Připravuji PDF…" : "Stáhnout PDF"}
           </Button>
         </div>
+        {pdfChyba && <div style={{ width: "100%", textAlign: "right", fontSize: 12, color: C.danger }}>{pdfChyba}</div>}
       </div>
 
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 32px 28px", color: C.ink, fontFamily: FONTS.body }}>
