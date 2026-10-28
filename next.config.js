@@ -16,6 +16,7 @@ const nextConfig = {
     outputFileTracingIncludes: {
       "/api/export-pdf/[id]": ["./fonts/**/*"],
       "/api/**/*": ["./fonts/**/*"],
+      "/api/nabidka-pdf/[id]": ["./fonts/**/*", "./public/logo-mysteel.jpg"],
     },
   },
 };
