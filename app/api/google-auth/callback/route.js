@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { ulozitPripojeni } from "@/lib/googleDrive";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { overitState } from "@/lib/googleOAuthState";
 
 export async function GET(request) {
   const code = request.nextUrl.searchParams.get("code");
@@ -7,6 +9,22 @@ export async function GET(request) {
   const homeUrl = request.nextUrl.origin;
 
   if (chyba || !code) {
+    return NextResponse.redirect(`${homeUrl}/?google=error`);
+  }
+
+  // Přihlášení musí pocházet z /api/google-auth/start spuštěného přihlášeným
+  // uživatelem aplikace (podepsaný a časově omezený "state"). Cokoli jiného
+  // se zahodí a uložené připojení zůstane beze změny.
+  const userId = overitState(request.nextUrl.searchParams.get("state"));
+  if (!userId) {
+    console.warn("Google OAuth callback: neplatný nebo chybějící state, ignoruji.");
+    return NextResponse.redirect(`${homeUrl}/?google=error`);
+  }
+  try {
+    const { data, error } = await getSupabaseAdmin().auth.admin.getUserById(userId);
+    if (error || !data?.user) throw new Error("uživatel neexistuje");
+  } catch (err) {
+    console.warn("Google OAuth callback: uživatel ze state neexistuje, ignoruji.");
     return NextResponse.redirect(`${homeUrl}/?google=error`);
   }
 

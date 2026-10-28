@@ -33,8 +33,24 @@ export default function GoogleDrivePanel({ onClose }) {
     nacistStav();
   }, []);
 
-  const pripojit = () => {
-    window.location.href = "/api/google-auth/start";
+  const [pripojovani, setPripojovani] = useState(false);
+
+  // Server nejdřív ověří přihlášení a vrátí adresu Google přihlášení
+  // s podepsaným parametrem "state" (viz lib/googleOAuthState.js).
+  const pripojit = async () => {
+    setPripojovani(true);
+    setError("");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch("/api/google-auth/start", { method: "POST", headers: { Authorization: token ? `Bearer ${token}` : "" } });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || "Připojení se nepodařilo spustit.");
+      window.location.href = data.url;
+    } catch (e) {
+      setError(e.message || "Připojení se nepodařilo spustit, zkus to znovu.");
+      setPripojovani(false);
+    }
   };
 
   const odpojit = async () => {
@@ -113,8 +129,8 @@ export default function GoogleDrivePanel({ onClose }) {
           <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 10 }}>
             Zatím nepřipojeno — fotky se zatím ukládají do Supabase Storage (aplikace funguje normálně dál).
           </div>
-          <Button variant="primary" onClick={pripojit}>
-            <Cloud size={14} /> Připojit Google Drive
+          <Button variant="primary" onClick={pripojit} disabled={pripojovani}>
+            <Cloud size={14} /> {pripojovani ? "Přesměrovávám…" : "Připojit Google Drive"}
           </Button>
         </div>
       )}

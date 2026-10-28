@@ -6,7 +6,12 @@ import { ziskatStavPripojeni } from "@/lib/googleDrive";
 import { jeGoogleDriveNastaveny } from "@/lib/photoUpload";
 import { vyhledatVAres } from "@/lib/ares";
 
-// Veřejná (bez přihlášení), pomalejší a důkladnější sestra /api/health — místo
+// Kontrola musí proběhnout pokaždé znovu (při každém zavolání), nikdy se nesmí
+// spustit jen jednou při buildu a pak vracet uložený výsledek.
+export const dynamic = "force-dynamic";
+
+// Veřejná (bez přihlášení) — proto vrací jen "ok"/"chyba", podrobnosti chyb jdou
+// jen do serverového logu (Vercel → Logs), ne ven. Pomalejší a důkladnější sestra /api/health — místo
 // "odpovídá server" aplikace aplikaci si skutečně VYZKOUŠÍ, že si s aplikací externí
 // služby rozumí přesně tak, jak aplikace očekává (přesný tvar odpovědi, ne jen že
 // něco vrátí). Chytá tím i situace, kdy třetí strana nespadla, jen si "tiše"
@@ -26,7 +31,8 @@ export async function GET() {
     if (error) throw error;
     vysledek.kontroly.databaze = "ok";
   } catch (e) {
-    vysledek.kontroly.databaze = "chyba: " + e.message;
+    console.error("health/deep databaze:", e);
+    vysledek.kontroly.databaze = "chyba";
     vysledek.ok = false;
   }
 
@@ -49,7 +55,8 @@ export async function GET() {
     if (!maOcekavanyTvar) throw new Error("odpověď ARES nemá očekávaný tvar (chybí název nebo adresa)");
     vysledek.kontroly.ares = "ok";
   } catch (e) {
-    vysledek.kontroly.ares = "chyba: " + e.message;
+    console.error("health/deep ares:", e);
+    vysledek.kontroly.ares = "chyba";
     // ARES je jen doplňková funkce (aplikace bez ní jede dál), takže její výpadek
     // aplikaci jako celek neshazuje — jen se to ukáže ve výsledku.
   }
@@ -73,7 +80,8 @@ export async function GET() {
     if (!jePlatnePdf) throw new Error("vygenerovaný soubor nevypadá jako platné PDF");
     vysledek.kontroly.generovaniPdf = "ok";
   } catch (e) {
-    vysledek.kontroly.generovaniPdf = "chyba: " + e.message;
+    console.error("health/deep pdf:", e);
+    vysledek.kontroly.generovaniPdf = "chyba";
     vysledek.ok = false; // generování PDF je klíčová funkce aplikace (archiv zakázek) — tohle aplikaci shodí
   }
 

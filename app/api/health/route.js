@@ -3,6 +3,10 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { ziskatStavPripojeni } from "@/lib/googleDrive";
 import { jeGoogleDriveNastaveny } from "@/lib/photoUpload";
 
+// Kontrola musí proběhnout pokaždé znovu (při každém zavolání), nikdy se nesmí
+// spustit jen jednou při buildu a pak vracet uložený výsledek.
+export const dynamic = "force-dynamic";
+
 // Veřejná (bez přihlášení) kontrolní routa pro automatické sledování aplikace —
 // bezpečná k volání zvenčí, nic necitlivého nevrací, jen "funguje / nefunguje".
 // Doporučený způsob použití: napojit na ni bezplatnou externí službu (viz README),

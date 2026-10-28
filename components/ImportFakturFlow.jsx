@@ -118,8 +118,8 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
     return (
       <div>
         <div style={{ fontSize: 13, color: C.inkSoft, marginBottom: 16 }}>
-          Nahraj export "Faktury přijaté" z ABRA Flexi (CSV nebo XLSX, u položek, ne jen v hlavičce). Aplikace číslo zakázky hledá přednostně přímo
-          ve sloupci "Zakázka" — pokud tam číslo nenajde, prohledá i zbytek řádku.
+          Nahraj export &quot;Faktury přijaté&quot; z ABRA Flexi (CSV nebo XLSX, u položek, ne jen v hlavičce). Aplikace číslo zakázky hledá přednostně přímo
+          ve sloupci &quot;Zakázka&quot; — pokud tam číslo nenajde, prohledá i zbytek řádku.
         </div>
         <label
           style={{
@@ -211,7 +211,7 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
             <AlertTriangle size={14} /> Nespárováno ({zpracovano.nesparovane.length})
           </div>
           <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 8 }}>
-            U těchhle aplikace nenašla (nebo nepoznala) číslo zakázky — vyber ji ručně, nebo nech "Nepřiřazovat" a aplikace tuhle položku při importu zahodí.
+            U těchhle aplikace nenašla (nebo nepoznala) číslo zakázky — vyber ji ručně, nebo nech &quot;Nepřiřazovat&quot; a aplikace tuhle položku při importu zahodí.
           </div>
           {zpracovano.nesparovane.map((polozka, i) => {
             const { radek, cislo } = polozka;

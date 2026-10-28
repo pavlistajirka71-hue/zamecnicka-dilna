@@ -37,11 +37,15 @@ npm install
 cp .env.local.example .env.local
 ```
 
-Otevři `.env.local` a vlož tam URL a anon klíč ze Supabase:
+Otevři `.env.local` a vyplň hodnoty (popis každé je přímo v souboru):
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://tvuj-projekt.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=tvuj-anon-key
+SUPABASE_SERVICE_ROLE_KEY=tvuj-service-role-key
+GOOGLE_OAUTH_CLIENT_ID=...          # jen pokud používáš Google Drive
+GOOGLE_OAUTH_CLIENT_SECRET=...      # jen pokud používáš Google Drive
+GOOGLE_DRIVE_FOLDER_ID=...          # jen pokud používáš Google Drive
 ```
 
 Pak spusť:
@@ -50,23 +54,22 @@ Pak spusť:
 npm run dev
 ```
 
-Aplikace poběží na [http://localhost:3000](http://localhost:3000) — otevři, klikni na "Nemáš účet? Vytvoř si ho" a založ si první přihlašovací účet.
+Aplikace poběží na [http://localhost:3000](http://localhost:3000). Registrace přes aplikaci není (z bezpečnostních důvodů), první účet založ v **Supabase Dashboard → Authentication → Users → Add user** a nastav mu roli správce (viz krok 7).
 
 ## 6) Nasazení na Vercel (aby to fungovalo na telefonech odkudkoli)
 
 1. Aplikaci nahraj na GitHub (nejjednodušší přes [GitHub Desktop](https://desktop.github.com) nebo `git init && git add . && git commit -m "init"` a push do nového repozitáře)
 2. Jdi na [vercel.com](https://vercel.com) → přihlas se přes GitHub → **Add New… → Project** → vyber repozitář s aplikací
-3. Ve **Environment Variables** přidej stejné dvě proměnné jako v `.env.local`:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+3. Ve **Environment Variables** přidej stejné proměnné jako v `.env.local` (všechny vyplněné řádky, včetně `SUPABASE_SERVICE_ROLE_KEY` a Google proměnných)
 4. Klikni **Deploy** — za chvíli dostaneš veřejnou adresu (např. `zamecnictvi-app.vercel.app`)
 5. Tuhle adresu si ulož na plochu telefonu (Safari/Chrome → Sdílet → Přidat na plochu)
 
 ## 7) Založení účtů pro tým
 
-Nejjednodušší je nechat každého kolegu, ať si na přihlašovací stránce klikne na "Vytvoř si účet" a zaregistruje se sám (e-mail + heslo). Jakmile je všech 5 lidí uvnitř, doporučuju v Supabase vypnout veřejné registrace (krok 3 výše), ať se aplikace nezaplní cizími účty.
-
-Alternativně můžeš účty založit ručně: Supabase Dashboard → **Authentication → Users → Add user**.
+1. První účet (svůj) založ v **Supabase Dashboard → Authentication → Users → Add user** (e-mail + heslo, zaškrtni *Auto Confirm User*).
+2. Nastav si roli správce — jednorázový SQL příkaz je v kapitole **Role — Správce (SA) a Uživatel** níže.
+3. Další kolegy už zakládáš přímo v aplikaci: **Nastavení → Spravovat uživatele**.
+4. V **Supabase → Authentication → Providers → Email** vypni **"Allow new users to sign up"**. Tohle je důležité: přístupová pravidla v databázi pouští k zakázkám každého přihlášeného, takže zapnutá registrace by umožnila cizímu člověku založit si účet přímo přes Supabase a vidět data.
 
 ## Katalog materiálů (dodavatelé, CSV import)
 
@@ -228,7 +231,7 @@ Po přidání udělej **Redeploy**.
 ### Krok 4 — Připojení v aplikaci
 
 1. V aplikaci klikni na ikonu mraku (☁️) v hlavičce
-2. **Připojit Google Drive** → přesměruje tě na přihlašovací okno Google → přihlas se (musí to být e-mail přidaný jako Test user v kroku 1.3) → potvrď přístup
+2. **Připojit Google Drive** (musíš být přihlášený/á v aplikaci, adresu `/api/google-auth/start` už nejde otevřít napřímo) → přesměruje tě na přihlašovací okno Google → přihlas se (musí to být e-mail přidaný jako Test user v kroku 1.3) → potvrď přístup
 3. Aplikace tě vrátí zpátky a ukáže "Připojeno jako [tvůj e-mail]"
 
 Od teď aplikace nahrává fotky i PDF na tenhle účet. Když přihlášení jednou za čas vyprší (viz poznámka výše), aplikace to pozná a v aplikaci stačí kliknout na **Připojit Google Drive** znovu — netřeba nic přenastavovat.

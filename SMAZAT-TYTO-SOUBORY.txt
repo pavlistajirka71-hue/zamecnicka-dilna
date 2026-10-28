@@ -1,0 +1,29 @@
+ÚKLID PROJEKTU — co smazat (žádný z těchto souborů appka nepoužívá,
+mazání se NIJAK nedotkne databáze ani uložených dat zakázek)
+
+1) Uvnitř složek smaž:
+   app/api/precti-uctenku/        (celá složka)
+   components/ReceiptFlow.jsx
+   components/PrehledPanel.jsx
+   lib/diakritika.js
+
+2) V kořeni projektu nech JEN tohle:
+   .git/  node_modules/  .next/  (pokud existují)
+   app/  components/  fonts/  lib/  public/  supabase/
+   .env.local  .env.local.example  .gitignore  .eslintrc.json
+   jsconfig.json  next.config.js  package.json  README.md
+
+   Všechno ostatní v kořeni smaž (staré kopie z července):
+   KalkulaceForm.jsx, MaterialOrderView.jsx, MaterialRow.jsx, MaterialyKatalog.jsx,
+   NakladyForm.jsx, NastaveniForm.jsx, Nastenka.jsx, OrderDetail.jsx, OrderForm.jsx,
+   OrderPicker.jsx, PhotoThumbnail.jsx, PraceReport.jsx, ProtokolContent.jsx,
+   ProtokolPrintView.jsx, ProtokolView.jsx, QuoteView.jsx, ReceiptFlow.jsx,
+   ReceiptThumbnail.jsx, ServiceWorkerRegister.jsx, SignaturePad.jsx, WorkLogFlow.jsx,
+   WorkPhotoFlow.jsx, ZalohaPanel.jsx, diakritika.js, download, env.local.example
+   (BEZ tečky na začátku!), globals.css, googleDrive.js, layout.jsx, manifest.json,
+   orderPdf.js, page (1).jsx, page.jsx, photoUpload.js, route (2).js, route (3).js,
+   route (4).js, route.js, schema.sql, seed_materialy_mzhutni.csv, supabaseAdmin.js,
+   supabaseClient.js, sw.js, theme.js, ui.jsx, uploadClient.js
+
+   POZOR: nesmaž soubory se stejným jménem ve složkách app/, components/, lib/,
+   public/ a supabase/ — to jsou ty aktuální, které appka používá.
