@@ -1134,11 +1134,11 @@ export default function HomePage() {
         <div style={{ display: "flex", gap: 4, padding: "10px 16px 0", background: C.paper, borderBottom: `1px solid ${C.line}`, overflowX: "auto" }}>
         {[
           { key: "prehled", label: "Přehled", icon: LayoutDashboard },
-          { key: "poptavky", label: "Poptávky", icon: Inbox },
           { key: "zakazky", label: "Zakázky", icon: ClipboardList },
           { key: "kalendar", label: "Kalendář", icon: CalendarDays },
           { key: "vykaz", label: "Výkaz práce", icon: Timer },
           { key: "ukoly", label: "Úkoly", icon: ListChecks },
+          { key: "poptavky", label: "Poptávky", icon: Inbox },
         ].map((t) => {
           const Icon = t.icon;
           const active = tab === t.key;
