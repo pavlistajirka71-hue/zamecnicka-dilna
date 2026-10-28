@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { C, FONTS, todayISO } from "@/lib/theme";
 import { Button } from "./ui";
 
-export default function ZalohaPanel({ orders, nastaveni, materialHistory, onRestored, onClose }) {
+export default function ZalohaPanel({ orders, poptavky, nastaveni, materialHistory, onRestored, onClose }) {
   const fileRef = useRef(null);
   const [restoring, setRestoring] = useState(false);
   const [error, setError] = useState("");
@@ -17,6 +17,7 @@ export default function ZalohaPanel({ orders, nastaveni, materialHistory, onRest
       verze: 1,
       vytvoreno: new Date().toISOString(),
       orders,
+      poptavky: poptavky || [],
       nastaveni,
       materialHistory,
     };
@@ -56,6 +57,12 @@ export default function ZalohaPanel({ orders, nastaveni, materialHistory, onRest
       if (confirmFile.orders?.length) {
         const { error: e1 } = await supabase.from("orders").upsert(confirmFile.orders);
         if (e1) throw e1;
+      }
+      // Poptávky jsou v zálohách až od verze s poptávkami — starší záloha je prostě nemá.
+      // Stejně jako u zakázek jen upsert (doplní/přepíše řádky ze zálohy), nic nemaže.
+      if (confirmFile.poptavky?.length) {
+        const { error: e4 } = await supabase.from("poptavky").upsert(confirmFile.poptavky);
+        if (e4) throw e4;
       }
       if (confirmFile.nastaveni) {
         const { error: e2 } = await supabase.from("nastaveni").upsert({ id: 1, ...confirmFile.nastaveni });

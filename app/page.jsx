@@ -19,6 +19,7 @@ import {
   DatabaseBackup,
   Cloud,
   FileSpreadsheet,
+  Inbox,
   X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -39,6 +40,7 @@ import {
   fmtDate,
   fmtMoney,
   todayISO,
+  uid,
 } from "@/lib/theme";
 import { Button, TextInput, Select, Modal, StampBadge } from "@/components/ui";
 import OrderForm from "@/components/OrderForm";
@@ -64,6 +66,10 @@ import GoogleDrivePanel from "@/components/GoogleDrivePanel";
 import WorkPhotoFlow from "@/components/WorkPhotoFlow";
 import NakladyForm from "@/components/NakladyForm";
 import Nastenka from "@/components/Nastenka";
+import PoptavkyPanel from "@/components/PoptavkyPanel";
+import PoptavkaForm from "@/components/PoptavkaForm";
+import PoptavkaDetail from "@/components/PoptavkaDetail";
+import { zakazkaZPoptavky } from "@/lib/poptavky";
 
 export default function HomePage() {
   const router = useRouter();
@@ -97,6 +103,13 @@ export default function HomePage() {
   const [poptavkaOrder, setPoptavkaOrder] = useState(null);
   const [showReport, setShowReport] = useState(false);
   const [ukoly, setUkoly] = useState([]);
+  // Poptávky ZÁKAZNÍKŮ (samostatná záložka) — neplést s poptavkaOrder výše,
+  // což je poptávka materiálu u dodavatelů z detailu zakázky.
+  const [poptavky, setPoptavky] = useState([]);
+  const [poptavkyNacteny, setPoptavkyNacteny] = useState(true);
+  const [detailPoptavkyId, setDetailPoptavkyId] = useState(null);
+  const [poptavkaForm, setPoptavkaForm] = useState(null); // null = zavřeno, "nova" = nová, objekt = úprava
+  const [poptavkaProZakazku, setPoptavkaProZakazku] = useState(null);
   const [protokolOrder, setProtokolOrder] = useState(null);
   const [protokolPrint, setProtokolPrint] = useState(null);
   const [showZaloha, setShowZaloha] = useState(false);
@@ -200,6 +213,16 @@ export default function HomePage() {
     setOrganizace(organizaceRes.data || []);
     setUkoly(ukolyRes.data || []);
     setOfflineData(false);
+    // Poptávky se načítají zvlášť: kdyby tabulka ještě neexistovala (nespuštěný
+    // supabase/poptavky.sql), zbytek aplikace tím nesmí být nijak dotčený.
+    const poptavkyRes = await supabase.from("poptavky").select("*").order("created_at", { ascending: false });
+    if (poptavkyRes.error) {
+      console.error("Načtení poptávek se nepovedlo:", poptavkyRes.error);
+      setPoptavkyNacteny(false);
+    } else {
+      setPoptavky(poptavkyRes.data || []);
+      setPoptavkyNacteny(true);
+    }
     // Aplikace aktualizuje i případně otevřené detaily zakázek (kdyby aplikace byla
     // otevřená zrovna ve chvíli, kdy se aplikace celá znovu načetla, třeba po
     // obnově ze zálohy) — jinak by aplikace mohla zůstat "zastaralá" a při
@@ -316,6 +339,24 @@ export default function HomePage() {
     };
   }, [session?.user?.id]);
 
+  // Živý kanál pro poptávky — stejný princip slučování jako u zakázek.
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const channel = supabase
+      .channel("poptavky-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "poptavky" }, (payload) => {
+        setPoptavky((prev) => {
+          if (payload.eventType === "DELETE") return prev.filter((x) => x.id !== payload.old.id);
+          const existujici = prev.find((x) => x.id === payload.new.id);
+          return existujici ? prev.map((x) => (x.id === payload.new.id ? { ...x, ...payload.new } : x)) : [payload.new, ...prev];
+        });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id]);
+
   const signOut = async () => {
     await supabase.auth.signOut();
     router.replace("/login");
@@ -388,6 +429,124 @@ export default function HomePage() {
       setGlobalError("Smazání se nepovedlo. Zkontroluj připojení a zkus to znovu.");
     }
   };
+
+  // ---- Poptávky zákazníků ----
+  // Do databáze se vždy posílají jen konkrétní změněná pole (nikdy celý řádek),
+  // fotky a poznámky se přidávají k aktuálnímu stavu načtenému přímo z databáze —
+  // dva lidé, kteří současně přidají fotku, si tak navzájem nic nepřepíšou.
+  const POLE_UPRAVY_POPTAVKY = ["zakaznik", "telefon", "email", "ico", "zakaznikIdentifikace", "zdroj", "text", "pozadovanyTermin"];
+
+  const upravitPoptavku = async (p, patch) => {
+    const puvodni = poptavky.find((x) => x.id === p.id);
+    setPoptavky((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...patch } : x)));
+    const { data, error } = await supabase.from("poptavky").update(patch).eq("id", p.id).select().single();
+    if (error) {
+      console.error(error);
+      if (puvodni) setPoptavky((prev) => prev.map((x) => (x.id === p.id ? puvodni : x)));
+      setGlobalError("Uložení poptávky se nepovedlo. Zkontroluj připojení a zkus to znovu.");
+      throw error;
+    }
+    setPoptavky((prev) => prev.map((x) => (x.id === data.id ? data : x)));
+    return data;
+  };
+
+  const ulozitPoptavku = async (zaznam) => {
+    if (zaznam.id) {
+      const patch = {};
+      POLE_UPRAVY_POPTAVKY.forEach((k) => {
+        patch[k] = zaznam[k] === "" && k === "pozadovanyTermin" ? null : zaznam[k] ?? null;
+      });
+      await upravitPoptavku(zaznam, patch);
+      setPoptavkaForm(null);
+      return;
+    }
+    const { data, error } = await supabase
+      .from("poptavky")
+      .insert({ ...zaznam, vytvoril: session?.user?.email || null })
+      .select()
+      .single();
+    if (error) {
+      console.error(error);
+      setGlobalError("Poptávku se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
+      throw error;
+    }
+    setPoptavky((prev) => (prev.some((x) => x.id === data.id) ? prev : [data, ...prev]));
+    setPoptavkaForm(null);
+    setDetailPoptavkyId(data.id);
+  };
+
+  const nacistAktualniPoptavku = async (id) => {
+    const { data, error } = await supabase.from("poptavky").select("fotky, poznamky").eq("id", id).single();
+    if (error) throw error;
+    return data;
+  };
+
+  const pridatFotkyKPoptavce = async (p, noveFotky) => {
+    const aktualni = await nacistAktualniPoptavku(p.id);
+    return upravitPoptavku(p, { fotky: [...(aktualni.fotky || []), ...noveFotky] });
+  };
+
+  const odebratFotkuZPoptavky = async (p, fotkaId) => {
+    const aktualni = await nacistAktualniPoptavku(p.id);
+    return upravitPoptavku(p, { fotky: (aktualni.fotky || []).filter((f) => f.id !== fotkaId) });
+  };
+
+  const pridatPoznamkuKPoptavce = async (p, text) => {
+    const aktualni = await nacistAktualniPoptavku(p.id);
+    const poznamka = { id: uid(), datum: todayISO(), autor: session?.user?.email || "", text };
+    return upravitPoptavku(p, { poznamky: [poznamka, ...(aktualni.poznamky || [])] });
+  };
+
+  const zmenitStavPoptavky = (p, stav) => upravitPoptavku(p, { stav });
+
+  const smazatPoptavku = async (p) => {
+    const { error } = await supabase.from("poptavky").delete().eq("id", p.id);
+    if (error) {
+      console.error(error);
+      setGlobalError("Smazání poptávky se nepovedlo (smazat smí jen správce).");
+      return;
+    }
+    setPoptavky((prev) => prev.filter((x) => x.id !== p.id));
+    setDetailPoptavkyId(null);
+  };
+
+  const vytvoritZakazkuZPoptavky = (p) => {
+    setDetailPoptavkyId(null);
+    setEditingOrder(null);
+    setNadrazenaZakazkaProNovou(null);
+    setDuplikatZakazky(null);
+    setPoptavkaProZakazku(p);
+    setShowOrderForm(true);
+  };
+
+  // Uloží zakázku přes běžné saveOrder (otevře se její detail) a pak poptávku
+  // označí jako "Nabídka vytvořena" s odkazem na novou zakázku.
+  const ulozitZakazkuZPoptavky = async (order) => {
+    const p = poptavkaProZakazku;
+    const data = await saveOrder(order);
+    setPoptavkaProZakazku(null);
+    if (p) {
+      try {
+        await upravitPoptavku(p, { stav: "nabidka", zakazkaId: data.id, zakazkaCislo: data.cislo });
+      } catch (e) {
+        setGlobalError(`Zakázka ${data.cislo} se založila, ale poptávku ${p.cislo} se nepodařilo propojit. Označ ji ručně.`);
+      }
+    }
+    return data;
+  };
+
+  const otevritZakazkuZPoptavky = (p) => {
+    const o = orders.find((x) => x.id === p.zakazkaId);
+    if (!o) {
+      setGlobalError(`Zakázka ${p.zakazkaCislo || ""} už v aplikaci není (mohla být smazána).`);
+      return;
+    }
+    setDetailPoptavkyId(null);
+    setDetailOrder(o);
+  };
+
+  const detailPoptavky = detailPoptavkyId ? poptavky.find((x) => x.id === detailPoptavkyId) || null : null;
+  const pocetNovychPoptavek = poptavky.filter((x) => x.stav === "nova").length;
 
   // Aplikace POUZE mění stav zakázky — na rozdíl od saveOrder tahle funkce do
   // databáze pošle JEN pole "stav", nikdy celý objekt zakázky. I kdyby detail
@@ -975,6 +1134,7 @@ export default function HomePage() {
         <div style={{ display: "flex", gap: 4, padding: "10px 16px 0", background: C.paper, borderBottom: `1px solid ${C.line}`, overflowX: "auto" }}>
         {[
           { key: "prehled", label: "Přehled", icon: LayoutDashboard },
+          { key: "poptavky", label: "Poptávky", icon: Inbox },
           { key: "zakazky", label: "Zakázky", icon: ClipboardList },
           { key: "kalendar", label: "Kalendář", icon: CalendarDays },
           { key: "vykaz", label: "Výkaz práce", icon: Timer },
@@ -1009,6 +1169,21 @@ export default function HomePage() {
             >
               <Icon size={15} />
               {t.label}
+              {t.key === "poptavky" && pocetNovychPoptavek > 0 && (
+                <span
+                  style={{
+                    background: C.danger,
+                    color: "#fff",
+                    borderRadius: 10,
+                    fontSize: 10,
+                    fontFamily: FONTS.mono,
+                    padding: "1px 6px",
+                    marginLeft: 2,
+                  }}
+                >
+                  {pocetNovychPoptavek}
+                </span>
+              )}
               {t.key === "ukoly" && ukoly.filter((u) => u.prirazenoKomu === session?.user?.email && !u.hotovo).length > 0 && (
                 <span
                   style={{
@@ -1140,6 +1315,15 @@ export default function HomePage() {
               <div style={{ color: C.inkSoft, fontSize: 14, textAlign: "center", padding: 30 }}>Žádné termíny nejsou po lhůtě. Dílna jede hladce.</div>
             )}
           </div>
+        )}
+
+        {tab === "poptavky" && (
+          <PoptavkyPanel
+            poptavky={poptavky}
+            nacteno={poptavkyNacteny}
+            onNova={() => setPoptavkaForm("nova")}
+            onOpen={(p) => setDetailPoptavkyId(p.id)}
+          />
         )}
 
         {tab === "zakazky" && (
@@ -1280,20 +1464,62 @@ export default function HomePage() {
       </div>
 
       {showOrderForm && (
-        <Modal title={editingOrder ? "Upravit zakázku" : duplikatZakazky ? "Duplikovat zakázku" : "Nová zakázka"} onClose={() => setShowOrderForm(false)}>
+        <Modal
+          title={editingOrder ? "Upravit zakázku" : poptavkaProZakazku ? `Zakázka z poptávky ${poptavkaProZakazku.cislo}` : duplikatZakazky ? "Duplikovat zakázku" : "Nová zakázka"}
+          onClose={() => {
+            setShowOrderForm(false);
+            if (poptavkaProZakazku) {
+              setDetailPoptavkyId(poptavkaProZakazku.id);
+              setPoptavkaProZakazku(null);
+            }
+          }}
+        >
           <OrderForm
-            initial={editingOrder}
+            initial={editingOrder || (poptavkaProZakazku ? zakazkaZPoptavky(poptavkaProZakazku) : null)}
+            zPoptavky={poptavkaProZakazku}
             orders={orders}
             organizace={organizace}
             nadrazenaZakazka={nadrazenaZakazkaProNovou}
             duplikatZakazky={duplikatZakazky}
             onSaveOrganizace={saveOrganizace}
-            onSave={saveOrder}
+            onSave={poptavkaProZakazku ? ulozitZakazkuZPoptavky : saveOrder}
             onClose={() => {
               setShowOrderForm(false);
               setNadrazenaZakazkaProNovou(null);
               setDuplikatZakazky(null);
+              if (poptavkaProZakazku) {
+                setDetailPoptavkyId(poptavkaProZakazku.id);
+                setPoptavkaProZakazku(null);
+              }
             }}
+          />
+        </Modal>
+      )}
+
+      {poptavkaForm && (
+        <Modal title={poptavkaForm === "nova" ? "Nová poptávka" : "Upravit poptávku"} onClose={() => setPoptavkaForm(null)}>
+          <PoptavkaForm
+            initial={poptavkaForm === "nova" ? null : poptavkaForm}
+            poptavky={poptavky}
+            onSave={ulozitPoptavku}
+            onClose={() => setPoptavkaForm(null)}
+          />
+        </Modal>
+      )}
+
+      {detailPoptavky && !poptavkaForm && (
+        <Modal title={`Poptávka ${detailPoptavky.cislo}`} onClose={() => setDetailPoptavkyId(null)} width={600}>
+          <PoptavkaDetail
+            poptavka={detailPoptavky}
+            jeSpravce={mojeRole === "sa"}
+            onEdit={() => setPoptavkaForm(detailPoptavky)}
+            onPridatFotky={pridatFotkyKPoptavce}
+            onOdebratFotku={odebratFotkuZPoptavky}
+            onPridatPoznamku={pridatPoznamkuKPoptavce}
+            onZmenitStav={zmenitStavPoptavky}
+            onVytvoritZakazku={vytvoritZakazkuZPoptavky}
+            onOtevritZakazku={otevritZakazkuZPoptavky}
+            onDelete={smazatPoptavku}
           />
         </Modal>
       )}
@@ -1356,6 +1582,7 @@ export default function HomePage() {
         <Modal title="Zálohování" onClose={() => setShowZaloha(false)} width={520}>
           <ZalohaPanel
             orders={orders}
+            poptavky={poptavky}
             nastaveni={nastaveni}
             materialHistory={materialHistory}
             onRestored={loadAllData}

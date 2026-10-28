@@ -415,7 +415,7 @@ export default function OrderDetail({
                       bucket="fotky"
                       path={f.path}
                       alt={f.popis || "Fotka"}
-                      caption={f.typ === "pred" ? "Před" : f.typ === "po" ? "Po" : f.typ === "protokol" ? "Protokol" : null}
+                      caption={f.typ === "pred" ? "Před" : f.typ === "po" ? "Po" : f.typ === "protokol" ? "Protokol" : f.typ === "poptavka" ? "Poptávka" : null}
                       onOpen={setViewPhoto}
                     />
                   ))}

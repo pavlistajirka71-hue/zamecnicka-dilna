@@ -71,6 +71,19 @@ Aplikace poběží na [http://localhost:3000](http://localhost:3000). Registrace
 3. Další kolegy už zakládáš přímo v aplikaci: **Nastavení → Spravovat uživatele**.
 4. V **Supabase → Authentication → Providers → Email** vypni **"Allow new users to sign up"**. Tohle je důležité: přístupová pravidla v databázi pouští k zakázkám každého přihlášeného, takže zapnutá registrace by umožnila cizímu člověku založit si účet přímo přes Supabase a vidět data.
 
+## Poptávky zákazníků (záložka Poptávky)
+
+Samostatná evidence poptávek, ještě než z nich vznikne zakázka. Neplést s **Poptávkou materiálu** v detailu zakázky (ta je pro dodavatele).
+
+**Jednorázové zapnutí:** v Supabase → **SQL Editor** → New query → vlož celý soubor `supabase/poptavky.sql` → **Run**. Skript jen přidá novou tabulku `poptavky` a vlastní číslování (P-2026-0001…), na zakázky ani jiná data nesahá a jde spustit i opakovaně. Nový bucket není potřeba, fotky jdou na Google Drive do podsložky „P-2026-0001 – zákazník“ (záložně do bucketu `fotky`).
+
+Jak se s tím pracuje:
+1. **Poptávky → Nová poptávka**: zákazník, kontakt, odkud přišla, co chce, případně termín a rovnou fotky (vyfotit nebo víc najednou z galerie).
+2. V **detailu poptávky** průběžně přidáváš fotky a poznámky (každá s datem a kdo ji napsal) a měníš stav: Nová → Řeší se → (Odmítnutá).
+3. **Vytvořit nabídku a zakázku**: otevře formulář zakázky předvyplněný z poptávky (zákazník, kontakt, popis, termín, poznámky, fotky). Po uložení vznikne zakázka ve stavu **Nabídnuto**, otevře se její detail, kde uděláš kalkulaci a nabídku jako dosud. Poptávka se přepne na „Nabídka vytvořena“ a má odkaz na zakázku.
+
+Číslo u záložky ukazuje počet nových (nevyřízených) poptávek. Smazat poptávku smí jen správce; zakázka z ní založená tím zůstane netknutá. Poptávky jsou i v záloze (Zálohování).
+
 ## Katalog materiálů (dodavatelé, CSV import)
 
 V hlavičce aplikace přibyla ikona vrstev — otevře **katalog materiálů**, kde:

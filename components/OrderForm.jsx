@@ -5,7 +5,7 @@ import { C, FONTS, STATUSES, uid, todayISO, nextOrderNumber, dalsiCisloPodzakazk
 import { supabase } from "@/lib/supabaseClient";
 import { Field, TextInput, TextArea, Select, Button, SectionLabel } from "./ui";
 
-export default function OrderForm({ initial, orders, organizace, nadrazenaZakazka, duplikatZakazky, onSaveOrganizace, onSave, onClose }) {
+export default function OrderForm({ initial, zPoptavky, orders, organizace, nadrazenaZakazka, duplikatZakazky, onSaveOrganizace, onSave, onClose }) {
   const [f, setF] = useState(() => {
     if (initial) return initial;
     if (duplikatZakazky) {
@@ -150,6 +150,13 @@ export default function OrderForm({ initial, orders, organizace, nadrazenaZakazk
       {nadrazenaZakazka && (
         <div style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 6, padding: "8px 12px", marginBottom: 14, fontSize: 13 }}>
           Podzakázka k <strong>{nadrazenaZakazka.cislo}</strong> — {nadrazenaZakazka.zakaznik}
+        </div>
+      )}
+      {zPoptavky && (
+        <div style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 6, padding: "8px 12px", marginBottom: 14, fontSize: 13 }}>
+          Zakládáš zakázku z poptávky <strong>{zPoptavky.cislo}</strong> — údaje, popis, poznámky
+          {(zPoptavky.fotky || []).length ? ` a ${zPoptavky.fotky.length} fotek` : ""} se převzaly. Zkontroluj je, doplň případně IČO přes ARES a ulož.
+          Pak v detailu zakázky uděláš kalkulaci a nabídku.
         </div>
       )}
       {duplikatZakazky && (
