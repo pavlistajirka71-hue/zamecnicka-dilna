@@ -142,7 +142,7 @@ export default function ProtokolView({ order, nastaveni, onSave, onClose, onPrin
       {jePodepsano && (
         <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 10 }}>
           Protokol je už podepsaný. Údaje jde pořád opravit (třeba překlep), ale oprava se do dokumentu zapíše viditelně, s datem opravy — samotný podpis
-          samotný tím nezruší.
+          tím nezruší.
         </div>
       )}
       <Field label="Předmět díla (co se předává)">

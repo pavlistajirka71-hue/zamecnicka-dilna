@@ -41,8 +41,7 @@ import {
   fmtDate,
   fmtMoney,
   todayISO,
-  uid,
-} from "@/lib/theme";
+  uid, fmtCislo } from "@/lib/theme";
 import { Button, TextInput, Select, Modal, StampBadge } from "@/components/ui";
 import OrderForm from "@/components/OrderForm";
 import OrderPicker from "@/components/OrderPicker";
@@ -340,6 +339,31 @@ export default function HomePage() {
     };
   }, [session?.user?.id]);
 
+  // Návrat do aplikace (odemčený telefon, přepnutí z jiné aplikace/záložky): živé
+  // změny, které přišly, zatímco byla aplikace v pozadí, se nemusely doručit. Po
+  // více než 30 s v pozadí se proto data načtou znovu.
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    let skrytoOd = null;
+    const priZmene = async () => {
+      if (document.visibilityState === "hidden") {
+        skrytoOd = Date.now();
+        return;
+      }
+      if (skrytoOd && Date.now() - skrytoOd > 30000) {
+        try {
+          await loadAllData(); // obnoví i otevřené detaily (viz konec loadAllData)
+        } catch (e) {
+          // offline — zůstanou data z cache, obnoví se po připojení
+        }
+      }
+      skrytoOd = null;
+    };
+    document.addEventListener("visibilitychange", priZmene);
+    return () => document.removeEventListener("visibilitychange", priZmene);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
+
   // Živý kanál pro poptávky — stejný princip slučování jako u zakázek.
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -435,7 +459,7 @@ export default function HomePage() {
   // Do databáze se vždy posílají jen konkrétní změněná pole (nikdy celý řádek),
   // fotky a poznámky se přidávají k aktuálnímu stavu načtenému přímo z databáze —
   // dva lidé, kteří současně přidají fotku, si tak navzájem nic nepřepíšou.
-  const POLE_UPRAVY_POPTAVKY = ["zakaznik", "telefon", "email", "ico", "zakaznikIdentifikace", "zdroj", "text", "pozadovanyTermin"];
+  const POLE_UPRAVY_POPTAVKY = ["zakaznik", "telefon", "email", "ico", "zakaznikIdentifikace", "zdroj", "text", "pozadovanyTermin", "odhadCena"];
 
   const upravitPoptavku = async (p, patch) => {
     const puvodni = poptavky.find((x) => x.id === p.id);
@@ -455,8 +479,11 @@ export default function HomePage() {
     if (zaznam.id) {
       const patch = {};
       POLE_UPRAVY_POPTAVKY.forEach((k) => {
-        patch[k] = zaznam[k] === "" && k === "pozadovanyTermin" ? null : zaznam[k] ?? null;
+        patch[k] = zaznam[k] === "" && (k === "pozadovanyTermin" || k === "odhadCena") ? null : zaznam[k] ?? null;
       });
+      // odhad nevyplněný ani předtím → neposílat (funguje i bez sloupce odhadCena v databázi)
+      const puvodniPoptavka = poptavky.find((x) => x.id === zaznam.id);
+      if (patch.odhadCena === null && !(puvodniPoptavka && puvodniPoptavka.odhadCena)) delete patch.odhadCena;
       await upravitPoptavku(zaznam, patch);
       setPoptavkaForm(null);
       return;
@@ -630,7 +657,25 @@ export default function HomePage() {
       setDetailOrder((prev) => (prev && prev.id === optimisticky.id ? optimisticky : prev));
     }
 
-    const { data, error } = await supabase.from("orders").upsert(cistaZakazka).select().single();
+    // U EXISTUJÍCÍ zakázky se posílají jen pole z formuláře zakázky. Dřív se ukládala
+    // celá zakázka i se seznamy práce, nákladů, fotek a kalkulací tak, jak byly ve chvíli
+    // otevření formuláře — co mezitím zapsal kolega (třeba hodiny z telefonu), se tím
+    // přepsalo a ztratilo. Nová zakázka (z formuláře, duplikace, poptávky) se zakládá celá.
+    const POLE_FORMULARE_ZAKAZKY = [
+      "cislo", "stav", "zakaznik", "ico", "zakaznikIdentifikace", "telefon", "email", "popis",
+      "cena", "termin", "terminZahajeni", "planCasDilna", "planCasMontaz", "poznamka", "cisloFaktury",
+    ];
+    let dotaz;
+    if (predchoziZakazka) {
+      const zmeny = {};
+      POLE_FORMULARE_ZAKAZKY.forEach((k) => {
+        if (k in cistaZakazka) zmeny[k] = cistaZakazka[k];
+      });
+      dotaz = supabase.from("orders").update(zmeny).eq("id", order.id).select().single();
+    } else {
+      dotaz = supabase.from("orders").upsert(cistaZakazka).select().single();
+    }
+    const { data, error } = await dotaz;
     if (error) {
       console.error(error);
       setGlobalError("Uložení zakázky se nepovedlo. Zkontroluj připojení a zkus to znovu.");
@@ -679,6 +724,18 @@ export default function HomePage() {
   };
 
   const deleteOrder = async (id) => {
+    // Podzakázky smazané zakázky se nemažou — odpojí se a zůstanou jako samostatné
+    // zakázky (jinak by v seznamu visely jako podzakázky neexistující zakázky).
+    const podzakazky = orders.filter((o) => o.nadrazenaZakazkaId === id);
+    for (const pz of podzakazky) {
+      const { error: chybaOdpojeni } = await supabase.from("orders").update({ nadrazenaZakazkaId: null }).eq("id", pz.id);
+      if (chybaOdpojeni) {
+        console.error(chybaOdpojeni);
+        setGlobalError("Smazání se nepovedlo (nešlo odpojit podzakázky). Zkus to znovu.");
+        return;
+      }
+    }
+    if (podzakazky.length) setOrders((prev) => prev.map((o) => (o.nadrazenaZakazkaId === id ? { ...o, nadrazenaZakazkaId: null } : o)));
     const { error } = await supabase.from("orders").delete().eq("id", id);
     if (error) {
       console.error(error);
@@ -689,9 +746,34 @@ export default function HomePage() {
     setDetailOrder(null);
   };
 
+  // ---- Bezpečné zápisy do seznamů zakázky (práce, náklady, fotky) ----
+  // Dřív se do databáze posílal celý seznam tak, jak ho měl telefon v paměti. Když
+  // mezitím kolega něco zapsal (a telefon to po probuzení ještě nevěděl), jeho
+  // záznam se tím přepsal a zmizel. Teď se vždy nejdřív načte AKTUÁLNÍ seznam přímo
+  // z databáze a změna se provede až na něm.
+  const upravitSeznamZakazky = async (orderId, sloupec, zmena) => {
+    const { data: aktualni, error: chybaCteni } = await supabase.from("orders").select(sloupec).eq("id", orderId).single();
+    if (chybaCteni) return { data: null, error: chybaCteni };
+    const novy = zmena(Array.isArray(aktualni?.[sloupec]) ? aktualni[sloupec] : []);
+    return supabase.from("orders").update({ [sloupec]: novy }).eq("id", orderId).select().single();
+  };
+
+  // Z formuláře, který upravuje celý seznam (oprava/smazání záznamů), se do aktuálního
+  // stavu v databázi přenesou jen skutečné změny: smazané, upravené a nově přidané
+  // záznamy. Záznamy, které mezitím přidal někdo jiný, zůstanou.
+  const sloucitZmenySeznamu = (puvodni, upraveny, aktualni) => {
+    const vse = [...(puvodni || []), ...(upraveny || []), ...(aktualni || [])];
+    if (vse.some((x) => !x || !x.id)) return upraveny; // starší záznamy bez id — nejde bezpečně sloučit
+    const idPuvodnich = new Set(puvodni.map((x) => x.id));
+    const idUpravenych = new Set(upraveny.map((x) => x.id));
+    const smazane = new Set([...idPuvodnich].filter((id) => !idUpravenych.has(id)));
+    const zmenene = new Map(upraveny.filter((x) => idPuvodnich.has(x.id)).map((x) => [x.id, x]));
+    const pridane = upraveny.filter((x) => !idPuvodnich.has(x.id));
+    return [...pridane, ...aktualni.filter((x) => !smazane.has(x.id)).map((x) => zmenene.get(x.id) || x)];
+  };
+
   const addWorkEntry = async (order, entry) => {
-    const nextPrace = [entry, ...(order.prace || [])];
-    const { data, error } = await supabase.from("orders").update({ prace: nextPrace }).eq("id", order.id).select().single();
+    const { data, error } = await upravitSeznamZakazky(order.id, "prace", (akt) => [entry, ...akt]);
     if (error) {
       console.error(error);
       setGlobalError("Záznam práce se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
@@ -705,7 +787,7 @@ export default function HomePage() {
   // Oprava/smazání už zapsaného záznamu práce (pracovník se spletl atd.) — dostává
   // rovnou celé nové pole prace (upravené nebo bez smazaného záznamu).
   const editPrace = async (order, novePrace) => {
-    const { data, error } = await supabase.from("orders").update({ prace: novePrace }).eq("id", order.id).select().single();
+    const { data, error } = await upravitSeznamZakazky(order.id, "prace", (akt) => sloucitZmenySeznamu(order.prace || [], novePrace, akt));
     if (error) {
       console.error(error);
       setGlobalError("Opravu záznamu práce se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
@@ -720,10 +802,7 @@ export default function HomePage() {
   const zapsatNaklady = async (rozpocet) => {
     try {
       const vysledky = await Promise.all(
-        rozpocet.map(({ order, naklad }) => {
-          const noveNaklady = [naklad, ...(order.naklady || [])];
-          return supabase.from("orders").update({ naklady: noveNaklady }).eq("id", order.id).select().single();
-        })
+        rozpocet.map(({ order, naklad }) => upravitSeznamZakazky(order.id, "naklady", (akt) => [naklad, ...akt]))
       );
       const chyba = vysledky.find((v) => v.error);
       if (chyba) throw chyba.error;
@@ -762,10 +841,7 @@ export default function HomePage() {
         podleZakazky.get(order.id).naklady.push(naklad);
       });
       const vysledky = await Promise.all(
-        Array.from(podleZakazky.values()).map(({ order, naklady }) => {
-          const noveNaklady = [...naklady, ...(order.naklady || [])];
-          return supabase.from("orders").update({ naklady: noveNaklady }).eq("id", order.id).select().single();
-        })
+        Array.from(podleZakazky.values()).map(({ order, naklady }) => upravitSeznamZakazky(order.id, "naklady", (akt) => [...naklady, ...akt]))
       );
       const chyba = vysledky.find((v) => v.error);
       if (chyba) throw chyba.error;
@@ -788,8 +864,7 @@ export default function HomePage() {
   };
 
   const addWorkPhoto = async (order, entry) => {
-    const nextFotky = [entry, ...(order.fotky || [])];
-    const { data, error } = await supabase.from("orders").update({ fotky: nextFotky }).eq("id", order.id).select().single();
+    const { data, error } = await upravitSeznamZakazky(order.id, "fotky", (akt) => [entry, ...akt]);
     if (error) {
       console.error(error);
       setGlobalError("Fotku se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
@@ -801,7 +876,7 @@ export default function HomePage() {
   };
 
   const saveNaklady = async (radky) => {
-    const { data, error } = await supabase.from("orders").update({ naklady: radky }).eq("id", nakladyOrder.id).select().single();
+    const { data, error } = await upravitSeznamZakazky(nakladyOrder.id, "naklady", (akt) => sloucitZmenySeznamu(nakladyOrder.naklady || [], radky, akt));
     if (error) {
       console.error(error);
       setGlobalError("Náklady se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
@@ -969,9 +1044,12 @@ export default function HomePage() {
       if (rok === currentYear) sumyRok[o.stav] = (sumyRok[o.stav] || 0) + (Number(o.cena) || 0);
     });
     const overdue = orders.filter(isOverdue);
-    const otevrenaHodnota = orders.filter((o) => o.stav !== "fakturovano" && o.stav !== "neuspesnaNabidka").reduce((sum, o) => sum + (Number(o.cena) || 0), 0);
-    return { counts, sumyRok, overdue, otevrenaHodnota, currentYear };
-  }, [orders]);
+    // Poptávky k vyřízení (Nová + Řeší se) a součet jejich odhadů ceny
+    const aktivniPoptavky = poptavky.filter((p) => p.stav === "nova" || p.stav === "resiSe");
+    const odhadPoptavek = aktivniPoptavky.reduce((sum, p) => sum + (Number(p.odhadCena) || 0), 0);
+    const poptavkyBezOdhadu = aktivniPoptavky.filter((p) => !(Number(p.odhadCena) > 0)).length;
+    return { counts, sumyRok, overdue, aktivniPoptavky: aktivniPoptavky.length, odhadPoptavek, poptavkyBezOdhadu, currentYear };
+  }, [orders, poptavky]);
 
   if (session === undefined || loading) {
     return (
@@ -1047,7 +1125,7 @@ export default function HomePage() {
           <button onClick={() => setShowMaterialy(true)} title="Katalog materiálů" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
             <Layers size={20} />
           </button>
-          <button onClick={() => setShowNastaveni(true)} style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
+          <button onClick={() => setShowNastaveni(true)} title="Nastavení" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
             <Settings size={20} />
           </button>
           <button onClick={signOut} title="Odhlásit se" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
@@ -1265,7 +1343,7 @@ export default function HomePage() {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: overdueRow ? C.ink : C.inkSoft, fontWeight: overdueRow ? 600 : 400, marginBottom: 4 }}>
                           <span>Termín {fmtDate(o.termin)}</span>
                           <span style={{ fontFamily: FONTS.mono }}>
-                            plán {plan} h · odvedeno {odvedeno} h
+                            plán {fmtCislo(plan)} h · odvedeno {fmtCislo(odvedeno)} h
                           </span>
                         </div>
                         {plan > 0 && (
@@ -1296,9 +1374,14 @@ export default function HomePage() {
             <div className="grid-2" style={{ marginBottom: 20 }}>
               <div style={{ background: C.surface, borderRadius: 8, padding: 16, border: `1px solid ${C.line}` }}>
                 <div style={{ fontFamily: FONTS.display, letterSpacing: "0.12em", textTransform: "uppercase", fontSize: 12, color: C.inkSoft, marginBottom: 8 }}>
-                  Otevřená hodnota zakázek (nevyfakturováno)
+                  Poptávky k vyřízení ({stats.aktivniPoptavky}) — odhad celkem
                 </div>
-                <div style={{ fontSize: 26, fontFamily: FONTS.mono, color: C.steel }}>{fmtMoney(stats.otevrenaHodnota)}</div>
+                <div style={{ fontSize: 26, fontFamily: FONTS.mono, color: C.steel }}>{fmtMoney(stats.odhadPoptavek)}</div>
+                {stats.poptavkyBezOdhadu > 0 && (
+                  <div style={{ fontSize: 12, color: C.inkSoft, marginTop: 4 }}>
+                    {stats.poptavkyBezOdhadu} {stats.poptavkyBezOdhadu === 1 ? "poptávka nemá" : stats.poptavkyBezOdhadu < 5 ? "poptávky nemají" : "poptávek nemá"} vyplněný odhad
+                  </div>
+                )}
               </div>
               <div style={{ background: C.surface, borderRadius: 8, padding: 16, border: `1px solid ${C.line}` }}>
                 <div style={{ fontFamily: FONTS.display, letterSpacing: "0.12em", textTransform: "uppercase", fontSize: 12, color: C.inkSoft, marginBottom: 8 }}>Zakázek celkem</div>
@@ -1436,7 +1519,7 @@ export default function HomePage() {
                       <div style={{ fontFamily: FONTS.mono, fontSize: 15 }}>{fmtMoney(o.cena)}</div>
                       <div style={{ fontSize: 12, color: C.inkSoft }}>termín {fmtDate(o.termin)}</div>
                       <div style={{ fontSize: 11, color: C.inkSoft, fontFamily: FONTS.mono }}>
-                        plán {planHodin(o)} h · odvedeno {sumHodin(o.prace)} h
+                        plán {fmtCislo(planHodin(o))} h · odvedeno {fmtCislo(sumHodin(o.prace))} h
                       </div>
                     </div>
                     <ChevronRight size={18} color={C.inkSoft} />

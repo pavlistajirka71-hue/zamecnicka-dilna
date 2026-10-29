@@ -93,3 +93,6 @@ end $$;
 -- Fotky poptávek se ukládají stejně jako fotky zakázek: na Google Drive (podsložka
 -- "P-2026-0001 – zákazník"), záložně do už existujícího bucketu "fotky".
 -- Žádný nový bucket není potřeba.
+
+-- Odhad ceny poptávky (Kč bez DPH) — přidáno později; jen přidá sloupec, nic nemaže.
+alter table poptavky add column if not exists "odhadCena" numeric;

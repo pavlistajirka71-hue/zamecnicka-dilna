@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { FileDown } from "lucide-react";
-import { C, FONTS, downloadTextFile } from "@/lib/theme";
+import { C, FONTS, downloadTextFile, fmtCislo } from "@/lib/theme";
 import { Button, Field, TextInput } from "./ui";
 
 function currentMonthValue() {
@@ -80,9 +80,9 @@ export default function PraceReport({ orders, onClose }) {
                 <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.zakaznik}</div>
                 <div style={{ fontFamily: FONTS.mono, fontSize: 11, color: C.inkSoft }}>{r.cislo}</div>
               </div>
-              <div style={{ textAlign: "right", fontFamily: FONTS.mono }}>{r.dilna} h</div>
-              <div style={{ textAlign: "right", fontFamily: FONTS.mono }}>{r.montaz} h</div>
-              <div style={{ textAlign: "right", fontFamily: FONTS.mono, fontWeight: 600 }}>{r.celkem} h</div>
+              <div style={{ textAlign: "right", fontFamily: FONTS.mono }}>{fmtCislo(r.dilna)} h</div>
+              <div style={{ textAlign: "right", fontFamily: FONTS.mono }}>{fmtCislo(r.montaz)} h</div>
+              <div style={{ textAlign: "right", fontFamily: FONTS.mono, fontWeight: 600 }}>{fmtCislo(r.celkem)} h</div>
             </div>
           ))}
           <div
@@ -97,9 +97,9 @@ export default function PraceReport({ orders, onClose }) {
             }}
           >
             <div>Celkem za měsíc</div>
-            <div style={{ textAlign: "right", fontFamily: FONTS.mono }}>{total.dilna} h</div>
-            <div style={{ textAlign: "right", fontFamily: FONTS.mono }}>{total.montaz} h</div>
-            <div style={{ textAlign: "right", fontFamily: FONTS.mono }}>{total.celkem} h</div>
+            <div style={{ textAlign: "right", fontFamily: FONTS.mono }}>{fmtCislo(total.dilna)} h</div>
+            <div style={{ textAlign: "right", fontFamily: FONTS.mono }}>{fmtCislo(total.montaz)} h</div>
+            <div style={{ textAlign: "right", fontFamily: FONTS.mono }}>{fmtCislo(total.celkem)} h</div>
           </div>
         </div>
       )}

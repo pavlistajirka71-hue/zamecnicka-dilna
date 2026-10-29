@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Plus, Search, ChevronRight, Camera, MessageSquare, ArrowRight } from "lucide-react";
-import { C, FONTS, fmtDate } from "@/lib/theme";
+import { C, FONTS, fmtDate, fmtMoney } from "@/lib/theme";
 import { STAVY_POPTAVKY, AKTIVNI_STAVY_POPTAVKY, stavPoptavkyInfo } from "@/lib/poptavky";
 import { Button, TextInput, Select } from "./ui";
 
@@ -107,6 +107,7 @@ export default function PoptavkyPanel({ poptavky, nacteno, onNova, onOpen }) {
                 <div style={{ fontSize: 13, color: C.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.text}</div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0, fontSize: 12, color: C.inkSoft }}>
+                {Number(p.odhadCena) > 0 && <div style={{ fontFamily: FONTS.mono, color: C.ink, fontWeight: 600 }}>~ {fmtMoney(p.odhadCena)}</div>}
                 <div>{fmtDate(p.vytvoreno)}</div>
                 {p.pozadovanyTermin && <div>do {fmtDate(p.pozadovanyTermin)}</div>}
                 <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 2, fontFamily: FONTS.mono }}>

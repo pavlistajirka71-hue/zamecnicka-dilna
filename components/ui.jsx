@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { C, FONTS, statusInfo } from "@/lib/theme";
 
@@ -344,8 +344,30 @@ export function Button({ variant = "primary", children, style, disabled, ...rest
 
 export function Modal({ title, onClose, children, width = 560, zIndex = 50 }) {
   const mouseDownOnBackdrop = useRef(false);
+  const oknoRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  // Klávesa Esc zavře okno — ale jen to nejvrchnější (když je otevřeno víc oken nad
+  // sebou, např. kalkulace nad detailem zakázky) a ne při psaní do pole s našeptávačem.
+  useEffect(() => {
+    const priKlavese = (e) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      const okna = Array.from(document.querySelectorAll("[data-modal-okno]"));
+      const nejvyssi = okna.reduce((a, b) => (Number(b.dataset.z) >= Number(a.dataset.z) ? b : a), okna[0]);
+      if (nejvyssi !== oknoRef.current) return;
+      e.preventDefault();
+      onCloseRef.current && onCloseRef.current();
+    };
+    document.addEventListener("keydown", priKlavese);
+    return () => document.removeEventListener("keydown", priKlavese);
+  }, []);
+
   return (
     <div
+      ref={oknoRef}
+      data-modal-okno=""
+      data-z={zIndex}
       style={{
         position: "fixed",
         inset: 0,
@@ -394,7 +416,7 @@ export function Modal({ title, onClose, children, width = 560, zIndex = 50 }) {
           <div style={{ fontFamily: FONTS.display, fontSize: 18, textTransform: "uppercase", letterSpacing: "0.05em", color: C.ink }}>
             {title}
           </div>
-          <button onClick={onClose} style={{ ...iconBtnStyle, color: C.inkSoft }}>
+          <button onClick={onClose} aria-label="Zavřít" title="Zavřít" style={{ ...iconBtnStyle, color: C.inkSoft }}>
             <X size={22} />
           </button>
         </div>

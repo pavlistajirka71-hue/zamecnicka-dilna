@@ -34,6 +34,7 @@ export default function PoptavkaForm({ initial, poptavky, vlastni, organizace, o
         zdroj: "Telefon",
         text: "",
         pozadovanyTermin: "",
+        odhadCena: "",
       }
   );
   const [bloby, setBloby] = useState([]); // fotky čekající na nahrání (jen u nové poptávky)
@@ -131,7 +132,11 @@ export default function PoptavkaForm({ initial, poptavky, vlastni, organizace, o
         ...f,
         zakaznik: f.zakaznik.trim(),
         pozadovanyTermin: f.pozadovanyTermin || null,
+        odhadCena: f.odhadCena === "" || f.odhadCena === null || f.odhadCena === undefined ? null : Number(f.odhadCena),
       };
+      // Bez vyplněného odhadu se sloupec vůbec neposílá — poptávky tak fungují i tehdy,
+      // když ještě nebyl spuštěný SQL skript, který sloupec odhadCena přidává.
+      if (zaznam.odhadCena === null && !(initial && initial.odhadCena)) delete zaznam.odhadCena;
       if (jeNova) {
         zaznam.cislo = await ziskatCislo();
         zaznam.stav = "nova";
@@ -198,6 +203,9 @@ export default function PoptavkaForm({ initial, poptavky, vlastni, organizace, o
           <TextInput type="date" value={f.pozadovanyTermin || ""} onChange={(e) => set("pozadovanyTermin", e.target.value)} />
         </Field>
       </div>
+      <Field label="Odhad ceny (Kč bez DPH, nepovinné — pro přehled poptávek)">
+        <TextInput type="number" min="0" step="100" value={f.odhadCena ?? ""} onChange={(e) => set("odhadCena", e.target.value)} />
+      </Field>
       <Field label="Adresa / místo realizace (nepovinné)">
         <TextArea value={f.zakaznikIdentifikace || ""} onChange={(e) => set("zakaznikIdentifikace", e.target.value)} style={{ minHeight: 44 }} />
       </Field>

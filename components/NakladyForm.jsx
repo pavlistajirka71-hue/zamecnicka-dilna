@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { C, FONTS, uid, todayISO, seedNakladyZKalkulace, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney } from "@/lib/theme";
+import { C, FONTS, uid, todayISO, seedNakladyZKalkulace, computeNakladyZakazky, normalizovatKalkulaci, fmtMoney, fmtCislo } from "@/lib/theme";
 import { TextInput, Button, SectionLabel, MiniLabel, iconBtnStyle, Modal } from "./ui";
 import PhotoThumbnail from "./PhotoThumbnail";
 
@@ -40,7 +40,7 @@ export default function NakladyForm({ order, nastaveni, onSave, onDirtyChange, o
   const removeRadek = (id) => setRadky((prev) => prev.filter((r) => r.id !== id));
 
   const pridatNaklad = () => {
-    if (!novyPopis.trim() || !novaCastka) return;
+    if (!novyPopis.trim() || !(Number(novaCastka) > 0)) return;
     setRadky((prev) => [...prev, { id: uid(), popis: novyPopis.trim(), castka: Number(novaCastka), datum: novyDatum || null, jeJizda: novaJizda }]);
     setNovyPopis("");
     setNovaCastka("");
@@ -73,7 +73,15 @@ export default function NakladyForm({ order, nastaveni, onSave, onDirtyChange, o
             <div key={r.id} style={{ marginBottom: 6 }}>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <TextInput value={r.popis} onChange={(e) => updateRadek(r.id, { popis: e.target.value })} style={{ flex: 3 }} />
-                <TextInput type="number" value={r.castka} onChange={(e) => updateRadek(r.id, { castka: e.target.value })} style={{ flex: 1 }} />
+                <TextInput
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={r.castka}
+                  onChange={(e) => updateRadek(r.id, { castka: e.target.value })}
+                  style={{ flex: 1, borderColor: Number(r.castka) > 0 ? undefined : C.danger }}
+                  title={Number(r.castka) > 0 ? undefined : "Částka musí být větší než 0"}
+                />
                 <TextInput type="date" value={r.datum || ""} onChange={(e) => updateRadek(r.id, { datum: e.target.value || null })} style={{ width: 130 }} />
                 <button onClick={() => removeRadek(r.id)} style={{ ...iconBtnStyle, color: C.danger }}>
                   <Trash2 size={16} />
@@ -107,7 +115,7 @@ export default function NakladyForm({ order, nastaveni, onSave, onDirtyChange, o
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <TextInput value={novyPopis} onChange={(e) => setNovyPopis(e.target.value)} style={{ flex: 3 }} />
-        <TextInput type="number" value={novaCastka} onChange={(e) => setNovaCastka(e.target.value)} style={{ flex: 1 }} />
+        <TextInput type="number" min="0" step="0.01" value={novaCastka} onChange={(e) => setNovaCastka(e.target.value)} style={{ flex: 1 }} />
         <TextInput type="date" value={novyDatum} onChange={(e) => setNovyDatum(e.target.value)} style={{ width: 130 }} />
         <Button variant="ghost" type="button" onClick={pridatNaklad}>
           <Plus size={14} />
@@ -146,7 +154,7 @@ export default function NakladyForm({ order, nastaveni, onSave, onDirtyChange, o
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 600 }}>
             <span>Zisk</span>
             <span style={{ fontFamily: FONTS.mono, color: vysledek.zisk >= 0 ? C.moss : C.danger }}>
-              {fmtMoney(vysledek.zisk)} ({vysledek.marzePct.toFixed(1)} %)
+              {fmtMoney(vysledek.zisk)} ({fmtCislo(vysledek.marzePct, 1, 1)} %)
             </span>
           </div>
         </div>
@@ -159,11 +167,13 @@ export default function NakladyForm({ order, nastaveni, onSave, onDirtyChange, o
         <Button
           variant="primary"
           type="button"
-          disabled={saving}
+          disabled={saving || radky.some((r) => !(Number(r.castka) > 0))}
           onClick={async () => {
+            // Náklady jsou vždy kladné — prázdná, nulová nebo záporná částka se neuloží.
+            if (radky.some((r) => !(Number(r.castka) > 0))) return;
             setSaving(true);
             try {
-              await onSave(radky);
+              await onSave(radky.map((r) => ({ ...r, castka: Number(r.castka) })));
               puvodniRadky.current = radky;
               if (onDirtyChange) onDirtyChange(false);
             } finally {

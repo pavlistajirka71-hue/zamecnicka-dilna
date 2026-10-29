@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Pencil, Phone, Mail, MapPin, FileText, ArrowRight, Trash2, X, Send } from "lucide-react";
-import { C, FONTS, uid, todayISO, fmtDate } from "@/lib/theme";
+import { C, FONTS, uid, todayISO, fmtDate, fmtMoney } from "@/lib/theme";
 import { nahratFotku } from "@/lib/uploadClient";
 import { STAVY_POPTAVKY, slozkaPoptavky } from "@/lib/poptavky";
 import { Button, SectionLabel, TextArea, Modal } from "./ui";
@@ -99,6 +99,11 @@ export default function PoptavkaDetail({
         {radek(Mail, p.email && <a href={`mailto:${p.email}`} style={{ color: C.ink }}>{p.email}</a>)}
         {radek(MapPin, p.zakaznikIdentifikace)}
         {p.ico && radek(FileText, `IČO ${p.ico}`)}
+        {Number(p.odhadCena) > 0 && (
+          <div style={{ fontSize: 13, color: C.inkSoft, marginTop: 4 }}>
+            Odhad ceny <strong style={{ color: C.ink, fontFamily: FONTS.mono }}>{fmtMoney(p.odhadCena)}</strong> bez DPH
+          </div>
+        )}
         {p.pozadovanyTermin && (
           <div style={{ fontSize: 13, color: C.inkSoft, marginTop: 4 }}>
             Zákazník to potřebuje do <strong style={{ color: C.ink }}>{fmtDate(p.pozadovanyTermin)}</strong>

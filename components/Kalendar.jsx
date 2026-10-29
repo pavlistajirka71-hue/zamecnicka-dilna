@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Car } from "lucide-react";
-import { C, FONTS, statusInfo, todayISO, hodinyPodleDne, jizdyPodleDne, tydenniDny, planovaneHodinyPodleTydne } from "@/lib/theme";
+import { C, FONTS, statusInfo, todayISO, hodinyPodleDne, jizdyPodleDne, tydenniDny, planovaneHodinyPodleTydne, fmtCislo } from "@/lib/theme";
 import { Button } from "./ui";
 
 const DNY_TYDNE = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
@@ -181,7 +181,7 @@ export default function Kalendar({ orders, onOpen, onOpenVykaz }) {
                         cursor: onOpenVykaz ? "pointer" : "default",
                       }}
                     >
-                      D {hodiny.dilna}h
+                      D {fmtCislo(hodiny.dilna)}h
                     </button>
                   )}
                   {hodiny && hodiny.montaz > 0 && (
@@ -201,7 +201,7 @@ export default function Kalendar({ orders, onOpen, onOpenVykaz }) {
                         cursor: onOpenVykaz ? "pointer" : "default",
                       }}
                     >
-                      M {hodiny.montaz}h
+                      M {fmtCislo(hodiny.montaz)}h
                     </button>
                   )}
                   {jizdy && jizdy.pocet > 0 && (
@@ -333,7 +333,7 @@ export default function Kalendar({ orders, onOpen, onOpenVykaz }) {
                 <span style={{ fontFamily: FONTS.mono, color: C.inkSoft }}>
                   {celkem > 0 ? (
                     <>
-                      D {t.dilna}h · M {t.montaz}h
+                      D {fmtCislo(t.dilna)}h · M {fmtCislo(t.montaz)}h
                     </>
                   ) : (
                     "—"

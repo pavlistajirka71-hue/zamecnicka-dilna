@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { C, FONTS, todayISO, fmtDate, vsechnyZaznamyPrace, soucetHodinPodleTypu, seskupitPraciPodleZakazky, tydenniDny } from "@/lib/theme";
+import { C, FONTS, todayISO, fmtDate, vsechnyZaznamyPrace, soucetHodinPodleTypu, seskupitPraciPodleZakazky, tydenniDny, fmtCislo } from "@/lib/theme";
 import { Button } from "./ui";
 
 const NAZVY_MESICU = ["Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"];
@@ -107,13 +107,13 @@ export default function VykazPrace({ orders, onOpenOrder, initialDen }) {
           <div style={{ fontFamily: FONTS.display, fontSize: 12, color: C.inkSoft, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>
             Dílna celkem
           </div>
-          <div style={{ fontFamily: FONTS.mono, fontSize: 36, fontWeight: 700, color: C.steel, lineHeight: 1 }}>{dilnaCelkem} h</div>
+          <div style={{ fontFamily: FONTS.mono, fontSize: 36, fontWeight: 700, color: C.steel, lineHeight: 1 }}>{fmtCislo(dilnaCelkem)} h</div>
         </div>
         <div style={{ background: C.surface, border: `1px solid ${C.line}`, borderRadius: 8, padding: 14, textAlign: "center" }}>
           <div style={{ fontFamily: FONTS.display, fontSize: 12, color: C.inkSoft, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 4 }}>
             Montáž celkem
           </div>
-          <div style={{ fontFamily: FONTS.mono, fontSize: 36, fontWeight: 700, color: C.brass, lineHeight: 1 }}>{montazCelkem} h</div>
+          <div style={{ fontFamily: FONTS.mono, fontSize: 36, fontWeight: 700, color: C.brass, lineHeight: 1 }}>{fmtCislo(montazCelkem)} h</div>
         </div>
       </div>
 
@@ -163,7 +163,7 @@ export default function VykazPrace({ orders, onOpenOrder, initialDen }) {
                       fontWeight: hodiny > 0 ? 700 : 400,
                     }}
                   >
-                    {hodiny > 0 ? `${hodiny}h` : "–"}
+                    {hodiny > 0 ? `${fmtCislo(hodiny)}h` : "–"}
                   </div>
                 </button>
               );
@@ -209,9 +209,9 @@ export default function VykazPrace({ orders, onOpenOrder, initialDen }) {
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{g.order.zakaznik}</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontFamily: FONTS.mono, fontSize: 20, fontWeight: 700, color: C.steel }}>{g.celkem} h</div>
+                  <div style={{ fontFamily: FONTS.mono, fontSize: 20, fontWeight: 700, color: C.steel }}>{fmtCislo(g.celkem)} h</div>
                   <div style={{ fontSize: 11, color: C.inkSoft }}>
-                    {rozbaleno ? "▴ sbalit" : `Dílna ${g.dilna}h · Montáž ${g.montaz}h`}
+                    {rozbaleno ? "▴ sbalit" : `Dílna ${fmtCislo(g.dilna)}h · Montáž ${fmtCislo(g.montaz)}h`}
                   </div>
                 </div>
               </button>
@@ -221,11 +221,11 @@ export default function VykazPrace({ orders, onOpenOrder, initialDen }) {
                   <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                     <div style={{ flex: 1, background: C.paper, borderRadius: 6, padding: "6px 0", textAlign: "center" }}>
                       <div style={{ fontFamily: FONTS.display, fontSize: 9, color: C.inkSoft, textTransform: "uppercase" }}>Dílna</div>
-                      <div style={{ fontFamily: FONTS.mono, fontSize: 14, fontWeight: 600 }}>{g.dilna} h</div>
+                      <div style={{ fontFamily: FONTS.mono, fontSize: 14, fontWeight: 600 }}>{fmtCislo(g.dilna)} h</div>
                     </div>
                     <div style={{ flex: 1, background: C.paper, borderRadius: 6, padding: "6px 0", textAlign: "center" }}>
                       <div style={{ fontFamily: FONTS.display, fontSize: 9, color: C.inkSoft, textTransform: "uppercase" }}>Montáž</div>
-                      <div style={{ fontFamily: FONTS.mono, fontSize: 14, fontWeight: 600 }}>{g.montaz} h</div>
+                      <div style={{ fontFamily: FONTS.mono, fontSize: 14, fontWeight: 600 }}>{fmtCislo(g.montaz)} h</div>
                     </div>
                   </div>
 
@@ -247,7 +247,7 @@ export default function VykazPrace({ orders, onOpenOrder, initialDen }) {
                         {entry.popis && <div style={{ color: C.inkSoft, marginTop: 1 }}>{entry.popis}</div>}
                         {entry.pracovnik && <div style={{ color: C.inkSoft, fontSize: 11 }}>{entry.pracovnik}</div>}
                       </div>
-                      <span style={{ fontFamily: FONTS.mono, fontWeight: 600, flexShrink: 0, paddingLeft: 8 }}>{entry.hodiny} h</span>
+                      <span style={{ fontFamily: FONTS.mono, fontWeight: 600, flexShrink: 0, paddingLeft: 8 }}>{fmtCislo(entry.hodiny)} h</span>
                     </div>
                   ))}
 
@@ -266,7 +266,7 @@ export default function VykazPrace({ orders, onOpenOrder, initialDen }) {
       {/* Souhrn dole */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, padding: "14px 16px", background: C.surface, border: `1px solid ${C.line}`, borderRadius: 8 }}>
         <span style={{ fontFamily: FONTS.display, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.03em" }}>Tento měsíc celkem</span>
-        <span style={{ fontFamily: FONTS.mono, fontSize: 24, fontWeight: 700, color: C.ink }}>{dilnaCelkem + montazCelkem} h</span>
+        <span style={{ fontFamily: FONTS.mono, fontSize: 24, fontWeight: 700, color: C.ink }}>{fmtCislo(dilnaCelkem + montazCelkem)} h</span>
       </div>
     </div>
   );

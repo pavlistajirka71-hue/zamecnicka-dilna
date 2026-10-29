@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Wrench, Truck, Plus } from "lucide-react";
-import { C, FONTS, uid, todayISO, UZAVRENE_STAVY, nabidkaPracovniku } from "@/lib/theme";
+import { C, FONTS, uid, todayISO, UZAVRENE_STAVY, nabidkaPracovniku, fmtCislo } from "@/lib/theme";
 import { supabase } from "@/lib/supabaseClient";
 import { Field, TextInput, TextArea, AutoCompleteTextArea, TextInputSNabidkou, Button } from "./ui";
 import OrderPicker from "./OrderPicker";
@@ -156,7 +156,7 @@ export default function WorkLogFlow({ orders, nastaveni, uzivatele, onSubmit, on
       <div style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft }}>{order.cislo}</div>
       <div style={{ fontWeight: 600 }}>{order.zakaznik}</div>
       <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 4, fontFamily: FONTS.mono }}>
-        plán dílna {order.planCasDilna || 0} h · plán montáž {order.planCasMontaz || 0} h
+        plán dílna {fmtCislo(order.planCasDilna)} h · plán montáž {fmtCislo(order.planCasMontaz)} h
       </div>
     </div>
   );
@@ -220,7 +220,10 @@ export default function WorkLogFlow({ orders, nastaveni, uzivatele, onSubmit, on
           <TextInput type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
         </Field>
         <Field label="Odpracované hodiny">
-          <TextInput type="number" step="0.5" value={hodiny} onChange={(e) => setHodiny(e.target.value)} />
+          <TextInput type="number" step="0.5" min="0.5" max="24" value={hodiny} onChange={(e) => setHodiny(e.target.value)} />
+          {hodiny !== "" && !(Number(hodiny) > 0 && Number(hodiny) <= 24) && (
+            <div style={{ fontSize: 12, color: C.danger, marginTop: 4 }}>Zadej počet hodin větší než 0 (nejvýš 24 za jeden záznam).</div>
+          )}
         </Field>
       </div>
       <Field label="Kdo pracoval">
@@ -248,9 +251,9 @@ export default function WorkLogFlow({ orders, nastaveni, uzivatele, onSubmit, on
         <Button
           variant="primary"
           type="button"
-          disabled={saving}
+          disabled={saving || !(Number(hodiny) > 0 && Number(hodiny) <= 24)}
           onClick={async () => {
-            if (!hodiny) return;
+            if (!(Number(hodiny) > 0 && Number(hodiny) <= 24)) return;
             setSaving(true);
             setError("");
             try {

@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, ChevronDown, ChevronUp, Copy, FolderInput } from "lucide-react";
-import { C, FONTS, uid, novaPolozkaKalkulace, normalizovatKalkulaci, computeKalkulace, computeKalkulaceCelkem, fmtMoney, DPH_SAZBA, maJineSazby, sazbyZNastaveni } from "@/lib/theme";
+import { C, FONTS, uid, novaPolozkaKalkulace, normalizovatKalkulaci, computeKalkulace, computeKalkulaceCelkem, fmtMoney, DPH_SAZBA, maJineSazby, sazbyZNastaveni, fmtCislo } from "@/lib/theme";
 
-const fmtCislo = (n, des = 2) => (Number(n) || 0).toLocaleString("cs-CZ", { maximumFractionDigits: des });
 import { Field, TextInput, Select, Button, SectionLabel, iconBtnStyle } from "./ui";
 import MaterialRow from "./MaterialRow";
 import VlozitZJineZakazky from "./VlozitZJineZakazky";
@@ -105,7 +104,7 @@ function PolozkaForm({ polozka, nastaveni: nastaveniAktualni, materialHistory, s
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "2px 0", fontWeight: 600 }}>
           <span>Marže položky</span>
           <span style={{ fontFamily: FONTS.mono, color: vysledek.marzeKc >= 0 ? C.moss : C.danger }}>
-            {fmtMoney(vysledek.marzeKc)} ({vysledek.marzePct.toFixed(1)} %)
+            {fmtMoney(vysledek.marzeKc)} ({fmtCislo(vysledek.marzePct, 1, 1)} %)
           </span>
         </div>
       </div>
@@ -294,14 +293,14 @@ export default function KalkulaceForm({ order, orders, nastaveni, materialHistor
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 600 }}>
             <span>Plánovaná marže</span>
             <span style={{ fontFamily: FONTS.mono, color: celkem.marzeKc >= 0 ? C.moss : C.danger }}>
-              {fmtMoney(celkem.marzeKc)} ({celkem.marzePct.toFixed(1)} %)
+              {fmtMoney(celkem.marzeKc)} ({fmtCislo(celkem.marzePct, 1, 1)} %)
             </span>
           </div>
         </div>
       </div>
 
       <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 8 }}>
-        Uložením se do zakázky propíše plánovaný čas: <strong>dílna {planDilna} h · montáž {planMontaz} h</strong> (součet ze všech položek).
+        Uložením se do zakázky propíše plánovaný čas: <strong>dílna {fmtCislo(planDilna)} h · montáž {fmtCislo(planMontaz)} h</strong> (součet ze všech položek).
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16, flexWrap: "wrap" }}>

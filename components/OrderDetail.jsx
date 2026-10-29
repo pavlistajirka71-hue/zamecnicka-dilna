@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail, ArrowUpRight, Plus, Copy, Printer } from "lucide-react";
+import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail, ArrowUpRight, Plus, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
   C,
@@ -14,8 +14,7 @@ import {
   DPH_SAZBA,
   fmtMoney,
   fmtDate,
-  isOverdue,
-} from "@/lib/theme";
+  isOverdue, fmtCislo } from "@/lib/theme";
 import { Button, SectionLabel, StampBadge, Modal, Field, TextInput, AutoCompleteTextInput, TextInputSNabidkou, Select, iconBtnStyle } from "./ui";
 import ReceiptThumbnail from "./ReceiptThumbnail";
 import PhotoThumbnail from "./PhotoThumbnail";
@@ -178,12 +177,12 @@ export default function OrderDetail({
                 ) : (
                   <TrendingDown size={14} color="#E39A9A" />
                 )}
-                {nakladyVysledek.marzePct.toFixed(1)} %
+                {fmtCislo(nakladyVysledek.marzePct, 1, 1)} %
               </div>
             </div>
           </div>
           <div style={{ fontSize: 11, color: "#C9CDD2", marginTop: 8 }}>
-            Plán z kalkulace: {fmtMoney(nakladyVysledek.planZisk)} zisk · {nakladyVysledek.planMarzePct.toFixed(1)} % marže
+            Plán z kalkulace: {fmtMoney(nakladyVysledek.planZisk)} zisk · {fmtCislo(nakladyVysledek.planMarzePct, 1, 1)} % marže
           </div>
         </div>
       )}
@@ -229,7 +228,7 @@ export default function OrderDetail({
                 <div key={typKey} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: `1px solid ${C.line}`, fontSize: 14 }}>
                   <span>{label}</span>
                   <span style={{ fontFamily: FONTS.mono, color: over ? C.rust : C.ink }}>
-                    {skut} h / plán {plan} h
+                    {fmtCislo(skut)} h / plán {fmtCislo(plan)} h
                   </span>
                 </div>
               );
@@ -254,7 +253,7 @@ export default function OrderDetail({
                       </div>
                       <div className="field-row">
                         <Field label="Hodiny">
-                          <TextInput type="number" step="0.5" value={praceForm.hodiny} onChange={(e) => setPraceForm((f) => ({ ...f, hodiny: e.target.value }))} />
+                          <TextInput type="number" step="0.5" min="0.5" max="24" value={praceForm.hodiny} onChange={(e) => setPraceForm((f) => ({ ...f, hodiny: e.target.value }))} />
                         </Field>
                         <Field label="Pracovník">
                           <TextInputSNabidkou
@@ -277,6 +276,7 @@ export default function OrderDetail({
                       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
                         <button
                           onClick={() => {
+                            if (!window.confirm(`Opravdu smazat záznam práce ${fmtDate(p.datum)} (${fmtCislo(p.hodiny)} h)?`)) return;
                             onEditPrace(order, order.prace.filter((x) => x.id !== p.id));
                             setEditujiciPrace(null);
                           }}
@@ -290,10 +290,12 @@ export default function OrderDetail({
                           </Button>
                           <Button
                             variant="primary"
+                            disabled={!(Number(praceForm.hodiny) > 0 && Number(praceForm.hodiny) <= 24)}
                             onClick={() => {
+                              if (!(Number(praceForm.hodiny) > 0 && Number(praceForm.hodiny) <= 24)) return;
                               onEditPrace(
                                 order,
-                                order.prace.map((x) => (x.id === p.id ? { ...x, ...praceForm, hodiny: Number(praceForm.hodiny) || 0 } : x))
+                                order.prace.map((x) => (x.id === p.id ? { ...x, ...praceForm, hodiny: Number(praceForm.hodiny) } : x))
                               );
                               setEditujiciPrace(null);
                             }}
@@ -312,7 +314,7 @@ export default function OrderDetail({
                           {(p.typ || "dilna") === "dilna" ? "Dílna" : "Montáž"}
                         </span>
                         {"  ·  "}
-                        <span style={{ fontFamily: FONTS.mono }}>{p.hodiny} h</span>
+                        <span style={{ fontFamily: FONTS.mono }}>{fmtCislo(p.hodiny)} h</span>
                         {p.pracovnik && <span> · {p.pracovnik}</span>}
                         {p.popis && <div style={{ color: C.inkSoft }}>{p.popis}</div>}
                       </div>
@@ -494,7 +496,7 @@ export default function OrderDetail({
               <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
                 <span>Zisk / Marže</span>
                 <span style={{ fontFamily: FONTS.mono, color: nakladyVysledek.zisk >= 0 ? C.moss : C.danger }}>
-                  {fmtMoney(nakladyVysledek.zisk)} ({nakladyVysledek.marzePct.toFixed(1)} %)
+                  {fmtMoney(nakladyVysledek.zisk)} ({fmtCislo(nakladyVysledek.marzePct, 1, 1)} %)
                 </span>
               </div>
             </div>
@@ -546,7 +548,7 @@ export default function OrderDetail({
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
                       <span>Plánovaná marže</span>
                       <span style={{ fontFamily: FONTS.mono, color: celkem.marzeKc >= 0 ? C.moss : C.danger }}>
-                        {fmtMoney(celkem.marzeKc)} ({celkem.marzePct.toFixed(1)} %)
+                        {fmtMoney(celkem.marzeKc)} ({fmtCislo(celkem.marzePct, 1, 1)} %)
                       </span>
                     </div>
                   </div>
@@ -562,7 +564,7 @@ export default function OrderDetail({
                 </Button>
                 {polozkyKalkulace.length > 0 && (
                   <Button variant="ghost" onClick={onOpenNabidka}>
-                    <Printer size={14} /> Tisk nabídky
+                    <FileDown size={14} /> Nabídka (PDF)
                   </Button>
                 )}
               </div>
@@ -587,7 +589,7 @@ export default function OrderDetail({
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
                       <span>Odpracováno</span>
                       <span style={{ fontFamily: FONTS.mono }}>
-                        dílna {souhrn.dilnaHodiny} h · montáž {souhrn.montazHodiny} h
+                        dílna {fmtCislo(souhrn.dilnaHodiny)} h · montáž {fmtCislo(souhrn.montazHodiny)} h
                       </span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
@@ -689,7 +691,25 @@ export default function OrderDetail({
 
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20, borderTop: `2px dashed ${C.line}`, paddingTop: 16 }}>
         {jsemSA ? (
-          <Button variant="danger" onClick={() => onDelete(order.id)}>
+          <Button
+            variant="danger"
+            onClick={() => {
+              // Smazání je nevratné — vždy se zeptá a vypíše, co všechno zmizí.
+              const podzakazky = (orders || []).filter((o) => o.nadrazenaZakazkaId === order.id);
+              const co = [
+                (order.prace || []).length && `${order.prace.length}× zápis práce`,
+                (order.naklady || []).length && `${order.naklady.length}× náklad`,
+                (order.fotky || []).length && `${order.fotky.length}× fotka`,
+                normalizovatKalkulaci(order.kalkulace).length && "kalkulace",
+                order.protokol && "předávací protokol",
+              ].filter(Boolean);
+              const text =
+                `Opravdu NEVRATNĚ smazat zakázku ${order.cislo} (${order.zakaznik})?` +
+                (co.length ? `\n\nSmaže se i: ${co.join(", ")}.` : "") +
+                (podzakazky.length ? `\n\nPodzakázky (${podzakazky.map((z) => z.cislo).join(", ")}) se NESMAŽOU — zůstanou jako samostatné zakázky.` : "");
+              if (window.confirm(text)) onDelete(order.id);
+            }}
+          >
             <Trash2 size={14} /> Smazat
           </Button>
         ) : (

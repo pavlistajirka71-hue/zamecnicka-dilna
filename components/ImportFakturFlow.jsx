@@ -46,7 +46,8 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
       const vychoziVyber = vysledekSparovani.sparovane
         .map(({ order, radek }, i) => {
           const { popis, castka } = sestavitNakladZFaktury(radek);
-          return jeMoznaDuplicitaNakladu(order, popis, castka) ? null : i;
+          // dobropisy a nulové řádky (záporná/nulová částka) se nepředvybírají a ani nejdou naimportovat
+          return castka > 0 && !jeMoznaDuplicitaNakladu(order, popis, castka) ? i : null;
         })
         .filter((i) => i !== null);
       setVybrane(new Set(vychoziVyber));
@@ -86,9 +87,11 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
         })
         .filter(({ order }) => order);
 
-      const kNaimportovani = [...zeSparovanych, ...zRucnihoVyberu];
-      await onImportovat(kNaimportovani);
-      setVysledek({ pocet: kNaimportovani.length });
+      // Náklady se zapisují jen kladné — dobropisy (záporné částky) a nulové řádky se přeskočí.
+      const vse = [...zeSparovanych, ...zRucnihoVyberu];
+      const kNaimportovani = vse.filter(({ naklad }) => Number(naklad.castka) > 0);
+      if (kNaimportovani.length) await onImportovat(kNaimportovani);
+      setVysledek({ pocet: kNaimportovani.length, preskoceno: vse.length - kNaimportovani.length });
     } catch (err) {
       console.error(err);
       setChyba("Import se nepovedl, zkus to znovu.");
@@ -103,7 +106,12 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
       <div>
         <div style={{ background: "#E6F0E8", border: `1px solid ${C.moss}`, borderRadius: 8, padding: 14, fontSize: 14, marginBottom: 16 }}>
           <Check size={16} style={{ verticalAlign: "middle", marginRight: 6 }} />
-          Naimportováno {vysledek.pocet} {vysledek.pocet === 1 ? "faktura" : vysledek.pocet < 5 ? "faktury" : "faktur"} do nákladů zakázek.
+          Naimportováno {vysledek.pocet} {vysledek.pocet === 1 ? "faktura" : vysledek.pocet >= 2 && vysledek.pocet <= 4 ? "faktury" : "faktur"} do nákladů zakázek.
+          {vysledek.preskoceno > 0 && (
+            <div style={{ fontSize: 13, color: C.inkSoft, marginTop: 6 }}>
+              Přeskočeno {vysledek.preskoceno} s nulovou nebo zápornou částkou (např. dobropisy) — náklady se zapisují jen kladné.
+            </div>
+          )}
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <Button variant="primary" onClick={onClose}>

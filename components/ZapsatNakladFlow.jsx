@@ -55,7 +55,7 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
   };
 
   const save = async () => {
-    if (vybrane.length === 0 || !castka) return;
+    if (vybrane.length === 0 || !(Number(castka) > 0)) return;
     setSaving(true);
     setError("");
     try {
@@ -122,7 +122,8 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
       </Field>
       <div className="field-row">
         <Field label="Cena celkem (Kč, bez DPH — povinné)">
-          <TextInput type="number" value={castka} onChange={(e) => setCastka(e.target.value)} />
+          <TextInput type="number" min="0" step="0.01" value={castka} onChange={(e) => setCastka(e.target.value)} />
+          {castka !== "" && !(Number(castka) > 0) && <div style={{ fontSize: 12, color: C.danger, marginTop: 4 }}>Částka musí být větší než 0.</div>}
         </Field>
         <Field label="Datum">
           <TextInput type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
@@ -139,7 +140,7 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
           {nahled.map(({ order, castka: dil }) => (
             <div key={order.id} style={{ display: "flex", justifyContent: "space-between" }}>
               <span>{order.cislo}</span>
-              <span style={{ fontFamily: FONTS.mono }}>{dil.toFixed(2)} Kč</span>
+              <span style={{ fontFamily: FONTS.mono }}>{dil.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč</span>
             </div>
           ))}
         </div>
@@ -165,8 +166,8 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
         <Button variant="ghost" onClick={onClose} type="button">
           Zrušit
         </Button>
-        <Button variant="primary" type="button" onClick={save} disabled={saving || vybrane.length === 0 || !popis.trim() || !castka}>
-          {saving ? "Ukládám…" : `Zapsat náklad${vybrane.length > 1 ? ` (${vybrane.length} zakázek)` : ""}`}
+        <Button variant="primary" type="button" onClick={save} disabled={saving || vybrane.length === 0 || !(Number(castka) > 0)}>
+          {saving ? "Ukládám…" : `Zapsat náklad${vybrane.length > 1 ? ` (${vybrane.length} ${vybrane.length < 5 ? "zakázky" : "zakázek"})` : ""}`}
         </Button>
       </div>
     </div>
