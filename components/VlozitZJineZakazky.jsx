@@ -68,11 +68,12 @@ export default function VlozitZJineZakazky({ orders, aktualniOrderId, nastaveni,
             const otevrena = otevrenaId === o.id || (hledat && polozky.some((p) => (p.nazev || "").toLowerCase().includes(hledat.trim().toLowerCase())));
             const vybranoZTeto = polozky.filter((p) => vybrane[klic(o, p)]).length;
             return (
-              <div key={o.id} style={{ border: `1px solid ${C.line}`, borderRadius: 8, overflow: "hidden" }}>
+              // flexShrink: 0 — při dlouhém seznamu se karty nesmí smrštit (jinak se překrývají), seznam se má posouvat
+              <div key={o.id} style={{ border: `1px solid ${C.line}`, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
                 <button
                   type="button"
                   onClick={() => setOtevrenaId(otevrenaId === o.id ? null : o.id)}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: C.paper, border: "none", cursor: "pointer", textAlign: "left" }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: C.paper, border: "none", cursor: "pointer", textAlign: "left", color: C.ink, font: "inherit" }}
                 >
                   <span style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft, whiteSpace: "nowrap" }}>{o.cislo}</span>
                   <span style={{ flex: 1, fontSize: 14, fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.zakaznik}</span>
