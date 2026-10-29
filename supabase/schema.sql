@@ -442,3 +442,6 @@ end $$;
 
 -- Odhad ceny poptávky (Kč bez DPH) — přidáno později; jen přidá sloupec, nic nemaže.
 alter table poptavky add column if not exists "odhadCena" numeric;
+
+-- Checklist objednání materiálu u zakázky — přidáno později; jen přidá sloupec, nic nemaže.
+alter table orders add column if not exists "materialChecklist" jsonb not null default '{}'::jsonb;

@@ -14,7 +14,8 @@ import {
   DPH_SAZBA,
   fmtMoney,
   fmtDate,
-  isOverdue, fmtCislo } from "@/lib/theme";
+  isOverdue, fmtCislo, seznamMaterialuKObjednani } from "@/lib/theme";
+import MaterialChecklist from "./MaterialChecklist";
 import { Button, SectionLabel, StampBadge, Modal, Field, TextInput, AutoCompleteTextInput, TextInputSNabidkou, Select, iconBtnStyle } from "./ui";
 import ReceiptThumbnail from "./ReceiptThumbnail";
 import PhotoThumbnail from "./PhotoThumbnail";
@@ -49,6 +50,8 @@ export default function OrderDetail({
   uzivatele,
   onAddPodzakazka,
   onDuplikovat,
+  onZmenitChecklist,
+  mujEmail,
   onClose,
 }) {
   const [viewPhoto, setViewPhoto] = useState(null);
@@ -338,59 +341,32 @@ export default function OrderDetail({
 
         {tab === "material" && (
           <div>
-            <SectionLabel>Materiál</SectionLabel>
-            {maMaterial ? (
-              <>
-                <div style={{ background: C.paper, borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 12 }}>
-                  {polozkyKalkulace.map(
-                    (p) =>
-                      (p.materialy || []).length > 0 && (
-                        <div key={p.id} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: `1px dashed ${C.line}` }}>
-                          <div style={{ fontWeight: 600, marginBottom: 2 }}>
-                            {p.nazev || "Položka"}
-                            {Number(p.pocetKs) > 1 ? ` (${p.pocetKs}×)` : ""}
-                          </div>
-                          {p.materialy.map((m, i) => {
-                            const pocetKs = Math.max(1, Number(p.pocetKs) || 1);
-                            const mnozstviCelkem = (Number(m.mnozstvi) || 0) * pocetKs;
-                            return (
-                              <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "1px 0", color: C.inkSoft }}>
-                                <span style={{ fontFamily: FONTS.body }}>
-                                  {m.nazev || "—"}
-                                  {m.dodavatel ? ` (${m.dodavatel})` : ""} · {mnozstviCelkem} {m.jednotka || ""}
-                                </span>
-                                <span style={{ fontFamily: FONTS.mono }}>{fmtMoney((Number(m.cena) || 0) * mnozstviCelkem)}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )
-                  )}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <Button variant="ghost" onClick={onOpenPoptavka}>
-                    <Truck size={14} /> Poptávka materiálu
-                  </Button>
-                  {order.materialObjednano ? (
-                    <button
-                      onClick={() => onZmenitDilciPole(order, { materialObjednano: false, materialObjednanoDatum: null })}
-                      style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: C.moss, fontSize: 13 }}
-                    >
-                      <CheckCircle2 size={16} /> Objednáno {order.materialObjednanoDatum ? `(${fmtDate(order.materialObjednanoDatum)})` : ""} — zrušit
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => onZmenitDilciPole(order, { materialObjednano: true, materialObjednanoDatum: new Date().toISOString().slice(0, 10) })}
-                      style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${C.line}`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: C.inkSoft, fontSize: 13 }}
-                    >
-                      Označit jako objednané u dodavatele
-                    </button>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div style={{ fontSize: 13, color: C.inkSoft }}>Kalkulace zatím neobsahuje žádný materiál.</div>
-            )}
+            <SectionLabel>Materiál — co je objednané</SectionLabel>
+            <MaterialChecklist order={order} nastaveni={nastaveni} mujEmail={mujEmail} onZmena={onZmenitChecklist} />
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+              {maMaterial && (
+                <Button variant="ghost" onClick={onOpenPoptavka}>
+                  <Truck size={14} /> Poptávka materiálu
+                </Button>
+              )}
+              {/* Zakázky bez materiálu v checklistu: ruční přepínač jako dřív */}
+              {seznamMaterialuKObjednani(order, nastaveni).length === 0 &&
+                (order.materialObjednano ? (
+                  <button
+                    onClick={() => onZmenitDilciPole(order, { materialObjednano: false, materialObjednanoDatum: null })}
+                    style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: C.moss, fontSize: 13 }}
+                  >
+                    <CheckCircle2 size={16} /> Objednáno {order.materialObjednanoDatum ? `(${fmtDate(order.materialObjednanoDatum)})` : ""} — zrušit
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onZmenitDilciPole(order, { materialObjednano: true, materialObjednanoDatum: new Date().toISOString().slice(0, 10) })}
+                    style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px solid ${C.line}`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: C.inkSoft, fontSize: 13 }}
+                  >
+                    Označit jako objednané u dodavatele
+                  </button>
+                ))}
+            </div>
           </div>
         )}
 

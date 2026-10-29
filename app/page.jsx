@@ -41,7 +41,7 @@ import {
   fmtDate,
   fmtMoney,
   todayISO,
-  uid, fmtCislo } from "@/lib/theme";
+  uid, fmtCislo, stavObjednaniMaterialu } from "@/lib/theme";
 import { Button, TextInput, Select, Modal, StampBadge } from "@/components/ui";
 import OrderForm from "@/components/OrderForm";
 import OrderPicker from "@/components/OrderPicker";
@@ -87,6 +87,7 @@ export default function HomePage() {
   const [vykazInitialDen, setVykazInitialDen] = useState(null);
   const [search, setSearch] = useState("");
   const [filterStav, setFilterStav] = useState("vse");
+  const [filterMaterial, setFilterMaterial] = useState("vse"); // vse | neobjednany | objednany
   const [zakazkyView, setZakazkyView] = useState("seznam");
 
   const [showOrderForm, setShowOrderForm] = useState(false);
@@ -723,6 +724,29 @@ export default function HomePage() {
     return data;
   };
 
+  // Checklist objednání materiálu: změna se provede nad AKTUÁLNÍM stavem z databáze
+  // (dva lidé odškrtávající různé řádky si nic nepřepíšou) a zároveň se nastaví
+  // příznak "materiál objednán", když je odškrtnuté všechno.
+  const zmenitChecklistMaterialu = async (order, zmena) => {
+    const { data: akt, error: chybaCteni } = await supabase.from("orders").select("materialChecklist, kalkulace").eq("id", order.id).single();
+    if (chybaCteni) throw chybaCteni;
+    const novyChecklist = zmena(akt?.materialChecklist || {});
+    const stav = stavObjednaniMaterialu({ ...order, kalkulace: akt?.kalkulace, materialChecklist: novyChecklist }, nastaveni);
+    const patch = { materialChecklist: novyChecklist };
+    if (stav.celkem > 0) {
+      patch.materialObjednano = stav.vse;
+      patch.materialObjednanoDatum = stav.vse ? order.materialObjednanoDatum || todayISO() : null;
+    }
+    const { data, error } = await supabase.from("orders").update(patch).eq("id", order.id).select().single();
+    if (error) {
+      console.error(error);
+      throw error;
+    }
+    setOrders((prev) => prev.map((o) => (o.id === data.id ? data : o)));
+    setDetailOrder((cur) => (cur && cur.id === data.id ? data : cur));
+    return data;
+  };
+
   const deleteOrder = async (id) => {
     // Podzakázky smazané zakázky se nemažou — odpojí se a zůstanou jako samostatné
     // zakázky (jinak by v seznamu visely jako podzakázky neexistující zakázky).
@@ -1012,12 +1036,20 @@ export default function HomePage() {
     return orders
       .filter((o) => (filterStav === "vse" ? true : o.stav === filterStav))
       .filter((o) => {
+        if (filterMaterial === "vse") return true;
+        const m = stavObjednaniMaterialu(o, nastaveni);
+        if (filterMaterial === "objednany") return m.vse;
+        // neobjednaný = rozpracované zakázky bez kompletně objednaného materiálu
+        // (+ cokoli, kde je objednaná jen část); nabídky a uzavřené zakázky se nepletou
+        return !m.vse && (o.stav === "probiha" || m.objednano > 0);
+      })
+      .filter((o) => {
         const q = search.toLowerCase();
         if (!q) return true;
         return o.zakaznik.toLowerCase().includes(q) || (o.popis || "").toLowerCase().includes(q) || o.cislo.toLowerCase().includes(q);
       })
       .sort((a, b) => (a.vytvoreno < b.vytvoreno ? 1 : -1));
-  }, [orders, search, filterStav]);
+  }, [orders, search, filterStav, filterMaterial, nastaveni]);
 
   const pracovniFronta = useMemo(() => {
     return orders
@@ -1433,6 +1465,11 @@ export default function HomePage() {
                   </option>
                 ))}
               </Select>
+              <Select value={filterMaterial} onChange={(e) => setFilterMaterial(e.target.value)} style={{ width: 190 }}>
+                <option value="vse">Materiál: vše</option>
+                <option value="neobjednany">Materiál neobjednaný</option>
+                <option value="objednany">Materiál objednán ✓</option>
+              </Select>
               <Button
                 variant="rust"
                 onClick={() => {
@@ -1511,6 +1548,18 @@ export default function HomePage() {
                         )}
                         <StampBadge status={o.stav} small />
                         {isOverdue(o) && <span style={{ fontSize: 11, color: C.rust, fontFamily: FONTS.display }}>PO TERMÍNU</span>}
+                        {(() => {
+                          const m = stavObjednaniMaterialu(o, nastaveni);
+                          if (m.vse && (m.celkem > 0 || o.materialObjednano))
+                            return <span style={{ fontSize: 11, color: C.moss, fontFamily: FONTS.display, letterSpacing: "0.04em" }}>MATERIÁL ✓</span>;
+                          if (m.celkem > 0)
+                            return (
+                              <span style={{ fontSize: 11, color: m.objednano ? C.brass : C.inkSoft, fontFamily: FONTS.mono }}>
+                                materiál {m.objednano}/{m.celkem}
+                              </span>
+                            );
+                          return null;
+                        })()}
                       </div>
                       <div style={{ fontSize: 15, fontWeight: 600 }}>{o.zakaznik}</div>
                       <div style={{ fontSize: 13, color: C.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.popis}</div>
@@ -1772,6 +1821,8 @@ export default function HomePage() {
             onSave={saveOrder}
             onZmenaStavu={zmenitStavZakazky}
             onZmenitDilciPole={aktualizovatDilciPole}
+            onZmenitChecklist={zmenitChecklistMaterialu}
+            mujEmail={session?.user?.email || ""}
             onDelete={deleteOrder}
             onEdit={() => {
               setEditingOrder(detailOrder);
