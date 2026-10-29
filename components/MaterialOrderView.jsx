@@ -47,22 +47,8 @@ export default function MaterialOrderView({ order, nastaveni, dodavatele, onUloz
 
   // Společné údaje pro všechny e-maily
   const [termin, setTermin] = useState("");
-  // Doručit do dílny / osobní odběr — appka si pamatuje poslední volbu na tomhle zařízení
-  const [dodani, setDodaniStav] = useState(() => {
-    try {
-      return localStorage.getItem("poptavka-dodani") || "odber";
-    } catch (e) {
-      return "odber";
-    }
-  });
-  const setDodani = (v) => {
-    setDodaniStav(v);
-    try {
-      localStorage.setItem("poptavka-dodani", v);
-    } catch (e) {
-      // úložiště nedostupné — volba platí jen teď
-    }
-  };
+  // Výchozí je vždy osobní odběr; doručení do dílny se volí ručně, když je potřeba.
+  const [dodani, setDodani] = useState("odber");
   const adresaDodani = (n.adresaDilny || n.firmaAdresa || "").replace(/\n/g, ", ");
   const [poznamka, setPoznamka] = useState("");
   // Nastavení jednotlivých skupin: { [dodavatel]: { email, vybrane: {key: bool}, mnozstvi: {key: hodnota}, prirazenyDodavatel } }

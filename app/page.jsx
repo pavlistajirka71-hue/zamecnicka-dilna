@@ -477,7 +477,13 @@ export default function HomePage() {
   const upravitPoptavku = async (p, patch) => {
     const puvodni = poptavky.find((x) => x.id === p.id);
     setPoptavky((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...patch } : x)));
-    const { data, error } = await supabase.from("poptavky").update(patch).eq("id", p.id).select().single();
+    let { data, error } = await supabase.from("poptavky").update(patch).eq("id", p.id).select().single();
+    // Bez spuštěného SQL se sloupcem odhadCena se poptávka uloží bez odhadu
+    if (error && /odhadCena/.test(error.message || "") && "odhadCena" in patch) {
+      const { odhadCena, ...bezOdhadu } = patch; // eslint-disable-line no-unused-vars
+      ({ data, error } = await supabase.from("poptavky").update(bezOdhadu).eq("id", p.id).select().single());
+      if (!error) setGlobalError("Poptávka je uložená, jen odhad ceny ne — v Supabase je potřeba spustit řádek SQL se sloupcem odhadCena.");
+    }
     if (error) {
       console.error(error);
       if (puvodni) setPoptavky((prev) => prev.map((x) => (x.id === p.id ? puvodni : x)));
@@ -505,7 +511,17 @@ export default function HomePage() {
       .from("poptavky")
       .insert({ ...zaznam, vytvoril: session?.user?.email || null })
       .select()
-      .single();
+      .single()
+      .then(async (vysledek) => {
+        // Bez spuštěného SQL se sloupcem odhadCena se poptávka uloží bez odhadu
+        if (vysledek.error && /odhadCena/.test(vysledek.error.message || "") && "odhadCena" in zaznam) {
+          const { odhadCena, ...bezOdhadu } = zaznam; // eslint-disable-line no-unused-vars
+          const znovu = await supabase.from("poptavky").insert({ ...bezOdhadu, vytvoril: session?.user?.email || null }).select().single();
+          if (!znovu.error) setGlobalError("Poptávka je uložená, jen odhad ceny ne — v Supabase je potřeba spustit řádek SQL se sloupcem odhadCena.");
+          return znovu;
+        }
+        return vysledek;
+      });
     if (error) {
       console.error(error);
       setGlobalError("Poptávku se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");

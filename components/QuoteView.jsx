@@ -92,18 +92,18 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
 
   // ---- E-mail zákazníkovi s PDF v příloze ----
   // Výchozí text e-mailu — vstřícný, bez ceny (cena je v přiložené nabídce).
+  // Výchozí text e-mailu k nabídce — vstřícný, bez ceny (ta je v přiložené nabídce).
   const vychoziText = () => {
-    const predmetZakazky = (order.popis || "").split("\n")[0].trim().slice(0, 80);
+    const predmetDila = (order.popis || "").split("\n")[0].trim().slice(0, 80);
     return [
       "Dobrý den,",
       "",
-      "děkujeme za Váš zájem a za důvěru, kterou jste nám projevili.",
+      "děkujeme za Váš zájem a za důvěru, se kterou jste se na nás obrátili.",
+      `V příloze Vám posíláme cenovou nabídku č. ${order.cislo}${predmetDila ? ` – ${predmetDila}` : ""}.`,
       "",
-      `V příloze Vám posíláme cenovou nabídku č. ${order.cislo}${predmetZakazky ? ` (${predmetZakazky})` : ""}. Připravili jsme ji podle Vašich požadavků. Pokud byste chtěli cokoli upravit – rozměry, materiál, povrchovou úpravu nebo termín –, dejte nám prosím vědět, nabídku rádi přizpůsobíme.`,
+      "Nabídku jsme připravili podle Vašich požadavků. Pokud byste chtěli cokoli upravit – rozměry, materiál, povrchovou úpravu nebo termín –, stačí odpovědět na tento e-mail nebo nám zavolat. Rádi nabídku přizpůsobíme a zodpovíme jakékoli dotazy.",
       "",
-      "Kdybyste měli jakékoli dotazy, rádi je s Vámi probereme e-mailem i telefonicky.",
-      "",
-      "Těšíme se na spolupráci.",
+      "Budeme se těšit na spolupráci.",
       "",
       "S pozdravem",
       n.firmaNazev || "",
@@ -114,7 +114,7 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
   };
   const [emailKomu, setEmailKomu] = useState(order.email || "");
   const [emailPredmet, setEmailPredmet] = useState(`Cenová nabídka ${order.cislo}${n.firmaNazev ? ` – ${n.firmaNazev}` : ""}`);
-  const [emailText, setEmailText] = useState(null); // null = výchozí text (přepočítá se se sazbou DPH)
+  const [emailText, setEmailText] = useState(null); // null = výchozí text
   const [emailInfo, setEmailInfo] = useState("");
   const textEmailu = emailText ?? vychoziText();
 
