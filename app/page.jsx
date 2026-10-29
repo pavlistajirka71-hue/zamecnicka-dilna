@@ -67,6 +67,7 @@ import WorkPhotoFlow from "@/components/WorkPhotoFlow";
 import NakladyForm from "@/components/NakladyForm";
 import Nastenka from "@/components/Nastenka";
 import PoptavkyPanel from "@/components/PoptavkyPanel";
+import DodavateleKatalog from "@/components/DodavateleKatalog";
 import PoptavkaForm from "@/components/PoptavkaForm";
 import PoptavkaDetail from "@/components/PoptavkaDetail";
 import { zakazkaZPoptavky } from "@/lib/poptavky";
@@ -101,6 +102,9 @@ export default function HomePage() {
   const [showDetailPicker, setShowDetailPicker] = useState(false);
   const [showNastaveni, setShowNastaveni] = useState(false);
   const [showMaterialy, setShowMaterialy] = useState(false);
+  const [katalogZalozka, setKatalogZalozka] = useState("materialy"); // materialy | dodavatele
+  const [dodavatele, setDodavatele] = useState([]);
+  const [dodavateleNacteni, setDodavateleNacteni] = useState(true);
   const [poptavkaOrder, setPoptavkaOrder] = useState(null);
   const [showReport, setShowReport] = useState(false);
   const [ukoly, setUkoly] = useState([]);
@@ -216,6 +220,14 @@ export default function HomePage() {
     setOfflineData(false);
     // Poptávky se načítají zvlášť: kdyby tabulka ještě neexistovala (nespuštěný
     // supabase/poptavky.sql), zbytek aplikace tím nesmí být nijak dotčený.
+    // Adresář dodavatelů — taky zvlášť (bez spuštěného supabase/dodavatele.sql zbytek běží dál)
+    const dodavateleRes = await supabase.from("dodavatele").select("*");
+    if (dodavateleRes.error) {
+      setDodavateleNacteni(false);
+    } else {
+      setDodavatele(dodavateleRes.data || []);
+      setDodavateleNacteni(true);
+    }
     const poptavkyRes = await supabase.from("poptavky").select("*").order("created_at", { ascending: false });
     if (poptavkyRes.error) {
       console.error("Načtení poptávek se nepovedlo:", poptavkyRes.error);
@@ -724,6 +736,32 @@ export default function HomePage() {
     return data;
   };
 
+  // ---- Adresář dodavatelů ----
+  const ulozitDodavatele = async (d, puvodniNazev) => {
+    const zaznam = { nazev: d.nazev, email: d.email || null, telefon: d.telefon || null, kontakt: d.kontakt || null, poznamka: d.poznamka || null };
+    const { data, error } = await supabase.from("dodavatele").upsert(zaznam).select().single();
+    if (error) {
+      console.error(error);
+      throw new Error("Dodavatele se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
+    }
+    // Přejmenování: starý záznam se odebere až po úspěšném uložení nového
+    if (puvodniNazev && puvodniNazev !== d.nazev) {
+      await supabase.from("dodavatele").delete().eq("nazev", puvodniNazev);
+    }
+    setDodavatele((prev) => [...prev.filter((x) => x.nazev !== data.nazev && x.nazev !== puvodniNazev), data]);
+    return data;
+  };
+
+  const smazatDodavatele = async (d) => {
+    const { error } = await supabase.from("dodavatele").delete().eq("nazev", d.nazev);
+    if (error) {
+      console.error(error);
+      setGlobalError("Dodavatele se nepovedlo smazat.");
+      return;
+    }
+    setDodavatele((prev) => prev.filter((x) => x.nazev !== d.nazev));
+  };
+
   // Checklist objednání materiálu: změna se provede nad AKTUÁLNÍM stavem z databáze
   // (dva lidé odškrtávající různé řádky si nic nepřepíšou) a zároveň se nastaví
   // příznak "materiál objednán", když je odškrtnuté všechno.
@@ -943,7 +981,14 @@ export default function HomePage() {
       const v = cista[k];
       cista[k] = v === "" || v === null || v === undefined || isNaN(Number(v)) ? DEFAULT_NASTAVENI[k] ?? 0 : Number(v);
     });
-    const { data, error } = await supabase.from("nastaveni").upsert({ id: 1, ...cista }).select().single();
+    let { data, error } = await supabase.from("nastaveni").upsert({ id: 1, ...cista }).select().single();
+    // Dokud není spuštěný SQL se sloupcem adresaDilny, uloží se nastavení bez něj
+    // (zbytek nastavení se tím neztratí) a appka upozorní, co je potřeba udělat.
+    if (error && /adresaDilny/.test(error.message || "")) {
+      const { adresaDilny, ...bezAdresy } = cista; // eslint-disable-line no-unused-vars
+      ({ data, error } = await supabase.from("nastaveni").upsert({ id: 1, ...bezAdresy }).select().single());
+      if (!error) setGlobalError("Nastavení je uložené, jen adresa dílny ne — v Supabase je potřeba spustit řádek SQL se sloupcem adresaDilny.");
+    }
     if (error) {
       console.error(error);
       setGlobalError("Nastavení se nepovedlo uložit. Zkus to znovu.");
@@ -1743,6 +1788,7 @@ export default function HomePage() {
           <ZalohaPanel
             orders={orders}
             poptavky={poptavky}
+            dodavatele={dodavatele}
             nastaveni={nastaveni}
             materialHistory={materialHistory}
             onRestored={loadAllData}
@@ -1752,8 +1798,39 @@ export default function HomePage() {
       )}
 
       {showMaterialy && (
-        <Modal title="Katalog materiálů" onClose={() => setShowMaterialy(false)} width={560}>
-          <MaterialyKatalog materialHistory={materialHistory} onChange={setMaterialHistory} onClose={() => setShowMaterialy(false)} />
+        <Modal title={katalogZalozka === "dodavatele" ? "Dodavatelé" : "Katalog materiálů"} onClose={() => setShowMaterialy(false)} width={560}>
+          <div style={{ display: "flex", gap: 0, marginBottom: 14 }}>
+            {[
+              { key: "materialy", label: "Materiály" },
+              { key: "dodavatele", label: "Dodavatelé" },
+            ].map((z, i) => (
+              <button
+                key={z.key}
+                type="button"
+                onClick={() => setKatalogZalozka(z.key)}
+                style={{
+                  flex: 1,
+                  padding: "8px 10px",
+                  border: `1px solid ${C.line}`,
+                  borderRadius: i === 0 ? "6px 0 0 6px" : "0 6px 6px 0",
+                  background: katalogZalozka === z.key ? C.ink : C.surface,
+                  color: katalogZalozka === z.key ? "#fff" : C.ink,
+                  fontFamily: FONTS.display,
+                  textTransform: "uppercase",
+                  fontSize: 12,
+                  letterSpacing: "0.05em",
+                  cursor: "pointer",
+                }}
+              >
+                {z.label}
+              </button>
+            ))}
+          </div>
+          {katalogZalozka === "dodavatele" ? (
+            <DodavateleKatalog dodavatele={dodavatele} materialHistory={materialHistory} nacteno={dodavateleNacteni} onSave={ulozitDodavatele} onDelete={smazatDodavatele} />
+          ) : (
+            <MaterialyKatalog materialHistory={materialHistory} onChange={setMaterialHistory} onClose={() => setShowMaterialy(false)} />
+          )}
         </Modal>
       )}
 
@@ -1772,7 +1849,17 @@ export default function HomePage() {
 
       {quoteData && <QuoteView order={quoteData.order} polozky={quoteData.polozky} celkem={quoteData.celkem} nastaveni={nastaveni} onClose={() => setQuoteData(null)} />}
 
-      {poptavkaOrder && <MaterialOrderView order={poptavkaOrder} onClose={() => setPoptavkaOrder(null)} />}
+      {poptavkaOrder && (
+        <MaterialOrderView
+          order={orders.find((o) => o.id === poptavkaOrder.id) || poptavkaOrder}
+          nastaveni={nastaveni}
+          dodavatele={dodavatele}
+          onUlozitDodavatele={dodavateleNacteni ? ulozitDodavatele : null}
+          onZmenaChecklistu={zmenitChecklistMaterialu}
+          mujEmail={session?.user?.email || ""}
+          onClose={() => setPoptavkaOrder(null)}
+        />
+      )}
 
       {protokolOrder && (
         <Modal title={`Předávací protokol — ${protokolOrder.cislo}`} onClose={() => setProtokolOrder(null)} width={640} zIndex={60}>

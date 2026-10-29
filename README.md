@@ -86,6 +86,14 @@ Jak se s tím pracuje:
 
 Číslo u záložky ukazuje počet nových (nevyřízených) poptávek. Smazat poptávku smí jen správce; zakázka z ní založená tím zůstane netknutá. Poptávky jsou i v záloze (Zálohování).
 
+## Poptávka materiálu e-mailem a adresář dodavatelů
+
+**Jednorázové zapnutí:** v Supabase spusť `supabase/dodavatele.sql` (jen přidá tabulku dodavatelů, nic nemaže).
+
+- **Katalog materiálů → záložka Dodavatelé:** e-mail, telefon, kontaktní osoba a poznámka. Dodavatelé, kteří jsou u materiálu v katalogu a ještě nemají kontakt, se nabízejí k doplnění jedním klikem. Název musí odpovídat názvu dodavatele u materiálu.
+- **Detail zakázky → Materiál → Poptávka materiálu:** materiál z kalkulace seskupený podle dodavatele (stejný materiál z více položek se sečte). U každého dodavatele jde odškrtnout, co do poptávky nepatří, upravit množství (např. zaokrouhlit nahoru) a jedním tlačítkem otevřít hotový e-mail v Outlooku (adresa, předmět, položky s množstvím, termín dodání, způsob dodání, podpis firmy). Materiál bez uvedeného dodavatele lze poslat komukoli z adresáře.
+- Odeslaná poptávka se u zakázky poznamená („Poptáno …“) a tlačítkem **Označit jako objednané** se položky rovnou odškrtnou v checklistu materiálu.
+
 ## Katalog materiálů (dodavatelé, CSV import)
 
 V hlavičce aplikace přibyla ikona vrstev — otevře **katalog materiálů**, kde:

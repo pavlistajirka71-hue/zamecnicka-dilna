@@ -128,3 +128,10 @@ input[type="datetime-local"] {
 @media (max-width: 480px) {
   .skryt-na-mobilu { display: none !important; }
 }
+
+/* Prvky jen pro obrazovku / jen pro tisk (bez dalších úprav rozložení) */
+.jen-tisk { display: none; }
+@media print {
+  .jen-obrazovka { display: none !important; }
+  .jen-tisk { display: inline !important; }
+}

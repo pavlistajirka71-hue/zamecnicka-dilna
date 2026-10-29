@@ -130,6 +130,9 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
       <Field label="E-mail (nepovinné, zobrazí se na nabídce)">
         <TextInput type="email" value={f.firmaEmail} onChange={(e) => set("firmaEmail", e.target.value)} />
       </Field>
+      <Field label="Adresa dílny — pro doručení materiálu (použije se v poptávkách dodavatelům)">
+        <TextInput value={f.adresaDilny || ""} onChange={(e) => set("adresaDilny", e.target.value)} />
+      </Field>
 
       <Field label="Logo firmy (zobrazí se na nabídce)">
         {f.firmaLogoPath ? (

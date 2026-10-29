@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import { X, Download, Share2 } from "lucide-react";
+import { X, Download, Share2, Mail } from "lucide-react";
+import { vytvoritEmlKoncept, stahnoutSoubor } from "@/lib/emlKoncept";
 import { supabase } from "@/lib/supabaseClient";
 import { C, FONTS, fmtMoney, fmtDate, todayISO } from "@/lib/theme";
-import { Button, Select } from "./ui";
+import { Button, Select, TextInput, TextArea } from "./ui";
 import { useSignedUrl } from "./PhotoThumbnail";
 
 // Nabídka se tiskne s vybranou sazbou DPH nezávisle na tom, s jakou aplikace počítá
@@ -89,6 +90,48 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   };
 
+  // ---- E-mail zákazníkovi s PDF v příloze ----
+  // Výchozí text e-mailu — vstřícný, bez ceny (cena je v přiložené nabídce).
+  const vychoziText = () => {
+    const predmetZakazky = (order.popis || "").split("\n")[0].trim().slice(0, 80);
+    return [
+      "Dobrý den,",
+      "",
+      "děkujeme za Váš zájem a za důvěru, kterou jste nám projevili.",
+      "",
+      `V příloze Vám posíláme cenovou nabídku č. ${order.cislo}${predmetZakazky ? ` (${predmetZakazky})` : ""}. Připravili jsme ji podle Vašich požadavků. Pokud byste chtěli cokoli upravit – rozměry, materiál, povrchovou úpravu nebo termín –, dejte nám prosím vědět, nabídku rádi přizpůsobíme.`,
+      "",
+      "Kdybyste měli jakékoli dotazy, rádi je s Vámi probereme e-mailem i telefonicky.",
+      "",
+      "Těšíme se na spolupráci.",
+      "",
+      "S pozdravem",
+      n.firmaNazev || "",
+      n.firmaEmail || "",
+    ]
+      .join("\n")
+      .trim();
+  };
+  const [emailKomu, setEmailKomu] = useState(order.email || "");
+  const [emailPredmet, setEmailPredmet] = useState(`Cenová nabídka ${order.cislo}${n.firmaNazev ? ` – ${n.firmaNazev}` : ""}`);
+  const [emailText, setEmailText] = useState(null); // null = výchozí text (přepočítá se se sazbou DPH)
+  const [emailInfo, setEmailInfo] = useState("");
+  const textEmailu = emailText ?? vychoziText();
+
+  const otevritVOutlooku = async () => {
+    if (!pdf) return;
+    const eml = await vytvoritEmlKoncept({ komu: emailKomu.trim(), predmet: emailPredmet, text: textEmailu, priloha: pdf.blob, nazevPrilohy: pdf.nazev });
+    stahnoutSoubor(eml, pdf.nazev.replace(/\.pdf$/i, "") + ".eml");
+    setEmailInfo("Stáhl se soubor e-mailu — otevři ho (dole v prohlížeči nebo ve Stažených souborech). V Outlooku se otevře nová zpráva s PDF v příloze, zkontroluj ji a odešli.");
+  };
+
+  const jenText = () => {
+    window.location.href = `mailto:${encodeURIComponent(emailKomu.trim()).replace(/%40/g, "@")}?subject=${encodeURIComponent(emailPredmet)}&body=${encodeURIComponent(
+      textEmailu.replace(/\n/g, "\r\n")
+    )}`;
+    setEmailInfo("Otevírá se e-mail bez přílohy — PDF k němu přilož ručně (Stáhnout PDF).");
+  };
+
   const sdilet = async () => {
     if (!pdf) return;
     try {
@@ -132,6 +175,43 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
         </div>
         {pdfChyba && <div style={{ width: "100%", textAlign: "right", fontSize: 12, color: C.danger }}>{pdfChyba}</div>}
       </div>
+
+      <details className="jen-obrazovka" style={{ maxWidth: 700, margin: "16px auto 0", padding: "0 32px" }}>
+        <summary style={{ cursor: "pointer", fontFamily: FONTS.display, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+          <Mail size={15} /> Poslat zákazníkovi e-mailem (PDF v příloze)
+        </summary>
+        <div style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 8, padding: 12, marginTop: 8 }}>
+          <div className="field-row">
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, marginBottom: 4 }}>Komu</div>
+              <TextInput type="email" value={emailKomu} onChange={(e) => setEmailKomu(e.target.value)} placeholder="e-mail zákazníka" />
+            </div>
+            <div style={{ flex: 2 }}>
+              <div style={{ fontSize: 12, marginBottom: 4 }}>Předmět</div>
+              <TextInput value={emailPredmet} onChange={(e) => setEmailPredmet(e.target.value)} />
+            </div>
+          </div>
+          <div style={{ fontSize: 12, margin: "8px 0 4px" }}>Text e-mailu</div>
+          <TextArea value={textEmailu} onChange={(e) => setEmailText(e.target.value)} style={{ minHeight: 190 }} />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            <Button variant="primary" type="button" onClick={otevritVOutlooku} disabled={pdfStav !== "hotovo"}>
+              <Mail size={14} /> {pdfStav === "pripravuji" ? "Připravuji PDF…" : "Otevřít v Outlooku s PDF"}
+            </Button>
+            <Button variant="ghost" type="button" onClick={jenText}>
+              Jen text (bez přílohy)
+            </Button>
+            {emailText !== null && (
+              <Button variant="ghost" type="button" onClick={() => setEmailText(null)}>
+                Obnovit výchozí text
+              </Button>
+            )}
+          </div>
+          {emailInfo && <div style={{ fontSize: 12, color: C.moss, marginTop: 8 }}>{emailInfo}</div>}
+          <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 8 }}>
+            Funguje s Outlookem v počítači: stáhne se soubor .eml, po otevření je v Outlooku hotová zpráva s PDF v příloze. Na mobilu použij tlačítko Sdílet nahoře.
+          </div>
+        </div>
+      </details>
 
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 32px 28px", color: C.ink, fontFamily: FONTS.body }}>
         {/* Hlavička s názvem firmy */}

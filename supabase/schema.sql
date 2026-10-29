@@ -445,3 +445,20 @@ alter table poptavky add column if not exists "odhadCena" numeric;
 
 -- Checklist objednání materiálu u zakázky — přidáno později; jen přidá sloupec, nic nemaže.
 alter table orders add column if not exists "materialChecklist" jsonb not null default '{}'::jsonb;
+
+-- ---- Dodavatelé (viz i supabase/dodavatele.sql) ----
+create table if not exists dodavatele (
+  nazev text primary key,
+  email text,
+  telefon text,
+  kontakt text,
+  poznamka text,
+  created_at timestamptz default now()
+);
+alter table dodavatele enable row level security;
+drop policy if exists "authenticated all dodavatele" on dodavatele;
+create policy "authenticated all dodavatele" on dodavatele
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- Adresa dílny pro doručování materiálu — přidáno později; jen přidá sloupec.
+alter table nastaveni add column if not exists "adresaDilny" text;
