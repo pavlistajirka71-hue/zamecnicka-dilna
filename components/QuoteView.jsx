@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, Download, Share2, Mail } from "lucide-react";
 import { vytvoritEmlKoncept, stahnoutSoubor } from "@/lib/emlKoncept";
 import { supabase } from "@/lib/supabaseClient";
@@ -116,6 +116,12 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
   const [emailPredmet, setEmailPredmet] = useState(`Cenová nabídka ${order.cislo}${n.firmaNazev ? ` – ${n.firmaNazev}` : ""}`);
   const [emailText, setEmailText] = useState(null); // null = výchozí text
   const [emailInfo, setEmailInfo] = useState("");
+  const [emailOtevreny, setEmailOtevreny] = useState(false);
+  const emailPanelRef = useRef(null);
+  const otevritEmailPanel = () => {
+    setEmailOtevreny((x) => !x);
+    setTimeout(() => emailPanelRef.current && emailPanelRef.current.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
   const textEmailu = emailText ?? vychoziText();
 
   const otevritVOutlooku = async () => {
@@ -160,9 +166,12 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
             ))}
           </Select>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Button variant="ghost" onClick={onClose}>
             <X size={14} /> Zavřít
+          </Button>
+          <Button variant={emailOtevreny ? "ghost" : "rust"} onClick={otevritEmailPanel}>
+            <Mail size={14} /> {emailOtevreny ? "Skrýt e-mail" : "Poslat e-mailem"}
           </Button>
           {umiSdilet && (
             <Button variant="ghost" onClick={sdilet} disabled={pdfStav !== "hotovo"}>
@@ -176,10 +185,11 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
         {pdfChyba && <div style={{ width: "100%", textAlign: "right", fontSize: 12, color: C.danger }}>{pdfChyba}</div>}
       </div>
 
-      <details className="jen-obrazovka" style={{ maxWidth: 700, margin: "16px auto 0", padding: "0 32px" }}>
-        <summary style={{ cursor: "pointer", fontFamily: FONTS.display, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+      {emailOtevreny && (
+      <div ref={emailPanelRef} className="jen-obrazovka" style={{ maxWidth: 700, margin: "16px auto 0", padding: "0 32px" }}>
+        <div style={{ fontFamily: FONTS.display, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
           <Mail size={15} /> Poslat zákazníkovi e-mailem (PDF v příloze)
-        </summary>
+        </div>
         <div style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 8, padding: 12, marginTop: 8 }}>
           <div className="field-row">
             <div style={{ flex: 1 }}>
@@ -211,7 +221,8 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
             Funguje s Outlookem v počítači: stáhne se soubor .eml, po otevření je v Outlooku hotová zpráva s PDF v příloze. Na mobilu použij tlačítko Sdílet nahoře.
           </div>
         </div>
-      </details>
+      </div>
+      )}
 
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 32px 28px", color: C.ink, fontFamily: FONTS.body }}>
         {/* Hlavička s názvem firmy */}
