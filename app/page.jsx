@@ -1619,6 +1619,7 @@ export default function HomePage() {
         <Modal title={`Kalkulace — ${kalkulaceOrder.cislo}`} onClose={() => setKalkulaceOrder(null)} width={640} zIndex={60}>
           <KalkulaceForm
             order={kalkulaceOrder}
+            orders={orders}
             nastaveni={nastaveni}
             materialHistory={materialHistory}
             onSave={(polozky, celkem, sazbaDph) => saveKalkulace(kalkulaceOrder, polozky, celkem, sazbaDph)}

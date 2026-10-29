@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, Copy, FolderInput } from "lucide-react";
 import { C, FONTS, uid, novaPolozkaKalkulace, normalizovatKalkulaci, computeKalkulace, computeKalkulaceCelkem, fmtMoney, DPH_SAZBA, maJineSazby, sazbyZNastaveni } from "@/lib/theme";
 
 const fmtCislo = (n, des = 2) => (Number(n) || 0).toLocaleString("cs-CZ", { maximumFractionDigits: des });
 import { Field, TextInput, Select, Button, SectionLabel, iconBtnStyle } from "./ui";
 import MaterialRow from "./MaterialRow";
+import VlozitZJineZakazky from "./VlozitZJineZakazky";
 
 function PolozkaForm({ polozka, nastaveni: nastaveniAktualni, materialHistory, sazbaDph, onChange }) {
   // Sazby, se kterými se položka skutečně počítá (uložené v položce, jinak aktuální).
@@ -112,7 +113,7 @@ function PolozkaForm({ polozka, nastaveni: nastaveniAktualni, materialHistory, s
   );
 }
 
-export default function KalkulaceForm({ order, nastaveni, materialHistory, onSave, onClose }) {
+export default function KalkulaceForm({ order, orders, nastaveni, materialHistory, onSave, onClose }) {
   const initial = normalizovatKalkulaci(order.kalkulace);
   const [polozky, setPolozky] = useState(initial.length ? initial : [novaPolozkaKalkulace("Položka 1")]);
   const [sazbaDph, setSazbaDph] = useState(order.sazbaDph ?? DPH_SAZBA);
@@ -143,6 +144,47 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
       polozkaRefs.current[openId].scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }, [openId, polozky.length]);
+
+  // Kopie položky (např. druhá podobná brána) — vloží se hned pod originál, rozbalená,
+  // se všemi materiály, hodinami, kooperacemi i přirážkou. Stačí upravit, co se liší.
+  // Materiály dostanou nová ID, ať se úpravy kopie nepletou s originálem.
+  const duplikovatPolozku = (id) => {
+    const original = polozky.find((p) => p.id === id);
+    if (!original) return;
+    const kopie = {
+      ...original,
+      id: uid(),
+      nazev: `${original.nazev || "Položka"} (kopie)`,
+      materialy: (original.materialy || []).map((m) => ({ ...m, id: uid() })),
+    };
+    setPolozky((prev) => {
+      const i = prev.findIndex((p) => p.id === id);
+      return [...prev.slice(0, i + 1), kopie, ...prev.slice(i + 1)];
+    });
+    setOpenId(kopie.id);
+  };
+
+  const [vyberZJine, setVyberZJine] = useState(false);
+
+  // Vloží kopie položek z jiné zakázky. Prázdná výchozí "Položka 1" nové kalkulace
+  // se rovnou nahradí, ať v kalkulaci nezůstane prázdný řádek.
+  const vlozitZJineZakazky = (kopie) => {
+    if (!kopie.length) return;
+    setPolozky((prev) => {
+      const jePrazdna = (p) =>
+        !(p.materialy || []).length &&
+        !Number(p.praceDilnaHodiny) &&
+        !Number(p.praceMontazHodiny) &&
+        !Number(p.doprava) &&
+        !Number(p.pripravnePrace) &&
+        !Number(p.spojovaciMaterial) &&
+        /^Položka \d+$/.test(p.nazev || "");
+      const zaklad = prev.length === 1 && jePrazdna(prev[0]) ? [] : prev;
+      return [...zaklad, ...kopie];
+    });
+    setOpenId(kopie[0].id);
+    setVyberZJine(false);
+  };
 
   const removePolozka = (id) => {
     setPolozky((prev) => prev.filter((p) => p.id !== id));
@@ -184,6 +226,9 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
                 {Number(p.pocetKs) > 1 ? `${p.pocetKs}× · ` : ""}
                 {fmtMoney(v.finalniCena)}
               </span>
+              <button type="button" onClick={() => duplikovatPolozku(p.id)} style={iconBtnStyle} title="Kopírovat položku">
+                <Copy size={16} />
+              </button>
               <button type="button" onClick={() => setOpenId(open ? null : p.id)} style={iconBtnStyle}>
                 {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </button>
@@ -202,9 +247,25 @@ export default function KalkulaceForm({ order, nastaveni, materialHistory, onSav
         );
       })}
 
-      <Button variant="ghost" type="button" onClick={addPolozka} style={{ marginBottom: 16 }}>
-        <Plus size={14} /> Přidat položku (např. Branka)
-      </Button>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <Button variant="ghost" type="button" onClick={addPolozka}>
+          <Plus size={14} /> Přidat položku (např. Branka)
+        </Button>
+        {orders && (
+          <Button variant="ghost" type="button" onClick={() => setVyberZJine(true)}>
+            <FolderInput size={14} /> Vložit z jiné zakázky
+          </Button>
+        )}
+      </div>
+      {vyberZJine && (
+        <VlozitZJineZakazky
+          orders={orders}
+          aktualniOrderId={order.id}
+          nastaveni={nastaveni}
+          onVlozit={vlozitZJineZakazky}
+          onClose={() => setVyberZJine(false)}
+        />
+      )}
 
       <Field label="Sazba DPH pro celou zakázku">
         <Select value={sazbaDph} onChange={(e) => setSazbaDph(Number(e.target.value))} style={{ maxWidth: 220 }}>
