@@ -933,7 +933,17 @@ export default function HomePage() {
   };
 
   const saveNastaveni = async (n) => {
-    const { data, error } = await supabase.from("nastaveni").upsert({ id: 1, ...n }).select().single();
+    // Číselná pole: prázdné políčko nejde do databáze uložit (číselný sloupec odmítne
+    // prázdný text) — dřív se tím tiše nepovedlo uložit celé nastavení. Prázdné pole
+    // teď dostane výchozí hodnotu a čísla se uloží jako čísla.
+    const CISELNA = ["sazbaDilna", "sazbaMontaz", "nakladovaSazbaDilna", "nakladovaSazbaMontaz", "cenaZinkovani", "cenaLakovani", "zaokrouhleniNa"];
+    const cista = { ...n };
+    CISELNA.forEach((k) => {
+      if (!(k in cista)) return;
+      const v = cista[k];
+      cista[k] = v === "" || v === null || v === undefined || isNaN(Number(v)) ? DEFAULT_NASTAVENI[k] ?? 0 : Number(v);
+    });
+    const { data, error } = await supabase.from("nastaveni").upsert({ id: 1, ...cista }).select().single();
     if (error) {
       console.error(error);
       setGlobalError("Nastavení se nepovedlo uložit. Zkus to znovu.");
@@ -1141,7 +1151,7 @@ export default function HomePage() {
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "clamp(4px, 2vw, 14px)", flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <div style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft, whiteSpace: "nowrap" }}>{fmtDate(todayISO())}</div>
+          <div className="skryt-na-mobilu" style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft, whiteSpace: "nowrap" }}>{fmtDate(todayISO())}</div>
           <button onClick={() => setShowGoogleDrive(true)} title="Google Drive" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
             <Cloud size={20} />
           </button>
@@ -1177,7 +1187,7 @@ export default function HomePage() {
             textAlign: "center",
           }}
         >
-          Jsi offline — aplikace zobrazuje poslední stažená data{offlineData ? "" : " z aktuální relace"}. Nové změny se uloží, až se připojení obnoví.
+          Jsi offline — aplikace zobrazuje poslední stažená data{offlineData ? "" : " z aktuální relace"}. Změny teď nejde uložit — zapiš je, až bude připojení zpátky.
         </div>
       )}
 

@@ -665,7 +665,7 @@ export default function OrderDetail({
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20, borderTop: `2px dashed ${C.line}`, paddingTop: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginTop: 20, borderTop: `2px dashed ${C.line}`, paddingTop: 16 }}>
         {jsemSA ? (
           <Button
             variant="danger"

@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { Plus, Trash2, Pencil, Upload, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { C, FONTS, MATERIAL_UNITS, fmtMoney } from "@/lib/theme";
+import { C, FONTS, MATERIAL_UNITS, fmtMoney, fmtCislo } from "@/lib/theme";
 import { Field, TextInput, Select, Button, iconBtnStyle } from "./ui";
 
 function ParseError(msg) {
@@ -158,7 +158,7 @@ export default function MaterialyKatalog({ materialHistory, onChange, onClose })
                 <div style={{ fontWeight: 600 }}>{m.nazev}</div>
                 <div style={{ color: C.inkSoft, fontFamily: FONTS.mono, fontSize: 11 }}>
                   {m.dodavatel ? `${m.dodavatel} · ` : ""}
-                  {fmtMoney(m.cena)}/{m.jednotka} · {m.vaha || 0} kg/j · {m.plocha || 0} m²/j
+                  {fmtMoney(m.cena)}/{m.jednotka} · {fmtCislo(m.vaha)} kg/j · {fmtCislo(m.plocha, 3)} m²/j
                 </div>
               </div>
               <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>

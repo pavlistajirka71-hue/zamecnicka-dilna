@@ -123,3 +123,8 @@ input[type="datetime-local"] {
     justify-self: end;
   }
 }
+
+/* Úzký mobil: datum v hlavičce se schová, ať se ikony vejdou na jeden řádek */
+@media (max-width: 480px) {
+  .skryt-na-mobilu { display: none !important; }
+}

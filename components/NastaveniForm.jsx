@@ -78,10 +78,10 @@ export default function NastaveniForm({ initial, uzivatele, onSave, onMigrovatUc
         </Field>
       </div>
 
-      <SectionLabel>Nákladová sazba — co aplikaci skutečně stojí hodina práce (Vyhodnocení zakázky)</SectionLabel>
+      <SectionLabel>Nákladová sazba — co vás skutečně stojí hodina práce (vyhodnocení zakázky)</SectionLabel>
       <div style={{ fontSize: 11, color: C.inkSoft, marginTop: -4, marginBottom: 10 }}>
-        Tahle sazba aplikace NEUKAZUJE zákazníkovi — používá se jen aplikace pro aplikaci skutečného zisku a marže na zakázce (aplikace rozdíl mezi cenou aplikaci a
-        tím, co aplikaci odpracovaná hodina reálně stojí).
+        Tahle sazba se zákazníkovi NEUKAZUJE — používá se jen pro výpočet skutečného zisku a marže zakázky (rozdíl mezi cenou pro zákazníka a
+        tím, co odpracovaná hodina reálně stojí).
       </div>
       <div className="field-row">
         <Field label="Nákladová sazba dílna (Kč/h)">
