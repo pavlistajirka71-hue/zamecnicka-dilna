@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail, ArrowUpRight, Plus, Copy, X } from "lucide-react";
+import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail, ArrowUpRight, Plus, Copy, X, MapPin } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
   C,
@@ -115,8 +115,32 @@ export default function OrderDetail({
         <div>
           <div style={{ fontSize: 20, fontWeight: 600 }}>{order.zakaznik}</div>
           <div style={{ color: C.inkSoft, fontSize: 14 }}>{order.popis}</div>
+          {(order.zakaznikIdentifikace || order.ico) && (() => {
+            // Adresa / identifikace zákazníka. Řádky s DIČ/IČO se do hledání na mapě nedávají.
+            const radky = (order.zakaznikIdentifikace || "").split("\n").map((r) => r.trim()).filter(Boolean);
+            const adresa = radky.filter((r) => !/^(DIČ|DIC|IČO?|ICO?)\b/i.test(r)).join(", ");
+            return (
+              <div style={{ display: "flex", gap: 6, alignItems: "flex-start", marginTop: 6, fontSize: 13, color: C.ink }}>
+                <MapPin size={15} color={C.inkSoft} style={{ marginTop: 1, flexShrink: 0 }} />
+                <div style={{ minWidth: 0 }}>
+                  {radky.length > 0 && <div style={{ whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{radky.join("\n")}</div>}
+                  {order.ico && <div style={{ fontFamily: FONTS.mono, fontSize: 12, color: C.inkSoft }}>IČO {order.ico}</div>}
+                  {adresa && (
+                    <a
+                      href={`https://mapy.cz/zakladni?q=${encodeURIComponent(adresa)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 12, color: C.steel }}
+                    >
+                      Otevřít v mapě
+                    </a>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
           {(order.telefon || order.email) && (
-            <div style={{ display: "flex", gap: 14, marginTop: 6 }}>
+            <div style={{ display: "flex", gap: 14, marginTop: 6, flexWrap: "wrap" }}>
               {order.telefon && (
                 <a
                   href={`tel:${order.telefon.replace(/\s+/g, "")}`}
@@ -132,6 +156,25 @@ export default function OrderDetail({
               )}
             </div>
           )}
+          {/* Adresa / identifikace zákazníka — klepnutím se otevře v mapě (cesta na montáž) */}
+          {order.zakaznikIdentifikace && order.zakaznikIdentifikace.trim() && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                order.zakaznikIdentifikace
+                  .split("\n")
+                  .map((r) => r.trim())
+                  .filter((r) => r && !/^(DIČ|IČO?|tel|e-?mail)(?=[\s.:]|$)/i.test(r))
+                  .join(", ")
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Otevřít v mapě"
+              style={{ display: "flex", alignItems: "flex-start", gap: 5, color: C.steel, textDecoration: "none", fontSize: 13, marginTop: 6, whiteSpace: "pre-line" }}
+            >
+              <MapPin size={15} style={{ flexShrink: 0, marginTop: 1 }} /> {order.zakaznikIdentifikace.trim()}
+            </a>
+          )}
+          {order.ico && <div style={{ fontSize: 12, color: C.inkSoft, fontFamily: FONTS.mono, marginTop: 4 }}>IČO: {order.ico}</div>}
         </div>
         <StampBadge status={order.stav} />
       </div>
