@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail, ArrowUpRight, Plus, Copy } from "lucide-react";
+import { Calculator, Pencil, Trash2, Truck, CheckCircle2, FileSignature, Camera, Wallet, TrendingUp, TrendingDown, FileDown, Phone, Mail, ArrowUpRight, Plus, Copy, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
   C,
@@ -51,6 +51,7 @@ export default function OrderDetail({
   onAddPodzakazka,
   onDuplikovat,
   onZmenitChecklist,
+  onSmazatFotku,
   mujEmail,
   onClose,
 }) {
@@ -388,14 +389,43 @@ export default function OrderDetail({
               {order.fotky && order.fotky.length > 0 && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
                   {order.fotky.map((f) => (
-                    <PhotoThumbnail
-                      key={f.id}
-                      bucket="fotky"
-                      path={f.path}
-                      alt={f.popis || "Fotka"}
-                      caption={f.typ === "pred" ? "Před" : f.typ === "po" ? "Po" : f.typ === "protokol" ? "Protokol" : f.typ === "poptavka" ? "Poptávka" : null}
-                      onOpen={setViewPhoto}
-                    />
+                    <div key={f.id} style={{ position: "relative" }}>
+                      <PhotoThumbnail
+                        bucket="fotky"
+                        path={f.path}
+                        alt={f.popis || "Fotka"}
+                        caption={f.typ === "pred" ? "Před" : f.typ === "po" ? "Po" : f.typ === "protokol" ? "Protokol" : f.typ === "poptavka" ? "Poptávka" : null}
+                        onOpen={setViewPhoto}
+                      />
+                      {onSmazatFotku && (
+                        <button
+                          type="button"
+                          title="Odebrat fotku ze zakázky"
+                          aria-label="Odebrat fotku ze zakázky"
+                          onClick={() => {
+                            if (window.confirm("Odebrat tuhle fotku ze zakázky? (Soubor na Google Drive zůstane.)")) onSmazatFotku(order, f.id);
+                          }}
+                          style={{
+                            position: "absolute",
+                            top: 3,
+                            right: 3,
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            border: "none",
+                            background: "rgba(0,0,0,0.65)",
+                            color: "#fff",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: 0,
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}

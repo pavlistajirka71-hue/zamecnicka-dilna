@@ -941,8 +941,10 @@ export default function HomePage() {
     }
   };
 
+  // entry může být jedna fotka nebo pole fotek (výběr více fotek z galerie najednou)
   const addWorkPhoto = async (order, entry) => {
-    const { data, error } = await upravitSeznamZakazky(order.id, "fotky", (akt) => [entry, ...akt]);
+    const nove = Array.isArray(entry) ? entry : [entry];
+    const { data, error } = await upravitSeznamZakazky(order.id, "fotky", (akt) => [...nove, ...akt]);
     if (error) {
       console.error(error);
       setGlobalError("Fotku se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
@@ -951,6 +953,19 @@ export default function HomePage() {
     setOrders((prev) => prev.map((o) => (o.id === data.id ? data : o)));
     if (detailOrder && detailOrder.id === order.id) setDetailOrder(data);
     setFotkaOrder(null);
+  };
+
+  // Odebrání fotky ze zakázky (např. omylem přiřazená k jiné zakázce). Odebere se jen
+  // záznam v zakázce — soubor na Google Drive zůstává, nic se nenávratně neztratí.
+  const smazatFotku = async (order, fotkaId) => {
+    const { data, error } = await upravitSeznamZakazky(order.id, "fotky", (akt) => akt.filter((f) => f.id !== fotkaId));
+    if (error) {
+      console.error(error);
+      setGlobalError("Fotku se nepovedlo odebrat. Zkontroluj připojení a zkus to znovu.");
+      return;
+    }
+    setOrders((prev) => prev.map((o) => (o.id === data.id ? data : o)));
+    setDetailOrder((cur) => (cur && cur.id === data.id ? data : cur));
   };
 
   const saveNaklady = async (radky) => {
@@ -1935,6 +1950,7 @@ export default function HomePage() {
             onZmenaStavu={zmenitStavZakazky}
             onZmenitDilciPole={aktualizovatDilciPole}
             onZmenitChecklist={zmenitChecklistMaterialu}
+            onSmazatFotku={smazatFotku}
             mujEmail={session?.user?.email || ""}
             onDelete={deleteOrder}
             onEdit={() => {
