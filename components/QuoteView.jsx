@@ -131,11 +131,15 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
     setEmailInfo("Stáhl se soubor e-mailu — otevři ho (dole v prohlížeči nebo ve Stažených souborech). V Outlooku se otevře nová zpráva s PDF v příloze, zkontroluj ji a odešli.");
   };
 
-  const jenText = () => {
+  // Stejně jako u poptávky materiálu: Outlook se otevře rovnou (adresát, předmět, text).
+  // Přílohu takhle předat nejde (prohlížeč to nedovolí), proto se PDF zároveň stáhne
+  // a stačí ho do otevřené zprávy přetáhnout.
+  const otevritPrimo = () => {
+    if (pdf) stahnoutSoubor(pdf.blob, pdf.nazev);
     window.location.href = `mailto:${encodeURIComponent(emailKomu.trim()).replace(/%40/g, "@")}?subject=${encodeURIComponent(emailPredmet)}&body=${encodeURIComponent(
       textEmailu.replace(/\n/g, "\r\n")
     )}`;
-    setEmailInfo("Otevírá se e-mail bez přílohy — PDF k němu přilož ručně (Stáhnout PDF).");
+    setEmailInfo(`Outlook se otevírá s textem e-mailu. PDF nabídky (${pdf ? pdf.nazev : "soubor"}) se právě stáhlo — přetáhni ho myší do zprávy (nebo Vložit → Připojit soubor → Naposledy použité).`);
   };
 
   const sdilet = async () => {
@@ -204,11 +208,11 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
           <div style={{ fontSize: 12, margin: "8px 0 4px" }}>Text e-mailu</div>
           <TextArea value={textEmailu} onChange={(e) => setEmailText(e.target.value)} style={{ minHeight: 190 }} />
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
-            <Button variant="primary" type="button" onClick={otevritVOutlooku} disabled={pdfStav !== "hotovo"}>
-              <Mail size={14} /> {pdfStav === "pripravuji" ? "Připravuji PDF…" : "Otevřít v Outlooku s PDF"}
+            <Button variant="primary" type="button" onClick={otevritPrimo} disabled={pdfStav !== "hotovo"}>
+              <Mail size={14} /> {pdfStav === "pripravuji" ? "Připravuji PDF…" : "Otevřít v Outlooku"}
             </Button>
-            <Button variant="ghost" type="button" onClick={jenText}>
-              Jen text (bez přílohy)
+            <Button variant="ghost" type="button" onClick={otevritVOutlooku} disabled={pdfStav !== "hotovo"} title="Stáhne soubor zprávy, ve které už je PDF přiložené">
+              Zpráva i s přílohou (soubor .eml)
             </Button>
             {emailText !== null && (
               <Button variant="ghost" type="button" onClick={() => setEmailText(null)}>
@@ -218,7 +222,7 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
           </div>
           {emailInfo && <div style={{ fontSize: 12, color: C.moss, marginTop: 8 }}>{emailInfo}</div>}
           <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 8 }}>
-            Funguje s Outlookem v počítači: stáhne se soubor .eml, po otevření je v Outlooku hotová zpráva s PDF v příloze. Na mobilu použij tlačítko Sdílet nahoře.
+            „Otevřít v Outlooku“ otevře zprávu rovnou a PDF stáhne — jen ho přetáhneš do zprávy. „Zpráva i s přílohou“ stáhne soubor, ve kterém je PDF už přiložené (otevřeš ho kliknutím). Na mobilu použij tlačítko Sdílet nahoře.
           </div>
         </div>
       </div>
