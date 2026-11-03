@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
-import { FileDown } from "lucide-react";
+import { FileDown, FileText } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 import { C, FONTS, downloadTextFile, fmtCislo } from "@/lib/theme";
 import { Button, Field, TextInput } from "./ui";
 
@@ -35,6 +36,37 @@ export default function PraceReport({ orders, onClose }) {
     [radky]
   );
 
+  const [pdfStav, setPdfStav] = useState(""); // "" | "pripravuji" | chybová hláška
+
+  const exportPDF = async () => {
+    setPdfStav("pripravuji");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch("/api/report-prace-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
+        body: JSON.stringify({ mesic, radky }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "PDF se nepodařilo vytvořit.");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `report-prace-${mesic}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      setPdfStav("");
+    } catch (e) {
+      setPdfStav(e.message || "PDF se nepodařilo vytvořit.");
+    }
+  };
+
   const exportCSV = () => {
     const header = ["Cislo", "Zakaznik", "HodinyDilna", "HodinyMontaz", "HodinyCelkem"];
     const rows = radky.map((r) => [r.cislo, r.zakaznik, r.dilna, r.montaz, r.celkem]);
@@ -52,7 +84,11 @@ export default function PraceReport({ orders, onClose }) {
         <Button variant="ghost" onClick={exportCSV} style={{ marginBottom: 12 }}>
           <FileDown size={14} /> Export CSV
         </Button>
+        <Button variant="ghost" onClick={exportPDF} disabled={radky.length === 0 || pdfStav === "pripravuji"} style={{ marginBottom: 12 }}>
+          <FileText size={14} /> {pdfStav === "pripravuji" ? "Připravuji PDF…" : "Export PDF"}
+        </Button>
       </div>
+      {pdfStav && pdfStav !== "pripravuji" && <div style={{ color: C.danger, fontSize: 13, marginBottom: 10 }}>{pdfStav}</div>}
 
       {radky.length === 0 ? (
         <div style={{ textAlign: "center", padding: 30, color: C.inkSoft }}>V tomto měsíci nejsou zapsané žádné hodiny.</div>
