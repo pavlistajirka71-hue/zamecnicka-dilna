@@ -1237,7 +1237,7 @@ export default function HomePage() {
           <button onClick={() => setShowImportFaktur(true)} title="Import faktur přijatých (Flexi)" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
             <FileSpreadsheet size={20} />
           </button>
-          <button onClick={() => setShowReport(true)} title="Měsíční report práce" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
+          <button onClick={() => setShowReport(true)} title="Měsíční report (práce, jízdy, účtenky)" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
             <BarChart3 size={20} />
           </button>
           <button onClick={() => setShowMaterialy(true)} title="Katalog materiálů" style={{ background: "none", border: "none", cursor: "pointer", color: C.ink, padding: 8 }}>
@@ -1803,7 +1803,7 @@ export default function HomePage() {
       )}
 
       {showReport && (
-        <Modal title="Měsíční report práce" onClose={() => setShowReport(false)} width={620}>
+        <Modal title="Měsíční report" onClose={() => setShowReport(false)} width={720}>
           <PraceReport orders={orders} onClose={() => setShowReport(false)} />
         </Modal>
       )}

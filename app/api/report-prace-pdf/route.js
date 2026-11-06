@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { overitPrihlaseni } from "@/lib/role";
-import { generovatPdfReportuPrace } from "@/lib/reportPracePdf";
+import { generovatPdfReportuPrace, generovatPdfNakladu } from "@/lib/reportPracePdf";
+import { mesicniPrace, mesicniJizdy, mesicniUctenky } from "@/lib/reporty";
 
-// PDF měsíčního reportu práce. Řádky reportu posílá aplikace (spočítané stejně
-// jako tabulka na obrazovce); nic se neukládá, jen se vytvoří soubor.
+// PDF měsíčních reportů: typ "prace" | "jizdy" | "uctenky". Data se počítají přímo
+// z databáze (stejnými funkcemi jako tabulka v aplikaci). Nic se neukládá.
 export async function POST(request) {
   const supabaseAdmin = getSupabaseAdmin();
   const user = await overitPrihlaseni(supabaseAdmin, request);
@@ -18,23 +19,32 @@ export async function POST(request) {
   }
   const mesic = /^\d{4}-\d{2}$/.test(body.mesic || "") ? body.mesic : null;
   if (!mesic) return NextResponse.json({ error: "Neplatný měsíc." }, { status: 400 });
-  const radky = (Array.isArray(body.radky) ? body.radky : []).slice(0, 500).map((r) => ({
-    cislo: String(r.cislo || "").slice(0, 40),
-    zakaznik: String(r.zakaznik || "").slice(0, 200),
-    dilna: Number(r.dilna) || 0,
-    montaz: Number(r.montaz) || 0,
-    celkem: Number(r.celkem) || 0,
-  }));
-  const { data: n } = await supabaseAdmin.from("nastaveni").select("firmaNazev").eq("id", 1).maybeSingle();
+  const typ = ["prace", "jizdy", "uctenky"].includes(body.typ) ? body.typ : "prace";
+
+  const [{ data: orders, error }, { data: n }] = await Promise.all([
+    supabaseAdmin.from("orders").select("id, cislo, zakaznik, prace, naklady"),
+    supabaseAdmin.from("nastaveni").select("firmaNazev").eq("id", 1).maybeSingle(),
+  ]);
+  if (error) return NextResponse.json({ error: "Načtení dat se nepovedlo." }, { status: 500 });
+  const firmaNazev = n?.firmaNazev || "";
 
   try {
-    const pdf = await generovatPdfReportuPrace({ mesic, radky, firmaNazev: n?.firmaNazev || "" });
+    let pdf;
+    if (typ === "prace") {
+      pdf = await generovatPdfReportuPrace({ mesic, radky: mesicniPrace(orders, mesic), firmaNazev });
+    } else {
+      let radky = typ === "jizdy" ? mesicniJizdy(orders, mesic) : mesicniUctenky(orders, mesic);
+      if (typ === "uctenky" && body.filtr === "bezFotky") radky = radky.filter((r) => !r.fotoPath && r.zdroj !== "faktura");
+      if (typ === "uctenky" && body.filtr === "sFotkou") radky = radky.filter((r) => r.fotoPath);
+      pdf = await generovatPdfNakladu({ typ, mesic, radky, firmaNazev, sFotkami: typ === "uctenky" && body.sFotkami !== false, supabaseAdmin });
+    }
+    const nazev = `${typ === "prace" ? "report-prace" : typ === "jizdy" ? "jizdy" : "uctenky"}-${mesic}.pdf`;
     return new NextResponse(pdf, {
       status: 200,
-      headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="report-prace-${mesic}.pdf"`, "Cache-Control": "no-store" },
+      headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${nazev}"`, "Cache-Control": "no-store" },
     });
   } catch (e) {
-    console.error("PDF reportu práce selhalo:", e);
+    console.error("PDF reportu selhalo:", e);
     return NextResponse.json({ error: "PDF se nepodařilo vytvořit." }, { status: 500 });
   }
 }

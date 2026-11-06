@@ -66,10 +66,13 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
         fotoPath = await nahratFotku(photoBlob, `naklad-${uid()}.jpg`, "uctenky", vybrane[0]);
       }
       const rozpocet = rozpocitatNaklad(vybrane, Number(castka));
+      // Části jednoho nákladu rozpočítaného mezi víc zakázek mají společné rozpocetId —
+      // v měsíčním reportu jízd/účtenek se pak ukážou jako jeden řádek s celou částkou.
+      const rozpocetId = rozpocet.length > 1 ? uid() : null;
       await onSubmit(
         rozpocet.map(({ order, castka: dil }) => ({
           order,
-          naklad: { id: uid(), popis: popis.trim() || "Náklad", castka: dil, fotoPath, datum: datum || null, jeJizda },
+          naklad: { id: uid(), popis: popis.trim() || "Náklad", castka: dil, fotoPath, datum: datum || null, jeJizda, ...(rozpocetId ? { rozpocetId } : {}) },
         }))
       );
     } catch (err) {
