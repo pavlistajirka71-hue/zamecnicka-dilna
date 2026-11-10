@@ -288,7 +288,7 @@ export default function QuoteView({ order, polozky, celkem, nastaveni, onClose }
             marginBottom: 16,
           }}
         >
-          Nabídka výroby a montáže — {order.cislo}
+          Cenová nabídka — {order.cislo}
         </div>
         {order.popis && <div style={{ fontSize: 14, color: C.inkSoft, marginBottom: 20, whiteSpace: "pre-line" }}>{order.popis}</div>}
 
