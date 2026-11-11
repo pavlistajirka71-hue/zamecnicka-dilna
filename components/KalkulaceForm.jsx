@@ -225,21 +225,40 @@ export default function KalkulaceForm({ order, orders, nastaveni, materialHistor
                 {Number(p.pocetKs) > 1 ? `${p.pocetKs}× · ` : ""}
                 {fmtMoney(v.finalniCena)}
               </span>
-              <button type="button" onClick={() => duplikovatPolozku(p.id)} style={iconBtnStyle} title="Kopírovat položku">
-                <Copy size={16} />
+              {/* V záhlaví je jen šipka pro rozbalení. Kopírování a mazání jsou uvnitř
+                  rozbalené položky jako tlačítka s popisem — dřív byla kopie hned vedle
+                  šipky a na mobilu se jejich dotykové plochy překrývaly, takže ťuknutí na
+                  šipku občas položku nechtěně zkopírovalo. */}
+              <button
+                type="button"
+                onClick={() => setOpenId(open ? null : p.id)}
+                title={open ? "Sbalit" : "Rozbalit"}
+                aria-label={open ? "Sbalit položku" : "Rozbalit položku"}
+                style={{ ...iconBtnStyle, margin: 0, padding: 8 }}
+              >
+                {open ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
               </button>
-              <button type="button" onClick={() => setOpenId(open ? null : p.id)} style={iconBtnStyle}>
-                {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </button>
-              {polozky.length > 1 && (
-                <button type="button" onClick={() => removePolozka(p.id)} style={{ ...iconBtnStyle, color: C.danger }}>
-                  <Trash2 size={16} />
-                </button>
-              )}
             </div>
             {open && (
               <div style={{ padding: 12, borderTop: `1px solid ${C.line}` }}>
                 <PolozkaForm polozka={p} nastaveni={nastaveni} materialHistory={materialHistory} sazbaDph={sazbaDph} onChange={(next) => updatePolozka(p.id, next)} />
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", borderTop: `1px dashed ${C.line}`, paddingTop: 12, marginTop: 4 }}>
+                  <Button variant="ghost" type="button" onClick={() => duplikovatPolozku(p.id)}>
+                    <Copy size={14} /> Kopírovat položku
+                  </Button>
+                  {polozky.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Odebrat položku „${p.nazev || "bez názvu"}“ z kalkulace? (Uloží se až tlačítkem Uložit kalkulaci.)`)) removePolozka(p.id);
+                      }}
+                      style={{ color: C.danger }}
+                    >
+                      <Trash2 size={14} /> Odebrat položku
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </div>
