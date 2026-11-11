@@ -1,20 +1,38 @@
 "use client";
 import { useState } from "react";
-import * as XLSX from "xlsx";
+import { readSheet } from "read-excel-file/browser";
 import { Upload, Check, AlertTriangle } from "lucide-react";
 import { C, FONTS, uid, parseFakturyCSV, sestavitNakladZFaktury, jeMoznaDuplicitaNakladu, odhadnoutUdajeFaktury, sparovatFakturySZakazkami } from "@/lib/theme";
 import { Button, Select } from "./ui";
 
-// Vrátí pole řádků (objekty sloupec -> hodnota) z XLSX souboru — aplikace na to zjistila,
-// že export z Flexi bývá XLSX, ne CSV, takže to umí přečíst přímo, bez nutnosti
-// cokoliv ručně převádět.
-function parseFakturyXLSX(buffer) {
-  const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
-  const list = workbook.Sheets[workbook.SheetNames[0]];
-  // raw:false -> aplikace dostane naformátovaný text (např. datum jako "05.08.2026",
-  // ne syrové sériové číslo Excelu) — stejný tvar dat jako z CSV, ať aplikace nemusí
-  // mít pro oba formáty jinou logiku.
-  return XLSX.utils.sheet_to_json(list, { defval: "", raw: false });
+// Vrátí pole řádků (objekty sloupec -> hodnota) z XLSX souboru — export z Flexi bývá
+// XLSX, ne CSV, takže ho aplikace umí přečíst přímo. Čte se knihovnou read-excel-file
+// (dřívější knihovna "xlsx" z npm už nedostává bezpečnostní opravy). Hodnoty se
+// převedou na text ve stejném tvaru jako z CSV (datum "05.08.2026", číslo "1500.5"),
+// takže zbytek importu funguje beze změny.
+const naText = (v) => {
+  if (v === null || v === undefined) return "";
+  if (v instanceof Date) {
+    const d = String(v.getUTCDate()).padStart(2, "0");
+    const m = String(v.getUTCMonth() + 1).padStart(2, "0");
+    return `${d}.${m}.${v.getUTCFullYear()}`;
+  }
+  return String(v);
+};
+
+async function parseFakturyXLSX(file) {
+  const radky = await readSheet(file);
+  const iHlavicky = radky.findIndex((r) => r.some((c) => naText(c).trim() !== ""));
+  if (iHlavicky < 0) return [];
+  const hlavicka = radky[iHlavicky].map((c, i) => naText(c).trim() || `Sloupec ${i + 1}`);
+  return radky
+    .slice(iHlavicky + 1)
+    .filter((r) => r.some((c) => naText(c).trim() !== ""))
+    .map((r) => {
+      const obj = {};
+      hlavicka.forEach((h, i) => (obj[h] = naText(r[i]).trim()));
+      return obj;
+    });
 }
 
 export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
@@ -32,8 +50,12 @@ export default function ImportFakturFlow({ orders, onImportovat, onClose }) {
     if (!file) return;
     setChyba("");
     try {
-      const jeExcel = /\.xlsx?$/i.test(file.name);
-      const radky = jeExcel ? parseFakturyXLSX(await file.arrayBuffer()) : parseFakturyCSV(await file.text());
+      if (/\.xls$/i.test(file.name)) {
+        setChyba("Starý formát Excelu (.xls) aplikace neumí přečíst — ve Flexi exportuj jako XLSX nebo CSV.");
+        return;
+      }
+      const jeExcel = /\.xlsx$/i.test(file.name);
+      const radky = jeExcel ? await parseFakturyXLSX(file) : parseFakturyCSV(await file.text());
       if (radky.length === 0) {
         setChyba("V souboru aplikace nenašla žádné řádky s daty — zkontroluj, že je to opravdu export faktur z Flexi.");
         return;

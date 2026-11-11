@@ -5,7 +5,7 @@ import { nahratFotkuNaServeru } from "@/lib/photoUpload";
 import { uid, todayISO, nazevSlozkyZakazky } from "@/lib/theme";
 
 export async function POST(request, { params }) {
-  const { id } = params;
+  const { id } = await params; // Next.js 15: params je Promise
 
   const authHeader = request.headers.get("authorization") || "";
   const token = authHeader.replace(/^Bearer\s+/i, "");

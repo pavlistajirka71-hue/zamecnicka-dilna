@@ -10,6 +10,7 @@ const POVOLENE_SAZBY = [0, 0.12, 0.15, 0.21];
 // Data (kalkulace, nastavení firmy) si bere přímo z databáze, ne z prohlížeče.
 // Nic se neukládá ani nemění — jen se vytvoří soubor.
 export async function POST(request, { params }) {
+  const { id } = await params; // Next.js 15: params je Promise
   const supabaseAdmin = getSupabaseAdmin();
   const user = await overitPrihlaseni(supabaseAdmin, request);
   if (!user) return NextResponse.json({ error: "Neplatné přihlášení." }, { status: 401 });
@@ -22,7 +23,7 @@ export async function POST(request, { params }) {
   }
 
   const [{ data: order, error }, { data: nastaveniRow }] = await Promise.all([
-    supabaseAdmin.from("orders").select("*").eq("id", params.id).maybeSingle(),
+    supabaseAdmin.from("orders").select("*").eq("id", id).maybeSingle(),
     supabaseAdmin.from("nastaveni").select("*").eq("id", 1).maybeSingle(),
   ]);
   if (error || !order) return NextResponse.json({ error: "Zakázka nenalezena." }, { status: 404 });

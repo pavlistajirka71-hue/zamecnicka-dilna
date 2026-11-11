@@ -48,7 +48,7 @@ async function ziskatFotkyKProtokolu(supabase, order) {
 }
 
 export async function GET(request, { params }) {
-  const { id } = params;
+  const { id } = await params; // Next.js 15: params je Promise
   const token = request.nextUrl.searchParams.get("token");
   if (!token) return NextResponse.json({ error: "Chybí token." }, { status: 400 });
 
@@ -64,7 +64,7 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
-  const { id } = params;
+  const { id } = await params; // Next.js 15: params je Promise
   const body = await request.json();
   const { token, signature } = body; // signature = base64 PNG data URL
 
