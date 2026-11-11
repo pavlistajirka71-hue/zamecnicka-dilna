@@ -77,6 +77,8 @@ export default function MaterialyKatalog({ materialHistory, onChange, onClose })
   };
 
   const deleteItem = async (nazev) => {
+    // Smazání z katalogu jen po potvrzení (kalkulace, které materiál už použily, se nemění)
+    if (!window.confirm(`Smazat „${nazev}“ z katalogu materiálů? Už uložené kalkulace se tím nezmění.`)) return;
     setRowError("");
     const { error } = await supabase.from("material_history").delete().eq("nazev", nazev);
     if (error) {
@@ -162,10 +164,10 @@ export default function MaterialyKatalog({ materialHistory, onChange, onClose })
                 </div>
               </div>
               <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-                <button onClick={() => setEditing(m)} style={{ ...iconBtnStyle, color: C.steel }}>
+                <button onClick={() => setEditing(m)} title="Upravit" aria-label="Upravit" style={{ ...iconBtnStyle, color: C.steel }}>
                   <Pencil size={15} />
                 </button>
-                <button onClick={() => deleteItem(m.nazev)} style={{ ...iconBtnStyle, color: C.danger }}>
+                <button onClick={() => deleteItem(m.nazev)} title="Smazat" aria-label="Smazat" style={{ ...iconBtnStyle, color: C.danger }}>
                   <Trash2 size={15} />
                 </button>
               </div>

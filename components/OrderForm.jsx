@@ -156,7 +156,9 @@ export default function OrderForm({ initial, zPoptavky, orders, organizace, nadr
       {zPoptavky && (
         <div style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 6, padding: "8px 12px", marginBottom: 14, fontSize: 13 }}>
           Zakládáš zakázku z poptávky <strong>{zPoptavky.cislo}</strong> — údaje, popis, poznámky
-          {(zPoptavky.fotky || []).length ? ` a ${zPoptavky.fotky.length} fotek` : ""} se převzaly. Zkontroluj je, doplň případně IČO přes ARES a ulož.
+          {(zPoptavky.fotky || []).length
+            ? ` a ${zPoptavky.fotky.length} ${zPoptavky.fotky.length === 1 ? "fotka" : zPoptavky.fotky.length < 5 ? "fotky" : "fotek"}`
+            : ""} se převzaly. Zkontroluj je, doplň případně IČO přes ARES a ulož.
           Pak v detailu zakázky uděláš kalkulaci a nabídku.
         </div>
       )}

@@ -116,7 +116,10 @@ export default function PoptavkaForm({ initial, poptavky, vlastni, organizace, o
     try {
       const { data, error } = await supabase.rpc("ziskat_dalsi_cislo_poptavky", { p_rok: rok });
       if (error) throw error;
-      return `P-${rok}-${String(data).padStart(4, "0")}`;
+      const cislo = `P-${rok}-${String(data).padStart(4, "0")}`;
+      // Pojistka: kdyby počítadlo nesedělo s existujícími poptávkami (např. po dřívějším
+      // záložním číslování bez připojení), použije se první volné číslo — nikdy duplicitní.
+      return (poptavky || []).some((p) => p.cislo === cislo) ? zalohoveCisloPoptavky(poptavky) : cislo;
     } catch (e) {
       console.error("Serverové přidělení čísla poptávky se nepovedlo, používám záložní výpočet:", e);
       return zalohoveCisloPoptavky(poptavky);
