@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useRef, useState } from "react";
-import { Camera, Search } from "lucide-react";
+import { Camera, Images, Search, X } from "lucide-react";
 import { C, FONTS, uid, todayISO, resizeImageFile, rozpocitatNaklad } from "@/lib/theme";
 import { nahratFotku } from "@/lib/uploadClient";
 import { Field, TextInput, Button } from "./ui";
@@ -22,6 +22,7 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
+  const galerieRef = useRef(null);
 
   const filtrovane = useMemo(() => {
     const q = hledat.trim().toLowerCase();
@@ -40,6 +41,7 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
 
   const handleFile = async (e) => {
     const file = e.target.files && e.target.files[0];
+    e.target.value = ""; // ať jde vybrat znovu i stejný soubor
     if (!file) return;
     setProcessing(true);
     setError("");
@@ -149,17 +151,41 @@ export default function ZapsatNakladFlow({ orders, onSubmit, onClose }) {
         </div>
       )}
 
+      {/* Účtenku jde vyfotit, nebo vybrat z galerie (např. fotka pořízená dřív nebo
+          účtenka poslaná e-mailem/WhatsAppem a uložená do telefonu) */}
       <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: "none" }} />
+      <input ref={galerieRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
       {!photoPreview ? (
-        <Button variant="ghost" type="button" onClick={() => fileInputRef.current && fileInputRef.current.click()} disabled={processing}>
-          <Camera size={14} /> {processing ? "Zpracovávám…" : "Přiložit fotku účtenky (nepovinné)"}
-        </Button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Button variant="ghost" type="button" onClick={() => fileInputRef.current && fileInputRef.current.click()} disabled={processing}>
+            <Camera size={14} /> {processing ? "Zpracovávám…" : "Vyfotit účtenku"}
+          </Button>
+          <Button variant="ghost" type="button" onClick={() => galerieRef.current && galerieRef.current.click()} disabled={processing}>
+            <Images size={14} /> Účtenka z galerie
+          </Button>
+          <span style={{ fontSize: 12, color: C.inkSoft, alignSelf: "center" }}>(nepovinné)</span>
+        </div>
       ) : (
         <div style={{ marginBottom: 8 }}>
-          <img src={photoPreview} alt="Náhled účtenky" style={{ width: "100%", maxWidth: 200, borderRadius: 8, border: `1px solid ${C.line}`, marginBottom: 6 }} />
-          <Button variant="ghost" type="button" onClick={() => fileInputRef.current && fileInputRef.current.click()}>
-            <Camera size={14} /> Vyfotit znovu
-          </Button>
+          <img src={photoPreview} alt="Náhled účtenky" style={{ width: "100%", maxWidth: 200, borderRadius: 8, border: `1px solid ${C.line}`, marginBottom: 6, display: "block" }} />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Button variant="ghost" type="button" onClick={() => fileInputRef.current && fileInputRef.current.click()} disabled={processing}>
+              <Camera size={14} /> Vyfotit znovu
+            </Button>
+            <Button variant="ghost" type="button" onClick={() => galerieRef.current && galerieRef.current.click()} disabled={processing}>
+              <Images size={14} /> Jiná z galerie
+            </Button>
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => {
+                setPhotoBlob(null);
+                setPhotoPreview(null);
+              }}
+            >
+              <X size={14} /> Odebrat
+            </Button>
+          </div>
         </div>
       )}
 
