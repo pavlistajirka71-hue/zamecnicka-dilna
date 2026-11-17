@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { C, FONTS, todayISO } from "@/lib/theme";
 import { Button } from "./ui";
 
-export default function ZalohaPanel({ orders, poptavky, dodavatele, nastaveni, materialHistory, onRestored, onClose }) {
+export default function ZalohaPanel({ orders, poptavky, dodavatele, odberatele, nastaveni, materialHistory, onRestored, onClose }) {
   const fileRef = useRef(null);
   const [restoring, setRestoring] = useState(false);
   const [error, setError] = useState("");
@@ -19,6 +19,7 @@ export default function ZalohaPanel({ orders, poptavky, dodavatele, nastaveni, m
       orders,
       poptavky: poptavky || [],
       dodavatele: dodavatele || [],
+      odberatele: odberatele || [],
       nastaveni,
       materialHistory,
     };
@@ -68,6 +69,10 @@ export default function ZalohaPanel({ orders, poptavky, dodavatele, nastaveni, m
       if (confirmFile.dodavatele?.length) {
         const { error: e5 } = await supabase.from("dodavatele").upsert(confirmFile.dodavatele);
         if (e5) throw e5;
+      }
+      if (confirmFile.odberatele?.length) {
+        const { error: e6 } = await supabase.from("odberatele").upsert(confirmFile.odberatele);
+        if (e6) throw e6;
       }
       if (confirmFile.nastaveni) {
         const { error: e2 } = await supabase.from("nastaveni").upsert({ id: 1, ...confirmFile.nastaveni });

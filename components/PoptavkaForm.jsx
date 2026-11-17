@@ -7,6 +7,7 @@ import { nahratFotku } from "@/lib/uploadClient";
 import { ZDROJE_POPTAVKY, slozkaPoptavky, zalohoveCisloPoptavky } from "@/lib/poptavky";
 import { Field, TextInput, TextArea, Select, Button, SectionLabel } from "./ui";
 import VyberFotek from "./VyberFotek";
+import ZakaznikNaseptavac from "./ZakaznikNaseptavac";
 import NacistZEmailu from "./NacistZEmailu";
 
 const NAZVY_POLI = {
@@ -21,7 +22,7 @@ const NAZVY_POLI = {
 
 // Založení nové poptávky (i s fotkami najednou) nebo úprava údajů existující.
 // Fotky a poznámky u existující poptávky se přidávají v jejím detailu.
-export default function PoptavkaForm({ initial, poptavky, vlastni, organizace, onSaveOrganizace, onSave, onClose }) {
+export default function PoptavkaForm({ initial, poptavky, vlastni, organizace, odberatele, onSaveOrganizace, onSave, onClose }) {
   const jeNova = !initial;
   const [f, setF] = useState(
     () =>
@@ -182,7 +183,22 @@ export default function PoptavkaForm({ initial, poptavky, vlastni, organizace, o
         </div>
       )}
       <Field label="Zákazník (jméno nebo firma)">
-        <TextInput value={f.zakaznik} onChange={(e) => set("zakaznik", e.target.value)} autoFocus={jeNova} />
+        <ZakaznikNaseptavac
+          value={f.zakaznik}
+          onChange={(v) => set("zakaznik", v)}
+          seznam={odberatele}
+          autoFocus={jeNova}
+          onVyber={(o) =>
+            setF((prev) => ({
+              ...prev,
+              zakaznik: o.nazev,
+              ico: o.ico || prev.ico,
+              zakaznikIdentifikace: o.zakaznikIdentifikace || prev.zakaznikIdentifikace,
+              telefon: o.telefon || prev.telefon,
+              email: o.email || prev.email,
+            }))
+          }
+        />
       </Field>
       <div className="field-row">
         <Field label="Telefon">

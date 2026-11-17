@@ -462,3 +462,21 @@ create policy "authenticated all dodavatele" on dodavatele
 
 -- Adresa dílny pro doručování materiálu — přidáno později; jen přidá sloupec.
 alter table nastaveni add column if not exists "adresaDilny" text;
+
+-- ---- Odběratelé (viz i supabase/odberatele.sql) ----
+create table if not exists odberatele (
+  id text primary key,
+  nazev text not null,
+  ico text,
+  "zakaznikIdentifikace" text,
+  telefon text,
+  email text,
+  poznamka text,
+  skryto boolean not null default false,
+  "posledniPouziti" timestamptz default now(),
+  created_at timestamptz default now()
+);
+alter table odberatele enable row level security;
+drop policy if exists "authenticated all odberatele" on odberatele;
+create policy "authenticated all odberatele" on odberatele
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');

@@ -1,11 +1,12 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Search } from "lucide-react";
 import { C, FONTS, STATUSES, uid, todayISO, nextOrderNumber, dalsiCisloPodzakazky } from "@/lib/theme";
 import { supabase } from "@/lib/supabaseClient";
 import { Field, TextInput, TextArea, Select, Button, SectionLabel } from "./ui";
+import ZakaznikNaseptavac from "./ZakaznikNaseptavac";
 
-export default function OrderForm({ initial, zPoptavky, orders, organizace, nadrazenaZakazka, duplikatZakazky, onSaveOrganizace, onSave, onClose }) {
+export default function OrderForm({ initial, zPoptavky, orders, organizace, odberatele, nadrazenaZakazka, duplikatZakazky, onSaveOrganizace, onSave, onClose }) {
   const [f, setF] = useState(() => {
     if (initial) return initial;
     if (duplikatZakazky) {
@@ -76,7 +77,6 @@ export default function OrderForm({ initial, zPoptavky, orders, organizace, nadr
   const [error, setError] = useState("");
   const [hledamAres, setHledamAres] = useState(false);
   const [aresChyba, setAresChyba] = useState("");
-  const [showSuggest, setShowSuggest] = useState(false);
 
   const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
 
@@ -101,25 +101,17 @@ export default function OrderForm({ initial, zPoptavky, orders, organizace, nadr
   };
 
 
-  const navrhy = useMemo(() => {
-    const dotaz = (f.ico || "").trim().toLowerCase();
-    const dotazJmeno = (f.zakaznik || "").trim().toLowerCase();
-    if (!dotaz && !dotazJmeno) return [];
-    return (organizace || [])
-      .filter((o) => (dotaz && o.ico.includes(dotaz)) || (dotazJmeno.length > 1 && o.nazev.toLowerCase().includes(dotazJmeno)))
-      .slice(0, 6);
-  }, [f.ico, f.zakaznik, organizace]);
-
-  const vybratZKatalogu = (o) => {
+  // Výběr zákazníka z databáze odběratelů (našeptávač) — doplní i IČO, adresu a kontakty.
+  // Prázdné údaje u vybraného odběratele nepřepíšou, co už je ve formuláři vyplněné.
+  const vybratOdberatele = (o) => {
     setF((prev) => ({
       ...prev,
-      ico: o.ico,
       zakaznik: o.nazev,
-      zakaznikIdentifikace: o.dic ? `${o.adresa}\nDIČ: ${o.dic}` : o.adresa,
+      ico: o.ico || prev.ico,
+      zakaznikIdentifikace: o.zakaznikIdentifikace || prev.zakaznikIdentifikace,
       telefon: o.telefon || prev.telefon,
       email: o.email || prev.email,
     }));
-    setShowSuggest(false);
   };
 
   const doplnitZAres = async () => {
@@ -182,56 +174,13 @@ export default function OrderForm({ initial, zPoptavky, orders, organizace, nadr
         </Field>
       </div>
 
-      <div style={{ position: "relative" }}>
-        <Field label="Zákazník">
-          <TextInput
-            value={f.zakaznik}
-            onChange={(e) => set("zakaznik", e.target.value)}
-            onFocus={() => setShowSuggest(true)}
-            onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
-          />
-        </Field>
-        {showSuggest && navrhy.length > 0 && (
-          <div
-            style={{
-              position: "absolute",
-              top: "100%",
-              left: 0,
-              right: 0,
-              zIndex: 5,
-              background: C.surface,
-              border: `1px solid ${C.line}`,
-              borderRadius: 6,
-              boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-              maxHeight: 180,
-              overflowY: "auto",
-            }}
-          >
-            {navrhy.map((o) => (
-              <div
-                key={o.ico}
-                onMouseDown={() => vybratZKatalogu(o)}
-                style={{ padding: "8px 10px", cursor: "pointer", fontSize: 13, borderBottom: `1px solid ${C.line}` }}
-              >
-                <div style={{ fontWeight: 600 }}>{o.nazev}</div>
-                <div style={{ fontSize: 11, color: C.inkSoft, fontFamily: FONTS.mono }}>
-                  IČO {o.ico}
-                  {o.adresa ? ` · ${o.adresa}` : ""}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <Field label="Zákazník">
+        <ZakaznikNaseptavac value={f.zakaznik} onChange={(v) => set("zakaznik", v)} seznam={odberatele} onVyber={vybratOdberatele} />
+      </Field>
 
       <div className="field-row" style={{ alignItems: "flex-end" }}>
         <Field label="IČO (nepovinné)">
-          <TextInput
-            value={f.ico || ""}
-            onChange={(e) => set("ico", e.target.value.replace(/\D/g, "").slice(0, 8))}
-            onFocus={() => setShowSuggest(true)}
-            onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
-          />
+          <TextInput value={f.ico || ""} onChange={(e) => set("ico", e.target.value.replace(/\D/g, "").slice(0, 8))} />
         </Field>
         <Button variant="ghost" type="button" onClick={doplnitZAres} disabled={hledamAres || !(f.ico || "").trim()} style={{ marginBottom: 12 }}>
           <Search size={14} /> {hledamAres ? "Hledám…" : "Doplnit z ARES"}

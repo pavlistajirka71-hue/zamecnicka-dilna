@@ -68,6 +68,8 @@ import NakladyForm from "@/components/NakladyForm";
 import Nastenka from "@/components/Nastenka";
 import PoptavkyPanel from "@/components/PoptavkyPanel";
 import DodavateleKatalog from "@/components/DodavateleKatalog";
+import OdberateleKatalog from "@/components/OdberateleKatalog";
+import { sestavitSeznamOdberatelu, klicOdberatele, odberatelZFormulare } from "@/lib/odberatele";
 import PoptavkaForm from "@/components/PoptavkaForm";
 import PoptavkaDetail from "@/components/PoptavkaDetail";
 import { zakazkaZPoptavky } from "@/lib/poptavky";
@@ -105,6 +107,8 @@ export default function HomePage() {
   const [katalogZalozka, setKatalogZalozka] = useState("materialy"); // materialy | dodavatele
   const [dodavatele, setDodavatele] = useState([]);
   const [dodavateleNacteni, setDodavateleNacteni] = useState(true);
+  const [odberatele, setOdberatele] = useState([]); // uložené/upravené odběratele (tabulka odberatele)
+  const [odberateleNacteni, setOdberateleNacteni] = useState(true);
   const [poptavkaOrder, setPoptavkaOrder] = useState(null);
   const [showReport, setShowReport] = useState(false);
   const [ukoly, setUkoly] = useState([]);
@@ -220,6 +224,15 @@ export default function HomePage() {
     setOfflineData(false);
     // Poptávky se načítají zvlášť: kdyby tabulka ještě neexistovala (nespuštěný
     // supabase/poptavky.sql), zbytek aplikace tím nesmí být nijak dotčený.
+    // Databáze odběratelů — zvlášť (bez spuštěného supabase/odberatele.sql našeptávač
+    // funguje dál ze zakázek a poptávek, jen nejde nic ručně upravovat)
+    const odberateleRes = await supabase.from("odberatele").select("*");
+    if (odberateleRes.error) {
+      setOdberateleNacteni(false);
+    } else {
+      setOdberatele(odberateleRes.data || []);
+      setOdberateleNacteni(true);
+    }
     // Adresář dodavatelů — taky zvlášť (bez spuštěného supabase/dodavatele.sql zbytek běží dál)
     const dodavateleRes = await supabase.from("dodavatele").select("*");
     if (dodavateleRes.error) {
@@ -504,6 +517,7 @@ export default function HomePage() {
       const puvodniPoptavka = poptavky.find((x) => x.id === zaznam.id);
       if (patch.odhadCena === null && !(puvodniPoptavka && puvodniPoptavka.odhadCena)) delete patch.odhadCena;
       await upravitPoptavku(zaznam, patch);
+      zapamatovatOdberatele(zaznam);
       setPoptavkaForm(null);
       return;
     }
@@ -528,6 +542,7 @@ export default function HomePage() {
       throw error;
     }
     setPoptavky((prev) => (prev.some((x) => x.id === data.id) ? prev : [data, ...prev]));
+    zapamatovatOdberatele(data);
     setPoptavkaForm(null);
     setDetailPoptavkyId(data.id);
   };
@@ -721,6 +736,7 @@ export default function HomePage() {
     setShowOrderForm(false);
     setEditingOrder(null);
     setDetailOrder(data);
+    zapamatovatOdberatele(data);
 
     // Automatický archiv PDF: jakmile zakázka nově přejde do stavu Hotovo nebo
     // Fakturováno, aplikace sama vygeneruje a uloží PDF na Drive — netřeba na nic klikat.
@@ -750,6 +766,68 @@ export default function HomePage() {
     }
     setOrders((prev) => [data, ...prev]);
     return data;
+  };
+
+  // ---- Databáze odběratelů (našeptávač zákazníků) ----
+  const seznamOdberatelu = useMemo(
+    () => sestavitSeznamOdberatelu({ odberatele, organizace, orders, poptavky }),
+    [odberatele, organizace, orders, poptavky]
+  );
+
+  const zapsatOdberatele = async (zaznam) => {
+    const { data, error } = await supabase.from("odberatele").upsert(zaznam).select().single();
+    if (error) throw error;
+    setOdberatele((prev) => [...prev.filter((x) => x.id !== data.id), data]);
+    return data;
+  };
+
+  // Ruční úprava / přidání v Katalogu → Odběratelé
+  const ulozitOdberatele = async (o, puvodniId) => {
+    const id = klicOdberatele(o);
+    try {
+      await zapsatOdberatele({
+        id,
+        nazev: o.nazev,
+        ico: o.ico || null,
+        zakaznikIdentifikace: o.zakaznikIdentifikace || null,
+        telefon: o.telefon || null,
+        email: o.email || null,
+        poznamka: o.poznamka || null,
+        skryto: false,
+        posledniPouziti: new Date().toISOString(),
+      });
+      // Přejmenovaný / nově s IČO: původní záznam (např. ze zakázek) se skryje, ať nejsou dva
+      if (puvodniId && puvodniId !== id) await zapsatOdberatele({ id: puvodniId, nazev: o.nazev, skryto: true });
+    } catch (e) {
+      console.error(e);
+      throw new Error("Odběratele se nepovedlo uložit. Zkontroluj připojení a zkus to znovu.");
+    }
+  };
+
+  // "Smazání" jen skryje z našeptávače — zakázky a poptávky zůstávají nedotčené
+  const skrytOdberatele = async (o) => {
+    try {
+      await zapsatOdberatele({ id: o.id, nazev: o.nazev, skryto: true });
+    } catch (e) {
+      console.error(e);
+      setGlobalError("Odběratele se nepovedlo odebrat.");
+    }
+  };
+
+  // Po uložení zakázky / poptávky se zákazník sám uloží nebo doplní v databázi
+  // odběratelů (prázdné údaje nic nepřepíšou). Chyba tady nikdy nebrání uložení zakázky.
+  const zapamatovatOdberatele = (f) => {
+    if (!odberateleNacteni) return;
+    const rec = odberatelZFormulare(f);
+    if (!rec.nazev) return;
+    const id = klicOdberatele(rec);
+    const ex = odberatele.find((x) => x.id === id) || {};
+    const zaznam = { ...ex, id, nazev: ex.nazev && !ex.skryto ? ex.nazev : rec.nazev, skryto: false, posledniPouziti: new Date().toISOString() };
+    ["ico", "zakaznikIdentifikace", "telefon", "email"].forEach((k) => {
+      if (rec[k]) zaznam[k] = rec[k];
+    });
+    delete zaznam.created_at;
+    zapsatOdberatele(zaznam).catch((e) => console.error("Uložení odběratele se nepovedlo:", e));
   };
 
   // ---- Adresář dodavatelů ----
@@ -1706,6 +1784,7 @@ export default function HomePage() {
             zPoptavky={poptavkaProZakazku}
             orders={orders}
             organizace={organizace}
+            odberatele={seznamOdberatelu}
             nadrazenaZakazka={nadrazenaZakazkaProNovou}
             duplikatZakazky={duplikatZakazky}
             onSaveOrganizace={saveOrganizace}
@@ -1729,6 +1808,7 @@ export default function HomePage() {
             initial={poptavkaForm === "nova" ? null : poptavkaForm}
             poptavky={poptavky}
             organizace={organizace}
+            odberatele={seznamOdberatelu}
             onSaveOrganizace={saveOrganizace}
             vlastni={{
               // Vlastní e-maily a údaje firmy se při načítání z e-mailu nikdy nevyplní jako zákazník
@@ -1820,6 +1900,7 @@ export default function HomePage() {
             orders={orders}
             poptavky={poptavky}
             dodavatele={dodavatele}
+            odberatele={odberatele}
             nastaveni={nastaveni}
             materialHistory={materialHistory}
             onRestored={loadAllData}
@@ -1829,11 +1910,12 @@ export default function HomePage() {
       )}
 
       {showMaterialy && (
-        <Modal title={katalogZalozka === "dodavatele" ? "Dodavatelé" : "Katalog materiálů"} onClose={() => setShowMaterialy(false)} width={560}>
+        <Modal title={katalogZalozka === "dodavatele" ? "Dodavatelé" : katalogZalozka === "odberatele" ? "Odběratelé" : "Katalog materiálů"} onClose={() => setShowMaterialy(false)} width={560}>
           <div style={{ display: "flex", gap: 0, marginBottom: 14 }}>
             {[
               { key: "materialy", label: "Materiály" },
               { key: "dodavatele", label: "Dodavatelé" },
+              { key: "odberatele", label: "Odběratelé" },
             ].map((z, i) => (
               <button
                 key={z.key}
@@ -1843,7 +1925,7 @@ export default function HomePage() {
                   flex: 1,
                   padding: "8px 10px",
                   border: `1px solid ${C.line}`,
-                  borderRadius: i === 0 ? "6px 0 0 6px" : "0 6px 6px 0",
+                  borderRadius: i === 0 ? "6px 0 0 6px" : i === 2 ? "0 6px 6px 0" : 0,
                   background: katalogZalozka === z.key ? C.ink : C.surface,
                   color: katalogZalozka === z.key ? "#fff" : C.ink,
                   fontFamily: FONTS.display,
@@ -1857,7 +1939,9 @@ export default function HomePage() {
               </button>
             ))}
           </div>
-          {katalogZalozka === "dodavatele" ? (
+          {katalogZalozka === "odberatele" ? (
+            <OdberateleKatalog seznam={seznamOdberatelu} nacteno={odberateleNacteni} onSave={ulozitOdberatele} onSkryt={skrytOdberatele} />
+          ) : katalogZalozka === "dodavatele" ? (
             <DodavateleKatalog dodavatele={dodavatele} materialHistory={materialHistory} nacteno={dodavateleNacteni} onSave={ulozitDodavatele} onDelete={smazatDodavatele} />
           ) : (
             <MaterialyKatalog materialHistory={materialHistory} onChange={setMaterialHistory} onClose={() => setShowMaterialy(false)} />
